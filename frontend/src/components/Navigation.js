@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { MdDashboard, MdSmartToy, MdLogout, MdHistory } from 'react-icons/md';
 import { IoChevronBack } from 'react-icons/io5';
 import './Navigation.css';
+import procogiaLogo from '../assets/images/procogia-logo.png';
+import procogiaIcon from '../assets/images/procogia-icon.png';
 
 const Navigation = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
 
@@ -41,13 +43,13 @@ const Navigation = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
       <div className="nav-header">
         <div className="nav-brand">
           {!isCollapsed ? (
-            <h1 className="brand-title">
-              <span className="brand-name">ProCogia</span>
+            <div className="brand-title">
+              <img src={procogiaLogo} alt="ProCogia" className="brand-logo" />
               <span className="brand-subtitle">Portfolio Agent</span>
-            </h1>
+            </div>
           ) : (
             <div className="brand-title-collapsed">
-              <span className="brand-initial">P</span>
+              <img src={procogiaIcon} alt="ProCogia" className="brand-icon" />
             </div>
           )}
         </div>

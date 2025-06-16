@@ -33,18 +33,21 @@
   flex-direction: column;
 }
 
-.logo-text {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: white;
-  letter-spacing: -0.02em;
+.logo-image {
+  height: 40px;
+  width: auto;
+}
+
+.logo-image-small {
+  height: 30px;
+  width: auto;
 }
 
 .logo-subtitle {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
-  margin-top: -4px;
+  margin-top: 4px;
 }
 
 .header-login-btn {
