@@ -35,9 +35,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local React app URL
-        "https://*.railway.app",  # Railway app domains
-        "https://*.up.railway.app",  # Railway app domains
-        "*",  # Allow all origins in development
+        "https://procogia-investment-aiagent.up.railway.app",  # Frontend Railway URL
+        "https://investmentaiagentservice.up.railway.app",  # Backend Railway URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
