@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import axios from 'axios';
 
 import './App.css';
+import { API_URL } from './config';
 
 // Import page components
 import LandingPage from './LandingPage';
@@ -13,6 +14,9 @@ import ActionsLogPage from './pages/ActionsLogPage';
 import Navigation from './components/Navigation';
 import BuyStock from './BuyStock';
 import AdjustHolding from './AdjustHolding';
+
+// Configure axios with base URL
+axios.defaults.baseURL = API_URL;
 
 function App() {
   const [user, setUser] = useState(null);
@@ -25,6 +29,12 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRefreshingPortfolio, setIsRefreshingPortfolio] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // For debugging
+  useEffect(() => {
+    console.log('API URL:', API_URL);
+    console.log('Axios baseURL:', axios.defaults.baseURL);
+  }, []);
 
   // Check for existing authentication on app load
   useEffect(() => {
