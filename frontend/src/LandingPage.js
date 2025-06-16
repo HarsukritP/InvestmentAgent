@@ -7,8 +7,11 @@ const LandingPage = ({ onLogin }) => {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
+      // Import API_URL from config
+      const { API_URL } = await import('./config');
+      
       // Get OAuth URL from backend
-      const response = await fetch('/auth/login');
+      const response = await fetch(`${API_URL}/auth/login`);
       const data = await response.json();
       
       if (data.oauth_url) {
