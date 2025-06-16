@@ -1,0 +1,39 @@
+-- Add a function to get transaction statistics if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_proc WHERE proname = 'get_transaction_stats') THEN
+    CREATE OR REPLACE FUNCTION public.get_transaction_stats(
+      p_portfolio_id UUID
+    ) RETURNS JSON AS $$
+    BEGIN
+      RETURN (
+        WITH stats AS (
+          SELECT
+            COUNT(*) AS total_transactions,
+            COUNT(*) FILTER (WHERE transaction_type LIKE 'BUY%') AS buy_count,
+            COUNT(*) FILTER (WHERE transaction_type = 'SELL') AS sell_count,
+            SUM(total_amount) FILTER (WHERE transaction_type LIKE 'BUY%') AS total_buy_amount,
+            SUM(total_amount) FILTER (WHERE transaction_type = 'SELL') AS total_sell_amount,
+            (SELECT symbol FROM public.transactions 
+             WHERE portfolio_id = p_portfolio_id 
+             GROUP BY symbol 
+             ORDER BY COUNT(*) DESC LIMIT 1) AS most_traded_symbol,
+            (SELECT ROW_TO_JSON(t) FROM (
+                SELECT id, transaction_type, symbol, shares, price_per_share, total_amount, timestamp
+                FROM public.transactions
+                WHERE portfolio_id = p_portfolio_id
+                ORDER BY total_amount DESC
+                LIMIT 1
+            ) t) AS largest_transaction
+          FROM public.transactions
+          WHERE portfolio_id = p_portfolio_id
+        )
+        SELECT ROW_TO_JSON(stats) FROM stats
+      );
+    END;
+    $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+    
+    COMMENT ON FUNCTION public.get_transaction_stats IS 'Gets transaction statistics for a portfolio';
+  END IF;
+END
+$$; 
