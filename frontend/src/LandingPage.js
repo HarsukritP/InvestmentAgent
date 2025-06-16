@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './LandingPage.css';
-import procogiaLogo from './assets/images/custom/procogia-logo-white.png';
+// Direct link to logo
 
 const LandingPage = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +35,7 @@ const LandingPage = ({ onLogin }) => {
         <div className="container">
           <div className="header-content">
             <div className="logo">
-              <img src={procogiaLogo} alt="ProCogia" className="logo-image" />
+              <img src="https://procogia.com/wp-content/uploads/2024/02/procogia-logo-white.png" alt="ProCogia" className="logo-image" />
             </div>
             <button 
               className="header-login-btn"
@@ -176,7 +176,7 @@ const LandingPage = ({ onLogin }) => {
           <div className="footer-content">
             <div className="footer-left">
               <div className="footer-logo">
-                <img src={procogiaLogo} alt="ProCogia" className="logo-image-small" />
+                <img src="https://procogia.com/wp-content/uploads/2024/02/procogia-logo-white.png" alt="ProCogia" className="logo-image-small" />
               </div>
               <p>© 2024 ProCogia. All rights reserved.</p>
             </div>
