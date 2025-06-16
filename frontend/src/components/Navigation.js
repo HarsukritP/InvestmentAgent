@@ -44,7 +44,7 @@ const Navigation = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
         <div className="nav-brand">
           {!isCollapsed ? (
             <div className="brand-title">
-              <img src="https://procogia.com/wp-content/uploads/2024/02/procogia-logo-white.png" alt="ProCogia" className="brand-logo" />
+              <img src="https://procogia.com/wp-content/uploads/2024/03/procogia-horizontal-light-bg-1.png" alt="ProCogia" className="brand-logo" />
             </div>
           ) : (
             <div className="brand-title-collapsed">
