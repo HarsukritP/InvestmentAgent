@@ -282,91 +282,163 @@ Use the available functions when appropriate to provide accurate market data.
         return full_prompt
 
     async def execute_function(self, function_name: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Execute a function requested by the AI"""
-        params = params or {}
+        """Execute a function based on the AI's request"""
+        if params is None:
+            params = {}
+        
+        print(f"Executing function: {function_name} with params: {params}")
         
         if function_name == "get_portfolio_summary":
-            return await self.get_portfolio_data()
+            try:
+                portfolio_data = await self.get_portfolio_data()
+                # Ensure we return a valid dictionary
+                if isinstance(portfolio_data, dict):
+                    return portfolio_data
+                else:
+                    return {"error": "Invalid portfolio data format"}
+            except Exception as e:
+                return {"error": str(e)}
         
         elif function_name == "get_stock_details":
             symbol = params.get("symbol", "").upper()
             if not symbol:
                 return {"error": "No stock symbol provided"}
-            return await self.get_stock_performance_data(symbol)
+            
+            try:
+                # Check if stock is in portfolio
+                holding = self.portfolio_manager.get_holding_by_symbol(symbol)
+                if not holding:
+                    return {"error": f"Stock {symbol} not found in portfolio"}
+                
+                return await self.get_stock_performance_data(symbol)
+            except Exception as e:
+                return {"error": str(e)}
         
         elif function_name == "search_stock":
             query = params.get("query", "")
             if not query:
                 return {"error": "No search query provided"}
+            
             try:
-                results = await self.market_service.search_stocks(query)
-                if results and len(results) > 0:
-                    # Get price for the top result
-                    top_symbol = results[0]["symbol"]
-                    price_data = await self.market_service.get_stock_quote(top_symbol)
-                    results[0]["current_price"] = price_data.get("price", "N/A")
-                return {"results": results[:5]}  # Return top 5 results
+                search_results = await self.market_service.search_stocks(query)
+                # Ensure we return a valid dictionary
+                return {"results": search_results}
             except Exception as e:
-                return {"error": f"Error searching for stock: {str(e)}"}
+                return {"error": str(e)}
         
         elif function_name == "calculate_portfolio_metrics":
-            portfolio_data = await self.get_portfolio_data()
-            if "error" in portfolio_data:
-                return portfolio_data
-            
-            # Calculate additional metrics
-            holdings = portfolio_data.get("holdings", [])
-            total_value = portfolio_data["portfolio_summary"]["total_portfolio_value"]
-            
-            # Calculate diversification score (0-100)
-            diversification_score = min(len(holdings) * 20, 100) if holdings else 0
-            
-            # Calculate sector distribution (simplified)
-            sectors = {
-                "AAPL": "Technology",
-                "GOOGL": "Technology",
-                "MSFT": "Technology",
-                # Add more mappings as needed
-            }
-            
-            sector_distribution = {}
-            for holding in holdings:
-                symbol = holding["symbol"]
-                sector = sectors.get(symbol, "Other")
-                value = holding["current_value"]
-                if sector in sector_distribution:
-                    sector_distribution[sector] += value
-                else:
-                    sector_distribution[sector] = value
-            
-            # Calculate percentages
-            for sector, value in sector_distribution.items():
-                sector_distribution[sector] = {
-                    "value": value,
-                    "percentage": (value / total_value * 100) if total_value > 0 else 0
+            try:
+                holdings = self.portfolio_manager.get_holdings()
+                if not holdings:
+                    return {"error": "No holdings found in portfolio"}
+                
+                # Get current market prices
+                symbols = [h["symbol"] for h in holdings]
+                market_prices = await self.market_service.get_multiple_quotes(symbols)
+                
+                # Calculate diversification score (simplified)
+                total_value = sum(h["quantity"] * market_prices.get(h["symbol"], h["purchase_price"]) for h in holdings)
+                if total_value == 0:
+                    return {"error": "Portfolio has no value"}
+                
+                # Calculate diversification based on number of holdings and sector distribution
+                base_score = min(100, len(holdings) * 20)  # More holdings = better diversification
+                
+                # Sector-based diversification (simplified)
+                sector_distribution = {}
+                
+                # Map symbols to sectors (simplified)
+                sectors = {
+                    "AAPL": "Technology",
+                    "MSFT": "Technology",
+                    "GOOGL": "Technology",
+                    "AMZN": "Consumer Cyclical",
+                    "META": "Technology",
+                    "TSLA": "Automotive",
+                    "NVDA": "Technology",
+                    "JPM": "Financial Services",
+                    "V": "Financial Services",
+                    "JNJ": "Healthcare",
+                    "PG": "Consumer Defensive",
+                    "UNH": "Healthcare",
+                    "HD": "Consumer Cyclical",
+                    "BAC": "Financial Services",
+                    "XOM": "Energy",
+                    "DIS": "Communication Services",
+                    "VZ": "Communication Services",
+                    "NFLX": "Communication Services",
+                    "ADBE": "Technology",
+                    "CRM": "Technology"
+                }
+                
+                # Calculate concentration by sector
+                for holding in holdings:
+                    symbol = holding["symbol"]
+                    value = holding["quantity"] * market_prices.get(symbol, holding["purchase_price"])
+                    sector = sectors.get(symbol, "Other")
+                    
+                    if sector in sector_distribution:
+                        sector_distribution[sector] += value
+                    else:
+                        sector_distribution[sector] = value
+                
+                # Adjust score based on sector concentration
+                sector_count = len(sector_distribution)
+                concentration_penalty = max(0, 5 - sector_count) * 10  # Penalty for fewer sectors
+                
+                # Calculate final diversification score
+                diversification_score = max(0, min(100, base_score - concentration_penalty))
+                
+                # Format sector distribution as dictionary
+                formatted_sectors = {}
+                for sector, value in sector_distribution.items():
+                    formatted_sectors[sector] = {
+                        "value": float(value),
+                        "percentage": float((value / total_value) * 100) if total_value > 0 else 0
+                    }
+                
+                return {
+                    "diversification_score": diversification_score,
+                    "risk_level": "High" if diversification_score < 40 else "Medium" if diversification_score < 70 else "Low",
+                    "sector_distribution": formatted_sectors,
+                    "concentration_risk": "High" if len(holdings) < 3 else "Medium" if len(holdings) < 5 else "Low"
                 }
             
-            return {
-                "diversification_score": diversification_score,
-                "risk_level": "High" if diversification_score < 40 else "Medium" if diversification_score < 70 else "Low",
-                "sector_distribution": sector_distribution,
-                "concentration_risk": "High" if len(holdings) < 3 else "Medium" if len(holdings) < 5 else "Low"
-            }
+            except Exception as e:
+                return {"error": str(e)}
         
         elif function_name == "get_transaction_history":
-            limit = params.get("limit", 10)
-            transactions = self.portfolio_manager.get_transactions()
-            return {"transactions": transactions[:limit]}
+            try:
+                limit = params.get("limit", 10)
+                transactions = self.portfolio_manager.get_transactions()
+                # Ensure we return a dictionary with a list
+                return {"transactions": transactions[:limit] if transactions else []}
+            except Exception as e:
+                return {"error": str(e)}
         
         elif function_name == "get_historical_prices":
-            symbol = params.get("symbol", "")
-            days = params.get("days", 30)
-            if not symbol:
-                return {"error": "No stock symbol provided"}
-            return await self.market_service.get_historical_data(symbol, days)
+            try:
+                symbol = params.get("symbol", "")
+                days = params.get("days", 30)
+                if not symbol:
+                    return {"error": "No stock symbol provided"}
+                
+                historical_data = await self.market_service.get_historical_data(symbol, days)
+                # Ensure we return a dictionary
+                return {"data": historical_data, "symbol": symbol, "days": days}
+            except Exception as e:
+                return {"error": str(e)}
         
         elif function_name == "get_cache_stats":
-            return await self.market_service.get_cache_stats()
+            try:
+                stats = await self.market_service.get_cache_stats()
+                # Ensure we return a dictionary
+                if isinstance(stats, dict):
+                    return stats
+                else:
+                    return {"stats": stats}
+            except Exception as e:
+                return {"error": str(e)}
         
         else:
             return {"error": f"Unknown function: {function_name}"}
@@ -424,21 +496,48 @@ Use the available functions when appropriate to provide accurate market data.
                     # Get the function call
                     tool_call = response_message.tool_calls[0]
                     function_name = tool_call.function.name
-                    function_args = json.loads(tool_call.function.arguments)
+                    
+                    try:
+                        # Parse function arguments safely
+                        function_args = json.loads(tool_call.function.arguments)
+                    except json.JSONDecodeError:
+                        # Handle invalid JSON in arguments
+                        print(f"Error: Invalid JSON in function arguments: {tool_call.function.arguments}")
+                        function_args = {}
                     
                     print(f"Function called: {function_name} with args: {function_args}")
                     
                     # Execute the function
                     function_called = function_name
-                    function_response = await self.execute_function(function_name, function_args)
+                    try:
+                        function_response = await self.execute_function(function_name, function_args)
+                        
+                        # Ensure function_response is a valid dictionary
+                        if not isinstance(function_response, dict):
+                            print(f"Warning: Function {function_name} returned non-dict response: {function_response}")
+                            function_response = {"result": str(function_response)}
+                    except Exception as func_error:
+                        print(f"Error executing function {function_name}: {str(func_error)}")
+                        function_response = {"error": str(func_error)}
                     
                     # Add the assistant's response and function result to the conversation
                     messages.append(response_message)
+                    
+                    # Convert function response to string safely
+                    try:
+                        function_response_str = json.dumps(function_response)
+                    except (TypeError, ValueError) as json_error:
+                        print(f"Error serializing function response: {str(json_error)}")
+                        # Create a safe version of the response
+                        safe_response = {"error": "Could not serialize function response"}
+                        function_response = safe_response
+                        function_response_str = json.dumps(safe_response)
+                    
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
                         "name": function_name,
-                        "content": json.dumps(function_response)
+                        "content": function_response_str
                     })
                     
                     # Get a new response from the model
