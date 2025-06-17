@@ -459,9 +459,9 @@ Result: {json.dumps(function_response, indent=2)}
 Based on this information, please provide a helpful response to the user's question. Do not mention that you called a function - just use the data to give a natural, informative answer.
 """
                                 response = self.model.generate_content(function_result_prompt)
-            
-            return {
-                "response": response.text,
+                
+                return {
+                    "response": response.text,
                     "function_called": function_called,
                     "function_response": function_response,
                     "success": True
@@ -509,8 +509,8 @@ Based on this information, please provide a helpful response to the user's quest
                         "response": response.text,
                         "function_called": None,
                         "function_response": None,
-                "success": True
-            }
+                        "success": True
+                    }
                 except Exception as fallback_error:
                     print(f"Standard response generation also failed: {fallback_error}")
                     # Ultimate fallback if everything fails
