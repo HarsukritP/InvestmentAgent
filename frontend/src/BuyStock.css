@@ -1215,4 +1215,59 @@
   .adjust-modal .price-info {
     grid-template-columns: 1fr;
   }
+}
+
+/* Mobile styles */
+.buy-stock-overlay.mobile {
+  z-index: 2000;
+}
+
+.buy-stock-modal.mobile {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.buy-stock-modal.mobile .modal-header {
+  padding: 1rem;
+  border-radius: 0;
+}
+
+.buy-stock-modal.mobile .modal-content {
+  padding: 1rem;
+  height: calc(100% - 60px);
+}
+
+.buy-stock-modal.mobile .search-box {
+  flex-direction: column;
+}
+
+.buy-stock-modal.mobile .search-box input {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.buy-stock-modal.mobile .search-button {
+  width: 100%;
+}
+
+.buy-stock-modal.mobile .stock-list {
+  max-height: calc(100vh - 200px);
+}
+
+.buy-stock-modal.mobile .quantity-controls {
+  width: 100%;
+}
+
+.buy-stock-modal.mobile .action-buttons {
+  flex-direction: column;
+}
+
+.buy-stock-modal.mobile .cancel-button,
+.buy-stock-modal.mobile .buy-button {
+  width: 100%;
+  margin: 0.5rem 0;
 } 

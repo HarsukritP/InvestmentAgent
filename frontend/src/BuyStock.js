@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './BuyStock.css';
 
-const BuyStock = ({ isOpen, onClose, onSuccess }) => {
+const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedStock, setSelectedStock] = useState(null);
@@ -70,7 +70,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess }) => {
         } catch (fallbackError) {
           console.error('Fallback affordability check error:', fallbackError);
           setAffordability(null);
-        }
+    }
       }
     }
   }, [selectedStock, quantity]);
@@ -196,200 +196,154 @@ const BuyStock = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="buy-stock-overlay">
-      <div className="buy-stock-modal">
-        <div className="buy-stock-header">
+    <div className={`buy-stock-overlay ${isMobile ? 'mobile' : ''}`}>
+      <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''}`}>
+        <div className="modal-header">
           <h2>Buy Stock</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         
-        <div className="buy-stock-content">
+        <div className="modal-content">
           {!selectedStock ? (
-            // Stock Search Phase
-            <div className="search-phase">
-              <div className="search-section">
-                <label>Search for a stock to buy:</label>
-                <div className="search-input-group">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Enter stock symbol or company name (e.g., AAPL, Tesla)"
-                    className="search-input"
-                  />
-                  <button 
-                    onClick={searchStocks} 
-                    disabled={isSearching || !searchQuery.trim()}
-                    className="search-button"
-                  >
-                    {isSearching ? 'Searching...' : 'Search'}
-                  </button>
-                </div>
+            // Stock Search View
+            <div className="stock-search">
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Search by symbol or company name"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  autoFocus
+                />
+                <button 
+                  className="search-button"
+                  onClick={searchStocks}
+                  disabled={isSearching || !searchQuery.trim()}
+                >
+                  {isSearching ? 'Searching...' : 'Search'}
+                </button>
               </div>
-
-              {searchResults.length > 0 && (
+              
+              {error && <div className="error-message">{error}</div>}
+              
+              {isSearching ? (
+                <div className="loading-indicator">
+                  <div className="spinner"></div>
+                  <p>Searching for stocks...</p>
+                </div>
+              ) : (
                 <div className="search-results">
-                  <h3>Search Results:</h3>
-                  <div className="results-list">
-                    {searchResults.map((stock, index) => (
-                      <div 
-                        key={index} 
-                        className="result-item"
-                        onClick={() => handleStockSelect(stock)}
-                      >
-                        <div className="stock-info">
+                  {searchResults.length > 0 ? (
+                    <ul className="stock-list">
+                      {searchResults.map((stock, index) => (
+                        <li key={index} className="stock-item" onClick={() => handleStockSelect(stock)}>
                           <div className="stock-symbol">{stock.symbol}</div>
                           <div className="stock-name">{stock.name}</div>
-                          <div className="stock-details">
-                            {stock.exchange} • {stock.currency}
-                            {stock.cached && stock.current_price && (
-                              <span className="price-info">
-                                • ${stock.current_price.toFixed(2)}
-                                {stock.change_percent && (
-                                  <span className={`change ${stock.change_percent >= 0 ? 'positive' : 'negative'}`}>
-                                    ({stock.change_percent >= 0 ? '+' : ''}{stock.change_percent.toFixed(2)}%)
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="select-arrow">→</div>
-                      </div>
-                    ))}
-                  </div>
+                          {stock.current_price && (
+                            <div className="stock-price">${stock.current_price.toFixed(2)}</div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : searchQuery.trim() ? (
+                    <div className="no-results">No stocks found matching "{searchQuery}"</div>
+                  ) : null}
                 </div>
               )}
             </div>
           ) : (
-            // Buy Phase
-            <div className="buy-phase">
+            // Stock Purchase View
+            <div className="stock-purchase">
               <div className="selected-stock">
-                <h3>Selected Stock:</h3>
-                <div className="stock-card">
-                  <div className="stock-header">
-                    <span className="symbol">{selectedStock.symbol}</span>
-                    <span className="name">{selectedStock.name}</span>
-                  </div>
-                  {affordability && (
-                    <div className="price-info">
-                      <span className="current-price">
-                        Current Price: ${affordability.current_price?.toFixed(2)}
-                        {affordability.cached && (
-                          <span className="cached-indicator">⚡ Cached</span>
-                        )}
-                      </span>
-                    </div>
-                  )}
+                <div className="stock-header">
+                  <div className="stock-symbol">{selectedStock.symbol}</div>
+                  <div className="stock-name">{selectedStock.name}</div>
                 </div>
-              </div>
-
-              {/* Enhanced Quantity Selection with Slider */}
-              <div className="quantity-section-enhanced">
-                <label>Select Quantity to Buy:</label>
                 
-                {/* Slider Interface */}
-                <div className="slider-container">
-                  <div className="slider-labels">
-                    <span className="slider-label min">1 Share</span>
-                    <span className="slider-label current">
-                      {quantity} Share{quantity !== 1 ? 's' : ''}
-                    </span>
-                    <span className="slider-label max">
-                      Max: {maxAffordableShares}
-                    </span>
+                {affordability && (
+                  <div className="stock-price-info">
+                    <div className="price-label">Current Price</div>
+                    <div className="price-value">${affordability.current_price.toFixed(2)}</div>
                   </div>
-                  
-                  <input
-                    type="range"
-                    min="1"
-                    max={maxAffordableShares}
-                    value={quantity}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    className="buy-quantity-slider"
-                    step="1"
-                  />
-                  
-                  <div className="slider-markers">
-                    <div className="marker min-position" style={{ left: '0%' }} />
-                    <div 
-                      className="marker current-position" 
-                      style={{ left: `${((quantity - 1) / (maxAffordableShares - 1)) * 100}%` }}
-                    />
-                    <div className="marker max-position" style={{ left: '100%' }} />
-                  </div>
-                </div>
-
-                {/* Precision Input */}
-                <div className="precision-input-section">
-                  <span className="precision-label">Precise Amount:</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max={maxAffordableShares}
-                    value={quantity}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    className="precision-quantity-input"
-                  />
-                  <span className="shares-label">shares</span>
-                </div>
+                )}
               </div>
-
-              {affordability && (
-                <div className="affordability-info-enhanced">
-                  <div className="cost-breakdown">
-                    <div className="cost-row">
-                      <span>Total Cost:</span>
-                      <span className="cost-value">${affordability.total_cost?.toFixed(2)}</span>
+              
+              <div className="purchase-form">
+                <div className="quantity-selector">
+                  <label htmlFor="quantity">Quantity</label>
+                  <div className="quantity-controls">
+                    <button 
+                      className="quantity-btn"
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                    >
+                      -
+                    </button>
+                    <input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      max={maxAffordableShares}
+                      value={quantity}
+                      onChange={(e) => handleQuantityChange(e.target.value)}
+                    />
+                    <button 
+                      className="quantity-btn"
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={quantity >= maxAffordableShares}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                
+                {affordability && (
+                  <div className="purchase-summary">
+                    <div className="summary-row">
+                      <div className="summary-label">Total Cost</div>
+                      <div className="summary-value">${affordability.total_cost.toFixed(2)}</div>
                     </div>
-                    <div className="cost-row">
-                      <span>Available Cash:</span>
-                      <span className="cash-value">${affordability.available_cash?.toFixed(2)}</span>
-                    </div>
-                    <div className="cost-row">
-                      <span>Remaining Cash:</span>
-                      <span className={`remaining-value ${(affordability.available_cash - affordability.total_cost) >= 0 ? 'positive' : 'negative'}`}>
-                        ${(affordability.available_cash - affordability.total_cost).toFixed(2)}
-                      </span>
+                    <div className="summary-row">
+                      <div className="summary-label">Available Cash</div>
+                      <div className="summary-value">${affordability.available_cash.toFixed(2)}</div>
                     </div>
                     {!affordability.can_afford && (
-                      <div className="cost-row error">
-                        <span>Shortfall:</span>
-                        <span className="shortfall-value">-${affordability.shortfall?.toFixed(2)}</span>
+                      <div className="summary-row error">
+                        <div className="summary-label">Shortfall</div>
+                        <div className="summary-value">${affordability.shortfall.toFixed(2)}</div>
                       </div>
                     )}
-                  </div>
-                  
-                  {!affordability.can_afford && affordability.max_affordable_shares > 0 && (
-                    <div className="suggestion">
-                      💡 You can afford up to {affordability.max_affordable_shares} shares
+                    <div className="summary-row">
+                      <div className="summary-label">Max Shares</div>
+                      <div className="summary-value">{affordability.max_affordable_shares}</div>
                     </div>
-                  )}
+                  </div>
+                )}
+                
+                {error && <div className="error-message">{error}</div>}
+                
+                <div className="action-buttons">
+                  <button 
+                    className="cancel-button"
+                    onClick={() => setSelectedStock(null)}
+                  >
+                    Back
+                  </button>
+                  <button 
+                    className="buy-button"
+                    onClick={handleBuyStock}
+                    disabled={
+                      isBuying || 
+                      !affordability || 
+                      !affordability.can_afford || 
+                      quantity <= 0
+                    }
+                  >
+                    {isBuying ? 'Processing...' : 'Buy Now'}
+                  </button>
                 </div>
-              )}
-
-              <div className="action-buttons">
-                <button 
-                  onClick={() => setSelectedStock(null)}
-                  className="back-button"
-                >
-                  ← Back to Search
-                </button>
-                <button 
-                  onClick={handleBuyStock}
-                  disabled={isBuying || !affordability?.can_afford}
-                  className={`buy-button ${affordability?.can_afford ? 'enabled' : 'disabled'}`}
-                >
-                  {isBuying ? 'Buying...' : `Buy ${quantity} Share${quantity !== 1 ? 's' : ''}`}
-                </button>
               </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="error-message">
-              ⚠️ {error}
             </div>
           )}
         </div>

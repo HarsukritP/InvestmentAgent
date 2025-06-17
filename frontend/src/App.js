@@ -29,12 +29,37 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRefreshingPortfolio, setIsRefreshingPortfolio] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // For debugging
   useEffect(() => {
     console.log('API URL:', API_URL);
     console.log('Axios baseURL:', axios.defaults.baseURL);
   }, []);
+
+  // Check screen size on mount and resize
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIsMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkIsMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  // Collapse sidebar by default on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarCollapsed(true);
+    }
+  }, [isMobile]);
 
   // Check for existing authentication on app load
   useEffect(() => {
@@ -163,6 +188,10 @@ function App() {
     await fetchPortfolio();
   };
 
+  const toggleMobileNav = () => {
+    setMobileNavOpen(!mobileNavOpen);
+  };
+
   if (isLoading) {
     return (
       <div className="app-loading">
@@ -174,7 +203,7 @@ function App() {
 
   return (
     <Router>
-      <div className="App">
+      <div className={`App ${isMobile ? 'mobile' : ''}`}>
         <Routes>
           {/* Public routes */}
           <Route 
@@ -198,12 +227,15 @@ function App() {
               <Route 
                 path="/portfolio" 
                 element={
-                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
                     <Navigation 
                       user={user} 
                       onLogout={handleLogout}
                       isCollapsed={sidebarCollapsed}
                       onToggleCollapse={setSidebarCollapsed}
+                      isMobile={isMobile}
+                      mobileNavOpen={mobileNavOpen}
+                      toggleMobileNav={toggleMobileNav}
                     />
                     <main className="main-content">
                       <PortfolioPage 
@@ -213,6 +245,8 @@ function App() {
                         onRefresh={fetchPortfolio}
                         onBuyStock={() => setShowBuyStock(true)}
                         onAdjustHolding={handleAdjustHolding}
+                        isMobile={isMobile}
+                        toggleMobileNav={toggleMobileNav}
                       />
                     </main>
                   </div>
@@ -221,15 +255,18 @@ function App() {
               <Route 
                 path="/chat" 
                 element={
-                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
                     <Navigation 
                       user={user} 
                       onLogout={handleLogout}
                       isCollapsed={sidebarCollapsed}
                       onToggleCollapse={setSidebarCollapsed}
+                      isMobile={isMobile}
+                      mobileNavOpen={mobileNavOpen}
+                      toggleMobileNav={toggleMobileNav}
                     />
                     <main className="main-content">
-                      <ChatPage portfolio={portfolio} user={user} />
+                      <ChatPage portfolio={portfolio} user={user} isMobile={isMobile} toggleMobileNav={toggleMobileNav} />
                     </main>
                   </div>
                 } 
@@ -237,15 +274,18 @@ function App() {
               <Route 
                 path="/actions-log" 
                 element={
-                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
                     <Navigation 
                       user={user} 
                       onLogout={handleLogout}
                       isCollapsed={sidebarCollapsed}
                       onToggleCollapse={setSidebarCollapsed}
+                      isMobile={isMobile}
+                      mobileNavOpen={mobileNavOpen}
+                      toggleMobileNav={toggleMobileNav}
                     />
                     <main className="main-content">
-                      <ActionsLogPage />
+                      <ActionsLogPage isMobile={isMobile} toggleMobileNav={toggleMobileNav} />
                     </main>
                   </div>
                 } 
@@ -263,6 +303,7 @@ function App() {
             isOpen={showBuyStock}
             onClose={() => setShowBuyStock(false)}
             onSuccess={handleBuySuccess}
+            isMobile={isMobile}
           />
         )}
 
@@ -275,6 +316,7 @@ function App() {
               setSelectedHolding(null);
             }}
             onSuccess={handleAdjustSuccess}
+            isMobile={isMobile}
           />
         )}
       </div>

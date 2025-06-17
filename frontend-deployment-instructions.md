@@ -10,9 +10,6 @@ REACT_APP_API_URL=https://investmentagent-backend-production.up.railway.app
 REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
 
 # Build Configuration
-NODE_ENV=production
-CI=false
-PORT=3000
 ```
 
 ## Steps to Deploy Frontend on Railway

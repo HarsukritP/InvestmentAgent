@@ -1,12 +1,20 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MdDashboard, MdSmartToy, MdLogout, MdHistory } from 'react-icons/md';
+import { MdDashboard, MdSmartToy, MdLogout, MdHistory, MdMenu, MdClose } from 'react-icons/md';
 import { IoChevronBack } from 'react-icons/io5';
 import './Navigation.css';
 // Direct link to logo
 import procogiaIcon from '../assets/images/procogia-icon.png';
 
-const Navigation = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
+const Navigation = ({ 
+  user, 
+  onLogout, 
+  isCollapsed, 
+  onToggleCollapse,
+  isMobile,
+  mobileNavOpen,
+  toggleMobileNav
+}) => {
 
   const navItems = [
     {
@@ -38,6 +46,89 @@ const Navigation = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
     }
   };
 
+  // For mobile, we'll use a different navigation style
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Menu Button */}
+        <button 
+          className="mobile-menu-button"
+          onClick={toggleMobileNav}
+          aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
+        >
+          {mobileNavOpen ? <MdClose /> : <MdMenu />}
+        </button>
+        
+        {/* Mobile Navigation Overlay */}
+        <div className={`mobile-nav-overlay ${mobileNavOpen ? 'open' : ''}`} onClick={toggleMobileNav}></div>
+        
+        {/* Mobile Navigation Drawer */}
+        <nav className={`mobile-navigation ${mobileNavOpen ? 'open' : ''}`}>
+          <div className="mobile-nav-header">
+            <div className="mobile-nav-brand">
+              <img 
+                src="https://procogia.com/wp-content/uploads/2024/03/procogia-horizontal-light-bg-1.png" 
+                alt="ProCogia" 
+                className="mobile-brand-logo" 
+              />
+            </div>
+            <button 
+              className="mobile-close-button"
+              onClick={toggleMobileNav}
+              aria-label="Close menu"
+            >
+              <MdClose />
+            </button>
+          </div>
+          
+          <div className="mobile-nav-menu">
+            {navItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => 
+                    `mobile-nav-item ${isActive ? 'mobile-nav-item-active' : ''}`
+                  }
+                  onClick={toggleMobileNav}
+                >
+                  <IconComponent className="mobile-nav-item-icon" />
+                  <div className="mobile-nav-item-text">
+                    <div className="mobile-nav-item-label">{item.label}</div>
+                    <div className="mobile-nav-item-description">{item.description}</div>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </div>
+          
+          <div className="mobile-nav-footer">
+            <div className="mobile-user-profile">
+              {user?.picture && (
+                <img 
+                  src={user.picture} 
+                  alt={user.name} 
+                  className="mobile-user-avatar"
+                />
+              )}
+              <div className="mobile-user-info">
+                <div className="mobile-user-name">{user?.name}</div>
+                <div className="mobile-user-email">{user?.email}</div>
+              </div>
+            </div>
+            
+            <button className="mobile-logout-button" onClick={onLogout}>
+              <MdLogout className="mobile-logout-icon" />
+              Sign Out
+            </button>
+          </div>
+        </nav>
+      </>
+    );
+  }
+
+  // Desktop navigation
   return (
     <nav className={`navigation ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="nav-header">

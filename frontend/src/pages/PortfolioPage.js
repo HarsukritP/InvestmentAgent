@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+import { MdMenu } from 'react-icons/md';
 import './PortfolioPage.css';
 
 const PortfolioPage = ({ 
@@ -8,7 +8,9 @@ const PortfolioPage = ({
   isRefreshing, 
   onRefresh, 
   onBuyStock, 
-  onAdjustHolding 
+  onAdjustHolding,
+  isMobile,
+  toggleMobileNav
 }) => {
   const [loading] = useState(false);
   const [error] = useState(null);
@@ -131,8 +133,22 @@ const PortfolioPage = ({
 
   return (
     <div className="portfolio-page">
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="mobile-header">
+          <button 
+            className="mobile-menu-toggle" 
+            onClick={toggleMobileNav}
+            aria-label="Open menu"
+          >
+            <MdMenu />
+          </button>
+          <h1 className="mobile-title">Portfolio</h1>
+        </div>
+      )}
+      
       {/* Page Header */}
-      <h1 className="page-title">Portfolio</h1>
+      {!isMobile && <h1 className="page-title">Portfolio</h1>}
       
       <div className="header-actions">
         <div className={`status-badge ${statusDisplay.class}`}>
@@ -209,25 +225,25 @@ const PortfolioPage = ({
           <div className="summary-label">Total Return</div>
           <div className={`summary-value ${getPerformanceClass(totalPnl)}`}>
             {formatCurrency(totalPnl)}
-            <span className="summary-percent">
+            <div className={`summary-percent ${getPerformanceClass(totalPnlPercent)}`}>
               {formatPercent(totalPnlPercent)}
-            </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Holdings Table */}
+      {/* Holdings Section */}
       <div className="holdings-section">
         <div className="section-header">
-          <h2 className="section-title">Holdings</h2>
-          <p className="section-subtitle">
-            {holdings.length} position{holdings.length !== 1 ? 's' : ''}
-          </p>
+          <h2 className="section-title">Current Holdings</h2>
+          <div className="section-subtitle">
+            {holdings.length} {holdings.length === 1 ? 'position' : 'positions'}
+          </div>
         </div>
 
         {holdings.length === 0 ? (
           <div className="empty-holdings">
-            <div className="empty-icon">📊</div>
+            <div className="empty-icon">📈</div>
             <h3>No holdings yet</h3>
             <p>Start building your portfolio by buying your first stock.</p>
             <button className="buy-first-stock-btn" onClick={onBuyStock}>
@@ -235,64 +251,63 @@ const PortfolioPage = ({
             </button>
           </div>
         ) : (
-          <div className="holdings-table">
-            <div className="table-header">
-              <div className="table-cell symbol">Symbol</div>
-              <div className="table-cell shares">Shares</div>
-              <div className="table-cell avg-cost">Purchase Price</div>
-              <div className="table-cell current-price">Current Price</div>
-              <div className="table-cell market-value">Market Value</div>
-              <div className="table-cell pnl">P&L</div>
-              <div className="table-cell actions">Actions</div>
-            </div>
-            
-            {holdings.map((holding, index) => {
-              const shares = holding.shares || holding.quantity || 0;
-              const avgCost = holding.average_cost || holding.purchase_price || 0;
-              const currentPrice = holding.current_price || avgCost;
-              const marketValue = shares * currentPrice;
-              const costBasis = shares * avgCost;
-              const pnl = marketValue - costBasis;
-              const pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
-
-              return (
-                <div key={index} className="table-row">
-                  <div className="table-cell symbol">
-                    <div className="symbol-info">
-                      <span className="symbol-text">{holding.symbol}</span>
-                    </div>
-                  </div>
-                  <div className="table-cell shares">
-                    {shares.toLocaleString()}
-                  </div>
-                  <div className="table-cell avg-cost">
-                    {formatCurrency(avgCost)}
-                  </div>
-                  <div className="table-cell current-price">
-                    {formatCurrency(currentPrice)}
-                  </div>
-                  <div className="table-cell market-value">
-                    {formatCurrency(marketValue)}
-                  </div>
-                  <div className="table-cell pnl">
-                    <div className={`pnl-value ${getPerformanceClass(pnl)}`}>
-                      {formatCurrency(pnl)}
-                      <span className="pnl-percent">
-                        {formatPercent(pnlPercent)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="table-cell actions">
-                    <button 
-                      className="adjust-btn"
-                      onClick={() => onAdjustHolding(holding)}
-                    >
-                      Adjust
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="holdings-table-wrapper">
+            <table className="holdings-table">
+              <thead>
+                <tr className="table-header">
+                  <th>Symbol</th>
+                  <th>Shares</th>
+                  <th>Avg. Cost</th>
+                  <th>Current Price</th>
+                  <th>Market Value</th>
+                  <th>Profit/Loss</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {holdings.map((holding, index) => {
+                  const shares = holding.shares || holding.quantity || 0;
+                  const avgCost = holding.average_cost || holding.purchase_price || 0;
+                  const currentPrice = holding.current_price || 0;
+                  const marketValue = shares * currentPrice;
+                  const costBasis = shares * avgCost;
+                  const pnl = marketValue - costBasis;
+                  const pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
+                  
+                  return (
+                    <tr key={index} className="table-row">
+                      <td className="table-cell">
+                        <div className="symbol-info">
+                          <div className="symbol-text">
+                            <strong>{holding.symbol}</strong>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="table-cell">{shares.toFixed(2)}</td>
+                      <td className="table-cell">{formatCurrency(avgCost)}</td>
+                      <td className="table-cell">{formatCurrency(currentPrice)}</td>
+                      <td className="table-cell">{formatCurrency(marketValue)}</td>
+                      <td className="table-cell">
+                        <div className={`pnl-value ${getPerformanceClass(pnl)}`}>
+                          {formatCurrency(pnl)}
+                          <div className={`pnl-percent ${getPerformanceClass(pnlPercent)}`}>
+                            {formatPercent(pnlPercent)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <button 
+                          className="adjust-btn"
+                          onClick={() => onAdjustHolding(holding)}
+                        >
+                          Adjust
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
