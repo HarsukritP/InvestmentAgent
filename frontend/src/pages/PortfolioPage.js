@@ -55,7 +55,7 @@ const PortfolioPage = ({
     
     if (!configuration) return { text: 'Loading...', class: 'loading' };
     
-    if (!configuration.twelvedata_key_configured && !configuration.gemini_key_configured && !configuration.oauth_configured) {
+    if (!configuration.twelvedata_key_configured && !configuration.openai_key_configured && !configuration.oauth_configured) {
       return { text: 'Demo Mode (No API Keys)', class: 'warning' };
     }
     
@@ -63,7 +63,7 @@ const PortfolioPage = ({
       return { text: 'Using Mock Market Data', class: 'warning' };
     }
     
-    if (!configuration.gemini_key_configured) {
+    if (!configuration.openai_key_configured) {
       return { text: 'AI Assistant Unavailable', class: 'warning' };
     }
     
@@ -179,7 +179,7 @@ const PortfolioPage = ({
       {/* Configuration Notice */}
       {healthStatus && healthStatus.configuration && (
         !healthStatus.configuration.twelvedata_key_configured || 
-        !healthStatus.configuration.gemini_key_configured
+        !healthStatus.configuration.openai_key_configured
       ) && (
         <div className="config-notice">
           <div className="notice-content">
@@ -189,7 +189,7 @@ const PortfolioPage = ({
               {!healthStatus.configuration.twelvedata_key_configured && (
                 <span> Market data is using mock values. </span>
               )}
-              {!healthStatus.configuration.gemini_key_configured && (
+              {!healthStatus.configuration.openai_key_configured && (
                 <span> AI assistant features are unavailable. </span>
               )}
               Configure API keys for full functionality.

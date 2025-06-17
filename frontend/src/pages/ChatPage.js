@@ -12,6 +12,7 @@ const ChatPage = ({ portfolio, user }) => {
   const [, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const [expandedFunctions, setExpandedFunctions] = useState({});
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -250,30 +251,31 @@ ${sectorInfo}
     })} • ${holdingsCount} position${holdingsCount !== 1 ? 's' : ''}`;
   };
 
+  const toggleFunctionResponse = (index) => {
+    setExpandedFunctions(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
   const renderMessage = (message, index) => {
     const isUser = message.role === 'user';
     
-    // Add debugging information for assistant messages
-    const debugInfo = !isUser && (message.function_called || message.function_response) ? (
-      <div className="debug-info" style={{ 
-        fontSize: '12px', 
-        color: '#666', 
-        marginTop: '8px',
-        padding: '8px',
-        backgroundColor: '#f5f5f5',
-        borderRadius: '4px',
-        fontFamily: 'monospace',
-        whiteSpace: 'pre-wrap'
-      }}>
-        {message.function_called && (
-          <div><strong>Function called:</strong> {message.function_called}</div>
-        )}
-        {message.function_response && (
-          <div>
-            <strong>Function response:</strong><br/>
-            {JSON.stringify(message.function_response, null, 2)}
-          </div>
-        )}
+    // Function call display - show before the message content
+    const functionCallDisplay = !isUser && message.function_called ? (
+      <div className="function-call-display">
+        <div className="function-call-header" onClick={() => toggleFunctionResponse(index)}>
+          <span className="function-icon">🔍</span>
+          <span className="function-name">
+            Function called: <strong>{message.function_called}</strong>
+          </span>
+          <span className="function-toggle">
+            {expandedFunctions[index] ? '▲' : '▼'}
+          </span>
+        </div>
+        <div className={`function-response ${expandedFunctions[index] ? 'expanded' : ''}`}>
+          <pre>{JSON.stringify(message.function_response, null, 2)}</pre>
+        </div>
       </div>
     ) : null;
     
@@ -289,10 +291,13 @@ ${sectorInfo}
           />
         </div>
         <div className="message-content">
+          {/* Show function call before message content */}
+          {functionCallDisplay}
+          
           <div className="message-text">
             {message.content}
           </div>
-          {debugInfo}
+          
           <div className="message-timestamp">
             {new Date(message.timestamp).toLocaleTimeString()}
           </div>
