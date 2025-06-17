@@ -1,10 +1,10 @@
 """
-AI Agent integration with Google Gemini for portfolio analysis
+AI Agent integration with OpenAI GPT-4o for portfolio analysis
 """
 import os
 import json
 from typing import Dict, Any, List
-import google.generativeai as genai
+from openai import OpenAI
 from portfolio import PortfolioManager
 from market_data import MarketDataService
 
@@ -104,14 +104,14 @@ class AIPortfolioAgent:
         self.portfolio_manager = portfolio_manager
         self.market_service = market_service
         
-        # Configure Gemini
-        api_key = os.getenv("GEMINI_API_KEY")
+        # Configure OpenAI client
+        api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            # Use gemini-1.5-pro for function calling support
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
+            self.client = OpenAI(api_key=api_key)
+            self.model = "gpt-4o"
         else:
-            print("Warning: GEMINI_API_KEY not found in environment variables")
+            print("Warning: OPENAI_API_KEY not found in environment variables")
+            self.client = None
             self.model = None
         
         # System prompt for the AI assistant
@@ -214,8 +214,7 @@ Remember: This is a simulation environment, so any trading recommendations are f
         is_portfolio_related = any(keyword in normalized_message for keyword in portfolio_keywords) or \
                               any(symbol in normalized_message.split() for symbol in stock_symbols)
         
-        # Base prompt starts with system prompt
-        prompt_parts = [self.system_prompt]
+        context = ""
         
         # Only add portfolio context if the query is related to portfolio/investments
         if is_portfolio_related:
@@ -242,8 +241,6 @@ HOLDINGS:"""
                         stock_data = await self.get_stock_performance_data(symbol)
                         if "error" not in stock_data:
                             context += f"\n\nDETAILED {symbol} ANALYSIS: {stock_data['shares_owned']} shares, bought at ${stock_data['purchase_price']:.2f}, now ${stock_data['current_price']:.2f}, P&L: ${stock_data['pnl']:,.2f} ({stock_data['pnl_percent']:+.2f}%)"
-                
-                prompt_parts.append(context)
         
         # Provide a clear instruction for the AI - different based on whether portfolio data was included
         if is_portfolio_related:
@@ -278,8 +275,10 @@ focus on providing general advice, information, or answering their question dire
 Use the available functions when appropriate to provide accurate market data.
 """
         
-        prompt_parts.append(instruction.format(user_message=user_message))
-        full_prompt = "\n\n".join(prompt_parts)
+        full_prompt = instruction.format(user_message=user_message)
+        if context:
+            full_prompt = context + "\n\n" + full_prompt
+            
         return full_prompt
 
     async def execute_function(self, function_name: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -374,139 +373,117 @@ Use the available functions when appropriate to provide accurate market data.
 
     async def chat(self, user_message: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, Any]:
         """Process user message and return AI response with function calling"""
-        if not self.model:
+        if not self.client or not self.model:
             return {
-                "response": "I'm sorry, but the AI service is not configured. Please set up your Gemini API key to use the AI assistant.",
-                "error": "Missing Gemini API key"
+                "response": "I'm sorry, but the AI service is not configured. Please set up your OpenAI API key to use the AI assistant.",
+                "error": "Missing OpenAI API key"
             }
         
         try:
             # Create context-aware prompt
-            full_prompt = await self.format_portfolio_context(user_message)
+            context_prompt = await self.format_portfolio_context(user_message)
             
-            # Generate response using Gemini with function calling
+            # Generate response using OpenAI with function calling
             try:
-                # Create a GenerationConfig object
-                generation_config = genai.types.GenerationConfig(
-                    temperature=0.2,
-                    top_p=0.8,
-                    top_k=40,
-                    max_output_tokens=2048,
-                )
-                
-                # Create safety settings
-                safety_settings = [
+                # Format the tools for OpenAI function calling
+                tools = [
                     {
-                        "category": genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                        "threshold": genai.types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-                    },
-                    {
-                        "category": genai.types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                        "threshold": genai.types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-                    },
-                    {
-                        "category": genai.types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                        "threshold": genai.types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-                    },
-                    {
-                        "category": genai.types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                        "threshold": genai.types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-                    }
+                        "type": "function",
+                        "function": {
+                            "name": func["name"],
+                            "description": func["description"],
+                            "parameters": func["parameters"]
+                        }
+                    } for func in AI_FUNCTIONS
                 ]
                 
-                # Create a Tool object with function declarations
-                tools = [genai.types.Tool(function_declarations=AI_FUNCTIONS)]
+                # Create the initial message
+                messages = [
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": context_prompt}
+                ]
                 
-                # Generate content with function calling
-                response = self.model.generate_content(
-                    full_prompt,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings,
-                    tools=tools
+                # Make the API call
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=0.2,
+                    tools=tools,
+                    tool_choice="auto",
+                    max_tokens=2048
                 )
                 
                 # Check if the model wants to call a function
                 function_called = None
                 function_response = None
                 
-                # Process function calls if present
-                if hasattr(response, 'candidates') and response.candidates:
-                    candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and candidate.content.parts:
-                        for part in candidate.content.parts:
-                            if hasattr(part, 'function_call'):
-                                function_call = part.function_call
-                                function_name = function_call.name
-                                function_args = {}
-                                
-                                if hasattr(function_call, 'args'):
-                                    function_args = function_call.args
-                                
-                                print(f"Function called: {function_name} with args: {function_args}")
-                                
-                                # Execute the function
-                                function_called = function_name
-                                function_response = await self.execute_function(function_name, function_args)
-                                
-                                # Generate a new response with the function result
-                                function_result_prompt = f"""
-{full_prompt}
-
-FUNCTION CALL RESULT:
-Function: {function_name}
-Result: {json.dumps(function_response, indent=2)}
-
-Based on this information, please provide a helpful response to the user's question. Do not mention that you called a function - just use the data to give a natural, informative answer.
-"""
-                                response = self.model.generate_content(function_result_prompt)
+                response_message = response.choices[0].message
                 
-                return {
-                    "response": response.text,
-                    "function_called": function_called,
-                    "function_response": function_response,
-                    "success": True
-                }
+                # Process function calls if present
+                if response_message.tool_calls:
+                    # Get the function call
+                    tool_call = response_message.tool_calls[0]
+                    function_name = tool_call.function.name
+                    function_args = json.loads(tool_call.function.arguments)
+                    
+                    print(f"Function called: {function_name} with args: {function_args}")
+                    
+                    # Execute the function
+                    function_called = function_name
+                    function_response = await self.execute_function(function_name, function_args)
+                    
+                    # Add the assistant's response and function result to the conversation
+                    messages.append(response_message)
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": json.dumps(function_response)
+                    })
+                    
+                    # Get a new response from the model
+                    second_response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=messages,
+                        temperature=0.2,
+                        max_tokens=2048
+                    )
+                    
+                    # Return the final response
+                    return {
+                        "response": second_response.choices[0].message.content,
+                        "function_called": function_called,
+                        "function_response": function_response,
+                        "success": True
+                    }
+                else:
+                    # No function was called, return the direct response
+                    return {
+                        "response": response_message.content,
+                        "function_called": None,
+                        "function_response": None,
+                        "success": True
+                    }
+                    
             except Exception as e:
                 print(f"Function calling approach failed: {e}")
                 
                 # Try standard response without function calling as a fallback
                 try:
-                    # Configure generation parameters
-                    generation_config = {
-                        "temperature": 0.2,
-                        "top_p": 0.8,
-                        "top_k": 40,
-                        "max_output_tokens": 2048,
-                    }
-                    
-                    safety_settings = [
-                        {
-                            "category": "HARM_CATEGORY_HARASSMENT",
-                            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            "category": "HARM_CATEGORY_HATE_SPEECH",
-                            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-                        }
-                    ]
-                    
-                    response = self.model.generate_content(
-                        full_prompt,
-                        generation_config=generation_config,
-                        safety_settings=safety_settings
+                    # Make a simpler API call without function calling
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": self.system_prompt},
+                            {"role": "user", "content": context_prompt}
+                        ],
+                        temperature=0.2,
+                        max_tokens=2048
                     )
                     
                     # If the response is successful, return it
                     return {
-                        "response": response.text,
+                        "response": response.choices[0].message.content,
                         "function_called": None,
                         "function_response": None,
                         "success": True
@@ -531,31 +508,31 @@ Based on this information, please provide a helpful response to the user's quest
     def health_check(self) -> Dict[str, Any]:
         """Check if AI service is working"""
         try:
-            if not os.getenv("GEMINI_API_KEY"):
+            if not os.getenv("OPENAI_API_KEY"):
                 return {
                     "status": "error",
                     "api_key_configured": False,
-                    "error": "Gemini API key not configured"
+                    "error": "OpenAI API key not configured"
                 }
             
-            if not self.model:
+            if not self.client:
                 return {
                     "status": "error", 
                     "api_key_configured": True,
-                    "error": "Gemini model not initialized"
+                    "error": "OpenAI client not initialized"
                 }
             
             # Simple health check without async call
             return {
                 "status": "healthy",
                 "api_key_configured": True,
-                "model": "gemini-1.5-pro",
+                "model": "gpt-4o",
                 "functions_available": len(AI_FUNCTIONS),
                 "ready": True
             }
         except Exception as e:
             return {
                 "status": "error",
-                "api_key_configured": bool(os.getenv("GEMINI_API_KEY")),
+                "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
                 "error": str(e)
             } 

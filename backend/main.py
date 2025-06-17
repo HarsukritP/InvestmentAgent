@@ -764,7 +764,7 @@ async def health_check():
             },
             "configuration": {
                 "twelvedata_key_configured": bool(os.getenv("TWELVEDATA_API_KEY")),
-                "gemini_key_configured": bool(os.getenv("GEMINI_API_KEY")),
+                "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")),
                 "oauth_configured": bool(auth_service.google_client_id and auth_service.google_client_secret),
                 "supabase_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
             }
