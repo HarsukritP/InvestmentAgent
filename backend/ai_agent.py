@@ -219,28 +219,28 @@ Remember: This is a simulation environment, so any trading recommendations are f
         
         # Only add portfolio context if the query is related to portfolio/investments
         if is_portfolio_related:
-        # Get portfolio data
-        portfolio_data = await self.get_portfolio_data()
-        
-        if "error" in portfolio_data:
-            context = "Portfolio data is currently unavailable."
-        else:
+            # Get portfolio data
+            portfolio_data = await self.get_portfolio_data()
+            
+            if "error" in portfolio_data:
+                context = "Portfolio data is currently unavailable."
+            else:
                 # Format portfolio context - keep it concise to reduce token usage
-            context = f"""
+                context = f"""
 CURRENT PORTFOLIO DATA:
 Total Portfolio Value: ${portfolio_data['portfolio_summary']['total_portfolio_value']:,.2f}
 Total P&L: ${portfolio_data['portfolio_summary']['total_pnl']:,.2f} ({portfolio_data['portfolio_summary']['total_pnl_percent']:+.2f}%)
 Cash Balance: ${portfolio_data['portfolio_summary']['cash_balance']:,.2f}
 
 HOLDINGS:"""
-            for holding in portfolio_data['holdings']:
+                for holding in portfolio_data['holdings']:
                     context += f"\n- {holding['symbol']}: {holding['quantity']} shares, ${holding['current_price']:.2f}/share, P&L: ${holding['pnl']:,.2f} ({holding['pnl_percent']:+.2f}%)"
-        
+            
                 # Only add detailed stock analysis if specifically asked about a stock
                 for symbol in ['AAPL', 'GOOGL', 'MSFT', 'NVDA', 'AMD']:
-                if symbol in user_message.upper() or (symbol == 'AAPL' and 'APPLE' in user_message.upper()) or (symbol == 'GOOGL' and 'GOOGLE' in user_message.upper()) or (symbol == 'MSFT' and 'MICROSOFT' in user_message.upper()):
-                    stock_data = await self.get_stock_performance_data(symbol)
-                    if "error" not in stock_data:
+                    if symbol in user_message.upper() or (symbol == 'AAPL' and 'APPLE' in user_message.upper()) or (symbol == 'GOOGL' and 'GOOGLE' in user_message.upper()) or (symbol == 'MSFT' and 'MICROSOFT' in user_message.upper()):
+                        stock_data = await self.get_stock_performance_data(symbol)
+                        if "error" not in stock_data:
                             context += f"\n\nDETAILED {symbol} ANALYSIS: {stock_data['shares_owned']} shares, bought at ${stock_data['purchase_price']:.2f}, now ${stock_data['current_price']:.2f}, P&L: ${stock_data['pnl']:,.2f} ({stock_data['pnl_percent']:+.2f}%)"
                 
                 prompt_parts.append(context)
