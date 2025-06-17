@@ -320,6 +320,9 @@
 .table-cell {
   font-size: 0.875rem;
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .symbol-info {
@@ -335,6 +338,8 @@
 
 .pnl-value {
   font-weight: 600;
+  display: flex;
+  flex-direction: column;
 }
 
 .pnl-value.positive {
