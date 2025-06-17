@@ -219,7 +219,14 @@ ${sectorInfo}
   };
 
   const formatBuyStock = (data) => {
-    if (data.error) return `Error: ${data.error}`;
+    if (data.error) {
+      let errorMsg = `Error: ${data.error}`;
+      if (data.suggestions && data.suggestions.length > 0) {
+        errorMsg += `\nDid you mean one of these symbols? ${data.suggestions.join(', ')}`;
+      }
+      return errorMsg;
+    }
+    
     if (!data.success) {
       let message = `Could not complete purchase: ${data.error || "Unknown error"}`;
       if (data.affordability) {
@@ -230,9 +237,14 @@ ${sectorInfo}
       return message;
     }
     
+    let stockName = '';
+    if (data.stock_info && data.stock_info.name) {
+      stockName = ` (${data.stock_info.name})`;
+    }
+    
     return `
 💰 Purchase Executed:
-• Symbol: ${data.symbol}
+• Symbol: ${data.symbol}${stockName}
 • Shares: ${data.quantity}
 • Price: $${data.price?.toFixed(2) || 0}/share
 • Total Cost: $${data.total_cost?.toFixed(2) || 0}

@@ -49,13 +49,13 @@ AI_FUNCTIONS = [
     },
     {
         "name": "buy_stock",
-        "description": "Execute a stock purchase for the user's portfolio",
+        "description": "Execute a stock purchase for the user's portfolio. Can buy both existing holdings and new stocks not currently in the portfolio.",
         "parameters": {
             "type": "object",
             "properties": {
                 "symbol": {
                     "type": "string",
-                    "description": "The stock symbol to buy (e.g., AAPL, GOOGL, MSFT)"
+                    "description": "The stock symbol to buy (e.g., AAPL, GOOGL, MSFT). For stocks not in the portfolio, the system will verify the symbol exists before purchasing."
                 },
                 "quantity": {
                     "type": "number",
@@ -167,6 +167,8 @@ When users ask you to buy or sell stocks, you can execute these transactions dir
 2. Check if the user has sufficient funds (for buys) or shares (for sells)
 3. Provide a clear summary of the transaction after it's completed
 4. Update the user on their new portfolio balance and holdings
+
+You can buy both stocks that are already in the portfolio AND new stocks that aren't currently held. For new stocks, you'll automatically verify the symbol exists before purchasing.
 
 Always be professional, accurate, and helpful. When users ask about portfolio data, I will provide you with the current portfolio information including real-time prices and performance metrics.
 
@@ -380,6 +382,29 @@ Use the available functions when appropriate to provide accurate market data.
                 return {"error": "Invalid quantity. Please provide a positive number of shares to buy."}
             
             try:
+                # Check if the symbol exists by searching for it
+                search_results = None
+                try:
+                    search_results = await self.market_service.search_stocks(symbol)
+                    if not search_results or len(search_results) == 0:
+                        return {"error": f"Could not find stock with symbol {symbol}"}
+                    
+                    # Verify the symbol matches exactly what we're looking for
+                    exact_match = False
+                    for result in search_results:
+                        if result.get("symbol", "").upper() == symbol.upper():
+                            exact_match = True
+                            break
+                    
+                    if not exact_match:
+                        return {
+                            "error": f"Could not find exact match for symbol {symbol}. Did you mean one of these?",
+                            "suggestions": [r.get("symbol") for r in search_results[:5]]
+                        }
+                except Exception as search_error:
+                    print(f"Warning: Search failed but continuing: {search_error}")
+                    # Continue with the buy operation even if search fails
+                
                 # Get current price of the stock
                 quote_data = await self.market_service.get_stock_quote(symbol)
                 if not quote_data or "price" not in quote_data:
@@ -441,6 +466,18 @@ Use the available functions when appropriate to provide accurate market data.
                     ]
                 }
                 
+                # Include stock information in the response if we have it
+                stock_info = {}
+                if search_results and len(search_results) > 0:
+                    for result in search_results:
+                        if result.get("symbol", "").upper() == symbol.upper():
+                            stock_info = {
+                                "name": result.get("name", ""),
+                                "exchange": result.get("exchange", ""),
+                                "type": result.get("type", "")
+                            }
+                            break
+                
                 return {
                     "success": True,
                     "symbol": symbol,
@@ -449,7 +486,8 @@ Use the available functions when appropriate to provide accurate market data.
                     "total_cost": total_cost,
                     "new_cash_balance": result["new_cash_balance"],
                     "transaction_id": result["transaction"]["id"],
-                    "message": f"Successfully purchased {quantity} shares of {symbol} at ${current_price:.2f} per share."
+                    "message": f"Successfully purchased {quantity} shares of {symbol} at ${current_price:.2f} per share.",
+                    "stock_info": stock_info
                 }
                 
             except Exception as e:
