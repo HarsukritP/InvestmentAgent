@@ -282,8 +282,16 @@
 }
 
 /* Holdings Table */
-.holdings-table {
+.holdings-table-wrapper {
+  width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+.holdings-table {
+  min-width: 100%;
+  width: max-content;
 }
 
 .table-header, .table-row {
@@ -462,6 +470,7 @@
   
   .header-actions {
     flex-wrap: wrap;
+    gap: 0.5rem;
   }
   
   .page-title {
@@ -496,8 +505,14 @@
     font-size: 0.75rem;
   }
 
+  .holdings-table-wrapper {
+    margin: 0 -1rem;
+    width: calc(100% + 2rem);
+    padding: 0 1rem;
+  }
+
   .table-header, .table-row {
-    grid-template-columns: 1fr 60px 80px 80px 100px 100px 60px;
+    grid-template-columns: 80px 60px 80px 80px 100px 100px 80px;
     gap: 0.25rem;
     padding: 0.75rem 0.5rem;
   }
