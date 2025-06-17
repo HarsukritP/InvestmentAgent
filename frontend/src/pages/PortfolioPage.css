@@ -45,34 +45,85 @@
 .status-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 14px;
   font-weight: 500;
-  white-space: nowrap;
+  background-color: #f0f0f0;
+  color: #555;
+  position: relative;
 }
 
-.status-badge.success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-badge.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.status-badge.loading {
-  background: #e5e7eb;
-  color: #6b7280;
-}
-
-.status-dot {
+.status-badge .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: currentColor;
+  margin-right: 8px;
+  background-color: #aaa;
+}
+
+.status-badge.success {
+  background-color: #e6f7ed;
+  color: #0d6832;
+}
+
+.status-badge.success .status-dot {
+  background-color: #10b981;
+}
+
+.status-badge.warning {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.status-badge.warning .status-dot {
+  background-color: #eab308;
+}
+
+.status-badge.error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-badge.error .status-dot {
+  background-color: #ef4444;
+}
+
+.status-badge.loading {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.status-badge.loading .status-dot {
+  background-color: #6b7280;
+}
+
+.next-update-time {
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Auto-refresh info */
+.auto-refresh-info {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Refresh button animation */
+.btn-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .buy-stock-btn, .refresh-btn {
@@ -117,15 +168,6 @@
 
 .btn-icon {
   font-size: 1rem;
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 /* Configuration Notice */

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { MdMenu } from 'react-icons/md';
+import axios from 'axios';
+import { API_URL } from '../config';
+import BuyStock from '../BuyStock';
+import AdjustHolding from '../AdjustHolding';
+import { formatCurrency, formatPercentage, getValueClass, getMarketStatus } from '../utils/formatters';
 import './PortfolioPage.css';
 
 const PortfolioPage = ({ 
@@ -15,6 +19,9 @@ const PortfolioPage = ({
   const [loading] = useState(false);
   const [error] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState(null);
 
   useEffect(() => {
     if (portfolio) {
@@ -74,6 +81,27 @@ const PortfolioPage = ({
     return { text: 'Some Services Degraded', class: 'warning' };
   };
 
+  const handleRefresh = () => {
+    onRefresh();
+  };
+
+  const handleBuyStock = () => {
+    setShowBuyModal(true);
+  };
+
+  const handleAdjustHolding = (holding) => {
+    setSelectedHolding(holding);
+    setShowAdjustModal(true);
+  };
+
+  const handleTransactionSuccess = () => {
+    setShowBuyModal(false);
+    setShowAdjustModal(false);
+    handleRefresh();
+  };
+
+  const marketStatus = getMarketStatus(healthStatus);
+
   if (loading) {
     return (
       <div className="portfolio-page">
@@ -91,7 +119,7 @@ const PortfolioPage = ({
         <div className="portfolio-error">
           <h2>Unable to load portfolio</h2>
           <p>{error}</p>
-          <button onClick={onRefresh} className="retry-button">
+          <button onClick={handleRefresh} className="retry-button">
             Try Again
           </button>
         </div>
@@ -105,7 +133,7 @@ const PortfolioPage = ({
         <div className="portfolio-empty">
           <h2>No portfolio data available</h2>
           <p>Your portfolio information will appear here once loaded.</p>
-          <button onClick={onRefresh} className="refresh-button">
+          <button onClick={handleRefresh} className="refresh-button">
             Refresh Portfolio
           </button>
         </div>
@@ -151,20 +179,23 @@ const PortfolioPage = ({
       {!isMobile && <h1 className="page-title">Portfolio</h1>}
       
       <div className="header-actions">
-        <div className={`status-badge ${statusDisplay.class}`}>
+        <div className={`status-badge ${marketStatus.class}`}>
           <div className="status-dot"></div>
-          <span>{statusDisplay.text}</span>
+          <span>{marketStatus.text}</span>
+          {marketStatus.nextUpdate && (
+            <span className="next-update-time">{marketStatus.nextUpdate}</span>
+          )}
         </div>
         <button 
           className="buy-stock-btn"
-          onClick={onBuyStock}
+          onClick={handleBuyStock}
         >
           <span className="btn-icon">💰</span>
           Buy Stock
         </button>
         <button 
           className="refresh-btn"
-          onClick={onRefresh}
+          onClick={handleRefresh}
           disabled={isRefreshing}
         >
           <span className={`btn-icon ${isRefreshing ? 'spinning' : ''}`}>🔄</span>
@@ -173,7 +204,14 @@ const PortfolioPage = ({
       </div>
       
       {lastUpdated && (
-        <p className="last-updated">Updated {lastUpdated}</p>
+        <p className="last-updated">
+          Updated {lastUpdated}
+          {marketStatus.refreshInterval && (
+            <span className="auto-refresh-info">
+              • Auto-refreshes every {marketStatus.refreshInterval} min during market {marketStatus.class === 'success' ? 'hours' : 'closure'}
+            </span>
+          )}
+        </p>
       )}
 
       {/* Configuration Notice */}
@@ -246,7 +284,7 @@ const PortfolioPage = ({
             <div className="empty-icon">📈</div>
             <h3>No holdings yet</h3>
             <p>Start building your portfolio by buying your first stock.</p>
-            <button className="buy-first-stock-btn" onClick={onBuyStock}>
+            <button className="buy-first-stock-btn" onClick={handleBuyStock}>
               Buy Your First Stock
             </button>
           </div>
@@ -298,7 +336,7 @@ const PortfolioPage = ({
                       <td className="table-cell">
                         <button 
                           className="adjust-btn"
-                          onClick={() => onAdjustHolding(holding)}
+                          onClick={() => handleAdjustHolding(holding)}
                         >
                           Adjust
                         </button>
@@ -311,6 +349,24 @@ const PortfolioPage = ({
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showBuyModal && (
+        <BuyStock 
+          show={showBuyModal} 
+          onClose={() => setShowBuyModal(false)} 
+          onSuccess={handleTransactionSuccess}
+        />
+      )}
+      
+      {showAdjustModal && selectedHolding && (
+        <AdjustHolding 
+          show={showAdjustModal} 
+          holding={selectedHolding}
+          onClose={() => setShowAdjustModal(false)} 
+          onSuccess={handleTransactionSuccess}
+        />
+      )}
     </div>
   );
 };

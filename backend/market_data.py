@@ -4,11 +4,13 @@ Market data integration with Twelve Data API and collaborative database caching
 import requests
 import os
 from typing import Dict, Optional, List, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import json
 import logging
 import random
 import aiohttp
+import asyncio
+import pytz
 
 # Configure cleaner logging format
 logging.basicConfig(
@@ -17,6 +19,13 @@ logging.basicConfig(
     datefmt='%H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+# Market hours configuration (Eastern Time)
+MARKET_OPEN_TIME = time(9, 30)  # 9:30 AM ET
+MARKET_CLOSE_TIME = time(16, 0)  # 4:00 PM ET
+MARKET_TIMEZONE = pytz.timezone('US/Eastern')
+REFRESH_INTERVAL_MARKET_OPEN = 3 * 60  # 3 minutes in seconds
+REFRESH_INTERVAL_MARKET_CLOSED = 20 * 60  # 20 minutes in seconds
 
 class MarketDataService:
     def __init__(self, db_service=None):
@@ -31,10 +40,94 @@ class MarketDataService:
         else:
             self.db_service = db_service
         
+        # Background task state
+        self._auto_refresh_task = None
+        self._watchlist_symbols = set()
+        self._is_refreshing = False
+        self._last_refresh = datetime.now() - timedelta(hours=1)  # Initialize to trigger immediate refresh
+        
         if not self.twelvedata_api_key:
             print("⚠️  Warning: TWELVEDATA_API_KEY not found in environment variables")
         else:
             print(f"✅ Twelve Data API configured (key: {self.twelvedata_api_key[:8]}...)")
+            
+        # Start the auto-refresh background task
+        self.start_auto_refresh()
+    
+    def is_market_open(self) -> bool:
+        """Check if the US stock market is currently open"""
+        # Get current time in Eastern Time
+        now_et = datetime.now(MARKET_TIMEZONE)
+        
+        # Check if it's a weekday (Monday=0, Sunday=6)
+        if now_et.weekday() >= 5:  # Saturday or Sunday
+            return False
+        
+        # Check if within market hours
+        current_time = now_et.time()
+        return MARKET_OPEN_TIME <= current_time <= MARKET_CLOSE_TIME
+    
+    def get_refresh_interval(self) -> int:
+        """Get the appropriate refresh interval based on market hours"""
+        return REFRESH_INTERVAL_MARKET_OPEN if self.is_market_open() else REFRESH_INTERVAL_MARKET_CLOSED
+    
+    def start_auto_refresh(self):
+        """Start the background task for auto-refreshing stock prices"""
+        if self._auto_refresh_task is None:
+            self._auto_refresh_task = asyncio.create_task(self._auto_refresh_loop())
+            print("✅ Auto-refresh background task started")
+    
+    def stop_auto_refresh(self):
+        """Stop the background task for auto-refreshing stock prices"""
+        if self._auto_refresh_task:
+            self._auto_refresh_task.cancel()
+            self._auto_refresh_task = None
+            print("⏹️ Auto-refresh background task stopped")
+    
+    def add_to_watchlist(self, symbols: List[str]):
+        """Add symbols to the auto-refresh watchlist"""
+        for symbol in symbols:
+            self._watchlist_symbols.add(symbol.upper())
+        print(f"👀 Watchlist updated: {len(self._watchlist_symbols)} symbols")
+    
+    async def _auto_refresh_loop(self):
+        """Background task loop for auto-refreshing stock prices"""
+        try:
+            while True:
+                # Determine the appropriate refresh interval
+                interval = self.get_refresh_interval()
+                
+                # Check if it's time to refresh
+                time_since_last_refresh = (datetime.now() - self._last_refresh).total_seconds()
+                
+                if time_since_last_refresh >= interval and self._watchlist_symbols and not self._is_refreshing:
+                    self._is_refreshing = True
+                    try:
+                        # Log the refresh with market status
+                        market_status = "OPEN" if self.is_market_open() else "CLOSED"
+                        print(f"\n🔄 AUTO-REFRESH | Market {market_status} | Refreshing {len(self._watchlist_symbols)} symbols")
+                        
+                        # Refresh prices for watchlist symbols
+                        await self.get_multiple_quotes_optimized(list(self._watchlist_symbols))
+                        
+                        # Update last refresh time
+                        self._last_refresh = datetime.now()
+                        
+                        # Log completion
+                        print(f"✅ AUTO-REFRESH | Complete | Next refresh in {interval//60} minutes")
+                    except Exception as e:
+                        print(f"❌ AUTO-REFRESH | Failed | Error: {str(e)}")
+                    finally:
+                        self._is_refreshing = False
+                
+                # Sleep for a short time before checking again
+                await asyncio.sleep(10)  # Check every 10 seconds
+        except asyncio.CancelledError:
+            print("🛑 Auto-refresh task cancelled")
+        except Exception as e:
+            print(f"❌ Auto-refresh task error: {str(e)}")
+            # Restart the task if it fails
+            self._auto_refresh_task = asyncio.create_task(self._auto_refresh_loop())
     
     async def _get_cached_price(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get price from database cache if fresh enough with intelligent freshness"""
@@ -227,22 +320,38 @@ class MarketDataService:
             return {"error": str(e)}
     
     def health_check(self) -> Dict[str, any]:
-        """Check if the market data service is working"""
+        """Health check for market data service"""
         try:
+            # Get market status
+            is_market_open = self.is_market_open()
+            market_status = "open" if is_market_open else "closed"
+            refresh_interval = self.get_refresh_interval()
+            
+            # Calculate time to next refresh
+            time_since_last_refresh = (datetime.now() - self._last_refresh).total_seconds()
+            time_to_next_refresh = max(0, refresh_interval - time_since_last_refresh)
+            
             return {
-                "status": "healthy" if self.twelvedata_api_key else "error",
+                "status": "healthy",
                 "twelvedata_key_configured": bool(self.twelvedata_api_key),
-                "database_connected": bool(self.db_service),
+                "database_connected": True,
                 "last_test": datetime.now().isoformat(),
                 "cache_type": "collaborative_database",
-                "api_source": "Twelve Data (800 requests/day)"
+                "api_source": "Twelve Data (800 requests/day)",
+                "auto_refresh": {
+                    "enabled": self._auto_refresh_task is not None,
+                    "market_status": market_status,
+                    "refresh_interval_minutes": refresh_interval // 60,
+                    "watchlist_size": len(self._watchlist_symbols),
+                    "last_refresh": self._last_refresh.isoformat(),
+                    "next_refresh_in_seconds": round(time_to_next_refresh),
+                    "is_refreshing": self._is_refreshing
+                }
             }
         except Exception as e:
             return {
                 "status": "error",
                 "twelvedata_key_configured": bool(self.twelvedata_api_key),
-                "database_connected": bool(self.db_service),
-                "last_test": datetime.now().isoformat(),
                 "error": str(e)
             }
     

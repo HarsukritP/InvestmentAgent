@@ -213,99 +213,95 @@ async def get_user_portfolios(user: Dict[str, Any] = Depends(require_auth)):
 
 @app.get("/portfolio")
 async def get_portfolio(portfolio_id: Optional[str] = None, user: Dict[str, Any] = Depends(require_auth)):
-    """Get portfolio data with current market prices"""
-    user_id = user.get('db_user_id')
-    if not user_id:
-        # Try to create/get user in database if not exists
-        db_user = await db_service.create_or_get_user(
-            google_id=user.get('sub'),
-            email=user.get('email'),
-            name=user.get('name'),
-            picture_url=user.get('picture')
-        )
-        user_id = db_user['id']
-    
-    # Get user's portfolios
-    portfolios = await db_service.get_user_portfolios(user_id)
-    
-    # If no portfolios exist, create a default one
-    if not portfolios:
-        new_portfolio = await db_service.create_portfolio(
-            user_id=user_id,
-            name="My Portfolio",
-            cash_balance=10000.0  # Starting cash balance
-        )
-        portfolios = [new_portfolio]
-    
-    # Use first portfolio if none specified
-    if not portfolio_id:
-        portfolio = portfolios[0]
-    else:
-        portfolio = await db_service.get_portfolio_by_id(portfolio_id, user_id)
-        if not portfolio:
-            raise HTTPException(status_code=404, detail="Portfolio not found")
-    
-    # Get holdings
-    holdings = await db_service.get_portfolio_holdings(portfolio['id'])
-    
-    # Get current market prices using collaborative cache
-    market_prices = {}
-    formatted_holdings = []
-    total_portfolio_value = 0
-    
-    if holdings:
-        symbols = [holding['symbol'] for holding in holdings]
-        # Use the new async method
-        portfolio_quotes = await market_service.get_portfolio_quotes(symbols)
+    """Get user portfolio with current market data"""
+    try:
+        user_id = user.get('db_user_id')
         
-        for holding in holdings:
-            symbol = holding['symbol'].upper()
-            quote_data = portfolio_quotes.get(symbol, {})
-            current_price = quote_data.get('price', 0)
+        if not user_id:
+            # Create or get user in database
+            db_user = await db_service.create_or_get_user(
+                google_id=user.get('sub'),
+                email=user.get('email'),
+                name=user.get('name'),
+                picture_url=user.get('picture')
+            )
+            user_id = db_user['id']
+        
+        # Get user's portfolio
+        portfolios = await db_service.get_user_portfolios(user_id)
+        
+        if not portfolios:
+            # Create default portfolio
+            portfolio = await db_service.create_portfolio(user_id, "My Portfolio")
+            holdings = []
+        else:
+            # Use first portfolio if portfolio_id not specified
+            if not portfolio_id:
+                portfolio = portfolios[0]
+            else:
+                portfolio = next((p for p in portfolios if p['id'] == portfolio_id), None)
+                
+            if not portfolio:
+                raise HTTPException(status_code=404, detail="Portfolio not found")
             
-            holding_value = holding['shares'] * current_price
-            total_portfolio_value += holding_value
+            # Get portfolio holdings
+            holdings = await db_service.get_portfolio_holdings(portfolio['id'])
+        
+        # Get current market data for holdings
+        if holdings:
+            symbols = [h['symbol'] for h in holdings]
             
-            # Calculate P&L
-            total_cost = holding['shares'] * holding['average_cost']
-            unrealized_pnl = holding_value - total_cost
-            unrealized_pnl_percent = (unrealized_pnl / total_cost * 100) if total_cost > 0 else 0
+            # Add symbols to auto-refresh watchlist
+            market_service.add_to_watchlist(symbols)
             
-            formatted_holdings.append({
-                "symbol": symbol,
-                "shares": holding['shares'],
-                "average_cost": holding['average_cost'],
-                "current_price": current_price,
-                "market_value": holding_value,
-                "unrealized_pnl": unrealized_pnl,
-                "unrealized_pnl_percent": unrealized_pnl_percent,
-                "quote_data": quote_data
-            })
+            # Get current market quotes
+            market_quotes = await market_service.get_portfolio_quotes(symbols)
             
-            market_prices[symbol] = current_price
-    
-    # Calculate total portfolio value including cash
-    total_value = total_portfolio_value + portfolio['cash_balance']
-    
-    return {
-        "portfolio": {
-            "id": portfolio['id'],
-            "name": portfolio['name'],
-            "cash_balance": portfolio['cash_balance'],
-            "total_market_value": total_portfolio_value,
-            "total_value": total_value,
-            "created_at": portfolio['created_at'],
-            "updated_at": portfolio['updated_at']
-        },
-        "holdings": formatted_holdings,
-        "market_prices": market_prices,
-        "summary": {
-            "total_holdings": len(formatted_holdings),
-            "total_market_value": total_portfolio_value,
-            "cash_balance": portfolio['cash_balance'],
-            "total_portfolio_value": total_value
+            # Calculate total portfolio value
+            total_value = 0
+            
+            # Update holdings with current market data
+            for holding in holdings:
+                symbol = holding['symbol']
+                shares = holding['shares']
+                
+                # Get current price from market data
+                quote = market_quotes.get(symbol.upper(), {})
+                current_price = quote.get('price', holding['average_cost'])
+                
+                # Calculate market value and profit/loss
+                market_value = shares * current_price
+                cost_basis = shares * holding['average_cost']
+                profit_loss = market_value - cost_basis
+                profit_loss_percent = (profit_loss / cost_basis * 100) if cost_basis > 0 else 0
+                
+                # Add to total portfolio value
+                total_value += market_value
+                
+                # Update holding with current market data
+                holding.update({
+                    'current_price': current_price,
+                    'market_value': market_value,
+                    'profit_loss': profit_loss,
+                    'profit_loss_percent': profit_loss_percent,
+                    'last_updated': datetime.now().isoformat()
+                })
+        else:
+            total_value = 0
+        
+        # Update portfolio with total value
+        portfolio['total_market_value'] = total_value
+        portfolio['total_account_value'] = total_value + portfolio['cash_balance']
+        
+        return {
+            "status": "success",
+            "portfolio": portfolio,
+            "holdings": holdings
         }
-    }
+    
+    except Exception as e:
+        print(f"Error getting portfolio: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/trade", response_model=TradeResponse)
 async def execute_trade(

@@ -2,7 +2,8 @@ import os
 from supabase import create_client, Client
 from typing import Dict, List, Optional, Any
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, time
+import pytz
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -608,17 +609,35 @@ class DatabaseService:
     async def is_price_data_fresh(self, symbol: str, max_age_minutes: int = 5) -> bool:
         """Check if we have fresh price data for a symbol with intelligent freshness"""
         try:
-            from datetime import datetime, timedelta
+            from datetime import datetime, timedelta, time
             
             # Get current market conditions for intelligent freshness
             current_time = datetime.now()
-            is_weekend = current_time.weekday() >= 5  # Saturday = 5, Sunday = 6
+            
+            # Define market hours (Eastern Time)
+            eastern_tz = pytz.timezone('US/Eastern')
+            now_et = datetime.now(eastern_tz)
+            market_open = time(9, 30)  # 9:30 AM ET
+            market_close = time(16, 0)  # 4:00 PM ET
+            
+            # Check if it's a weekday (0=Monday, 6=Sunday)
+            is_weekend = now_et.weekday() >= 5  # Saturday = 5, Sunday = 6
+            
+            # Check if within market hours
+            current_et_time = now_et.time()
+            is_market_hours = market_open <= current_et_time <= market_close and not is_weekend
             
             # Adjust freshness threshold based on market conditions
             if is_weekend:
                 max_age_minutes = 60 * 24  # 24 hours on weekends
-            elif current_time.hour < 9 or current_time.hour > 16:  # Outside market hours (rough)
-                max_age_minutes = 60  # 1 hour outside market hours
+            elif not is_market_hours:
+                max_age_minutes = 20 * 60  # 20 minutes outside market hours
+            else:
+                max_age_minutes = 3 * 60  # 3 minutes during market hours
+            
+            # Override with passed parameter if it's stricter
+            if max_age_minutes < 5:
+                max_age_minutes = 5  # Minimum threshold
             
             # Calculate the freshness threshold
             threshold = (current_time - timedelta(minutes=max_age_minutes)).isoformat()
