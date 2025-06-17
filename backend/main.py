@@ -707,8 +707,6 @@ async def chat_with_ai(
             pass
         
         # Get AI response
-        print(f"Debug info before AI chat: {debug_info}")
-        print(f"Portfolio manager holdings: {portfolio_manager.get_holdings()}")
         response = await ai_agent.chat(chat_request.message)
         
         # Add debug info to response
