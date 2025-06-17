@@ -130,6 +130,10 @@ How can I help you today?`,
         return formatStockDetails(responseData);
       case 'search_stock':
         return formatStockSearch(responseData);
+      case 'buy_stock':
+        return formatBuyStock(responseData);
+      case 'sell_stock':
+        return formatSellStock(responseData);
       case 'calculate_portfolio_metrics':
         return formatPortfolioMetrics(responseData);
       case 'get_transaction_history':
@@ -212,6 +216,50 @@ ${sectorInfo}
     });
 
     return result;
+  };
+
+  const formatBuyStock = (data) => {
+    if (data.error) return `Error: ${data.error}`;
+    if (!data.success) {
+      let message = `Could not complete purchase: ${data.error || "Unknown error"}`;
+      if (data.affordability) {
+        message += `\nCash balance: $${data.affordability.cash_balance?.toFixed(2) || 0}`;
+        message += `\nTotal cost: $${data.affordability.total_cost?.toFixed(2) || 0}`;
+        message += `\nMax affordable shares: ${data.affordability.max_affordable_shares || 0}`;
+      }
+      return message;
+    }
+    
+    return `
+💰 Purchase Executed:
+• Symbol: ${data.symbol}
+• Shares: ${data.quantity}
+• Price: $${data.price?.toFixed(2) || 0}/share
+• Total Cost: $${data.total_cost?.toFixed(2) || 0}
+• New Cash Balance: $${data.new_cash_balance?.toFixed(2) || 0}
+• Transaction ID: ${data.transaction_id || "N/A"}
+`;
+  };
+
+  const formatSellStock = (data) => {
+    if (data.error) return `Error: ${data.error}`;
+    if (!data.success) {
+      let message = `Could not complete sale: ${data.error || "Unknown error"}`;
+      if (data.available_shares !== undefined) {
+        message += `\nAvailable shares: ${data.available_shares}`;
+      }
+      return message;
+    }
+    
+    return `
+💸 Sale Executed:
+• Symbol: ${data.symbol}
+• Shares: ${data.quantity}
+• Price: $${data.price?.toFixed(2) || 0}/share
+• Total Proceeds: $${data.total_proceeds?.toFixed(2) || 0}
+• New Cash Balance: $${data.new_cash_balance?.toFixed(2) || 0}
+• Transaction ID: ${data.transaction_id || "N/A"}
+`;
   };
 
   const handleKeyPress = (e) => {

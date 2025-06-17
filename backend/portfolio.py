@@ -19,8 +19,14 @@ HARDCODED_PORTFOLIO = {
 }
 
 class PortfolioManager:
-    def __init__(self):
+    def __init__(self, user_id=None):
         self.portfolio = HARDCODED_PORTFOLIO.copy()
+        self.user_id = user_id
+    
+    def set_user_id(self, user_id):
+        """Set the user ID for the portfolio manager"""
+        self.user_id = user_id
+        return self.user_id
     
     def get_portfolio(self) -> Dict[str, Any]:
         """Get the current portfolio data"""

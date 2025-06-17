@@ -48,6 +48,42 @@ AI_FUNCTIONS = [
         }
     },
     {
+        "name": "buy_stock",
+        "description": "Execute a stock purchase for the user's portfolio",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbol": {
+                    "type": "string",
+                    "description": "The stock symbol to buy (e.g., AAPL, GOOGL, MSFT)"
+                },
+                "quantity": {
+                    "type": "number",
+                    "description": "The number of shares to buy (can be decimal for fractional shares)"
+                }
+            },
+            "required": ["symbol", "quantity"]
+        }
+    },
+    {
+        "name": "sell_stock",
+        "description": "Execute a stock sale from the user's portfolio",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbol": {
+                    "type": "string",
+                    "description": "The stock symbol to sell (e.g., AAPL, GOOGL, MSFT)"
+                },
+                "quantity": {
+                    "type": "number",
+                    "description": "The number of shares to sell (can be decimal for fractional shares)"
+                }
+            },
+            "required": ["symbol", "quantity"]
+        }
+    },
+    {
         "name": "calculate_portfolio_metrics",
         "description": "Calculate advanced portfolio metrics like diversification score, risk level, etc.",
         "parameters": {
@@ -124,6 +160,13 @@ Your capabilities include:
 - Providing insights on individual stock performance  
 - Offering data-driven investment recommendations
 - Explaining market trends and their impact on holdings
+- Executing buy and sell orders for stocks when requested by the user
+
+When users ask you to buy or sell stocks, you can execute these transactions directly. Make sure to:
+1. Confirm the details of the transaction (symbol, quantity, price) before executing
+2. Check if the user has sufficient funds (for buys) or shares (for sells)
+3. Provide a clear summary of the transaction after it's completed
+4. Update the user on their new portfolio balance and holdings
 
 Always be professional, accurate, and helpful. When users ask about portfolio data, I will provide you with the current portfolio information including real-time prices and performance metrics.
 
@@ -326,6 +369,171 @@ Use the available functions when appropriate to provide accurate market data.
             except Exception as e:
                 return {"error": str(e)}
         
+        elif function_name == "buy_stock":
+            symbol = params.get("symbol", "").upper()
+            quantity = params.get("quantity")
+            
+            if not symbol:
+                return {"error": "No stock symbol provided"}
+            
+            if not quantity or quantity <= 0:
+                return {"error": "Invalid quantity. Please provide a positive number of shares to buy."}
+            
+            try:
+                # Get current price of the stock
+                quote_data = await self.market_service.get_stock_quote(symbol)
+                if not quote_data or "price" not in quote_data:
+                    return {"error": f"Could not get current price for {symbol}"}
+                
+                current_price = quote_data["price"]
+                
+                # Check if the user can afford the purchase
+                portfolio_data = await self.get_portfolio_data()
+                cash_balance = portfolio_data["portfolio_summary"]["cash_balance"]
+                total_cost = current_price * quantity
+                
+                if total_cost > cash_balance:
+                    max_affordable = int(cash_balance / current_price) if current_price > 0 else 0
+                    return {
+                        "success": False,
+                        "error": f"Insufficient funds. You need ${total_cost:.2f} but have ${cash_balance:.2f}.",
+                        "affordability": {
+                            "can_afford": False,
+                            "cash_balance": cash_balance,
+                            "total_cost": total_cost,
+                            "shortfall": total_cost - cash_balance,
+                            "max_affordable_shares": max_affordable,
+                            "current_price": current_price
+                        }
+                    }
+                
+                # Execute the buy order
+                from database import db_service
+                
+                # Get the user's portfolio ID
+                portfolios = await db_service.get_user_portfolios(self.portfolio_manager.user_id)
+                if not portfolios:
+                    return {"error": "No portfolio found for this user"}
+                
+                portfolio_id = portfolios[0]["id"]
+                
+                # Execute the buy order
+                result = await db_service.execute_buy_order(
+                    portfolio_id=portfolio_id,
+                    user_id=self.portfolio_manager.user_id,
+                    symbol=symbol,
+                    shares=quantity,
+                    price_per_share=current_price
+                )
+                
+                # Update the portfolio manager's data
+                updated_portfolio = await db_service.get_portfolio_by_id(portfolio_id, self.portfolio_manager.user_id)
+                updated_holdings = await db_service.get_portfolio_holdings(portfolio_id)
+                
+                self.portfolio_manager.portfolio = {
+                    "cash_balance": updated_portfolio["cash_balance"],
+                    "holdings": [
+                        {
+                            "symbol": h["symbol"],
+                            "quantity": h["shares"],
+                            "purchase_price": h["average_cost"]
+                        } for h in updated_holdings
+                    ]
+                }
+                
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "quantity": quantity,
+                    "price": current_price,
+                    "total_cost": total_cost,
+                    "new_cash_balance": result["new_cash_balance"],
+                    "transaction_id": result["transaction"]["id"],
+                    "message": f"Successfully purchased {quantity} shares of {symbol} at ${current_price:.2f} per share."
+                }
+                
+            except Exception as e:
+                return {"error": f"Error executing buy order: {str(e)}"}
+        
+        elif function_name == "sell_stock":
+            symbol = params.get("symbol", "").upper()
+            quantity = params.get("quantity")
+            
+            if not symbol:
+                return {"error": "No stock symbol provided"}
+            
+            if not quantity or quantity <= 0:
+                return {"error": "Invalid quantity. Please provide a positive number of shares to sell."}
+            
+            try:
+                # Check if the user owns the stock and has enough shares
+                holding = self.portfolio_manager.get_holding_by_symbol(symbol)
+                if not holding:
+                    return {"error": f"You don't own any shares of {symbol}"}
+                
+                if holding["quantity"] < quantity:
+                    return {
+                        "success": False,
+                        "error": f"Insufficient shares. You own {holding['quantity']} shares of {symbol} but are trying to sell {quantity}.",
+                        "available_shares": holding["quantity"]
+                    }
+                
+                # Get current price of the stock
+                quote_data = await self.market_service.get_stock_quote(symbol)
+                if not quote_data or "price" not in quote_data:
+                    return {"error": f"Could not get current price for {symbol}"}
+                
+                current_price = quote_data["price"]
+                total_proceeds = current_price * quantity
+                
+                # Execute the sell order
+                from database import db_service
+                
+                # Get the user's portfolio ID
+                portfolios = await db_service.get_user_portfolios(self.portfolio_manager.user_id)
+                if not portfolios:
+                    return {"error": "No portfolio found for this user"}
+                
+                portfolio_id = portfolios[0]["id"]
+                
+                # Execute the sell order
+                result = await db_service.execute_sell_order(
+                    portfolio_id=portfolio_id,
+                    user_id=self.portfolio_manager.user_id,
+                    symbol=symbol,
+                    shares=quantity,
+                    price_per_share=current_price
+                )
+                
+                # Update the portfolio manager's data
+                updated_portfolio = await db_service.get_portfolio_by_id(portfolio_id, self.portfolio_manager.user_id)
+                updated_holdings = await db_service.get_portfolio_holdings(portfolio_id)
+                
+                self.portfolio_manager.portfolio = {
+                    "cash_balance": updated_portfolio["cash_balance"],
+                    "holdings": [
+                        {
+                            "symbol": h["symbol"],
+                            "quantity": h["shares"],
+                            "purchase_price": h["average_cost"]
+                        } for h in updated_holdings
+                    ]
+                }
+                
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "quantity": quantity,
+                    "price": current_price,
+                    "total_proceeds": total_proceeds,
+                    "new_cash_balance": result["new_cash_balance"],
+                    "transaction_id": result["transaction"]["id"],
+                    "message": f"Successfully sold {quantity} shares of {symbol} at ${current_price:.2f} per share."
+                }
+                
+            except Exception as e:
+                return {"error": f"Error executing sell order: {str(e)}"}
+        
         elif function_name == "calculate_portfolio_metrics":
             try:
                 holdings = self.portfolio_manager.get_holdings()
@@ -368,7 +576,8 @@ Use the available functions when appropriate to provide accurate market data.
                     "VZ": "Communication Services",
                     "NFLX": "Communication Services",
                     "ADBE": "Technology",
-                    "CRM": "Technology"
+                    "CRM": "Technology",
+                    "AMD": "Technology"
                 }
                 
                 # Calculate concentration by sector

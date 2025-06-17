@@ -654,6 +654,9 @@ async def chat_with_ai(
         user_id = user.get('db_user_id')
         debug_info = {"user_id": user_id}
         
+        # Set the user_id in the portfolio manager
+        portfolio_manager.set_user_id(user_id)
+        
         if user_id:
             # Get user's portfolio from database
             portfolios = await db_service.get_user_portfolios(user_id)
