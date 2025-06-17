@@ -161,7 +161,7 @@ const PortfolioPage = ({
 
   return (
     <div className="portfolio-page">
-      {/* Mobile Header */}
+      {/* Mobile Header - Using text instead of MdMenu icon */}
       {isMobile && (
         <div className="mobile-header">
           <button 
@@ -169,7 +169,7 @@ const PortfolioPage = ({
             onClick={toggleMobileNav}
             aria-label="Open menu"
           >
-            <MdMenu />
+            ☰
           </button>
           <h1 className="mobile-title">Portfolio</h1>
         </div>
