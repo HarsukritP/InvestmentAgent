@@ -743,15 +743,7 @@ async def health_check():
     ai_status = ai_agent.health_check()
     
     # Check market data service
-    market_data_status = "ok"
-    market_data_error = None
-    try:
-        # Simple test of the market data service
-        test_symbol = "AAPL"
-        await market_service.get_stock_quote(test_symbol)
-    except Exception as e:
-        market_data_status = "error"
-        market_data_error = str(e)
+    market_data_status = market_service.health_check()
     
     # Check market context service
     market_context_status = "ok"
@@ -770,26 +762,34 @@ async def health_check():
     
     # Overall API status
     overall_status = "healthy"
-    if db_status == "error" or ai_status.get("status") == "error" or market_data_status == "error" or market_context_status == "error":
+    if db_status == "error" or ai_status.get("status") == "error" or market_data_status.get("status") != "healthy" or market_context_status == "error":
         overall_status = "degraded"
     
+    # Format response to match what frontend expects
     return {
         "status": overall_status,
         "timestamp": datetime.now().isoformat(),
-        "components": {
+        "services": {
             "database": {
                 "status": db_status,
                 "error": db_error
             },
-            "ai_service": ai_status,
-            "market_data_service": {
-                "status": market_data_status,
-                "error": market_data_error
-            },
-            "market_context_service": {
+            "ai_agent": ai_status,
+            "market_data": market_data_status,
+            "market_context": {
                 "status": market_context_status,
                 "error": market_context_error
-            }
+            },
+            "portfolio": {"status": "healthy"},
+            "auth": {"status": "healthy" if auth_service.google_client_id else "not_configured"}
+        },
+        "configuration": {
+            "twelvedata_key_configured": bool(os.getenv("TWELVEDATA_API_KEY")),
+            "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "oauth_configured": bool(auth_service.google_client_id and auth_service.google_client_secret),
+            "supabase_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY")),
+            "fred_api_key_configured": bool(os.getenv("FRED_API_KEY")),
+            "news_api_key_configured": bool(os.getenv("NEWS_API_KEY"))
         }
     }
 
