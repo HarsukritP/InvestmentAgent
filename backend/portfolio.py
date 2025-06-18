@@ -51,83 +51,191 @@ class PortfolioManager:
         """Get transaction history"""
         return self.portfolio.get("transactions", [])
     
-    def buy_stock(self, symbol: str, quantity: int, current_price: float) -> Dict[str, Any]:
-        """Buy stock - add to portfolio or increase existing position"""
+    async def buy_stock(self, symbol: str, quantity: float) -> Dict[str, Any]:
+        """Buy a stock with improved error handling and validation"""
         try:
-            symbol = symbol.upper()
-            total_cost = quantity * current_price
+            from database import db_service
+            from market_data import MarketDataService
             
-            # Check if we have enough cash
-            if total_cost > self.portfolio["cash_balance"]:
+            symbol = symbol.upper()
+            
+            # Validate inputs
+            if not symbol:
+                return {"error": "Symbol is required"}
+            
+            if not quantity or quantity <= 0:
+                return {"error": "Quantity must be positive"}
+            
+            # Check if we have a user ID (required for database operations)
+            if not self.user_id:
+                return {"error": "User ID is required for transactions"}
+            
+            # Get current price
+            market_service = MarketDataService()
+            price_data = await market_service.get_stock_price(symbol)
+            
+            if not price_data or "error" in price_data:
+                return {"error": f"Could not retrieve current price for {symbol}. Please try again later."}
+            
+            current_price = price_data.get("price")
+            if not current_price:
+                return {"error": f"Could not determine current price for {symbol}"}
+            
+            # Calculate total cost
+            total_cost = current_price * quantity
+            
+            # Get the user's portfolio from database
+            portfolios = await db_service.get_user_portfolios(self.user_id)
+            if not portfolios:
+                return {"error": "No portfolio found for this user"}
+            
+            portfolio_id = portfolios[0]["id"]
+            portfolio = portfolios[0]
+            
+            # Check if user has enough cash
+            if portfolio["cash_balance"] < total_cost:
                 return {
-                    "success": False,
-                    "error": f"Insufficient funds. Need ${total_cost:,.2f}, have ${self.portfolio['cash_balance']:,.2f}",
+                    "error": "Insufficient funds",
+                    "cash_balance": portfolio["cash_balance"],
                     "required": total_cost,
-                    "available": self.portfolio["cash_balance"]
+                    "shortfall": total_cost - portfolio["cash_balance"]
                 }
             
-            # Check if we already own this stock
-            existing_holding = self.get_holding_by_symbol(symbol)
-            
-            if existing_holding:
-                # Calculate new average price
-                old_quantity = existing_holding["quantity"]
-                old_total_cost = old_quantity * existing_holding["purchase_price"]
-                new_total_cost = old_total_cost + total_cost
-                new_quantity = old_quantity + quantity
-                new_avg_price = new_total_cost / new_quantity
+            # Execute the buy order
+            try:
+                result = await db_service.execute_buy_order(
+                    portfolio_id=portfolio_id,
+                    user_id=self.user_id,
+                    symbol=symbol,
+                    shares=quantity,
+                    price_per_share=current_price
+                )
                 
-                # Update existing holding
-                existing_holding["quantity"] = new_quantity
-                existing_holding["purchase_price"] = new_avg_price
+                # Update the portfolio manager's data
+                updated_portfolio = await db_service.get_portfolio_by_id(portfolio_id, self.user_id)
+                updated_holdings = await db_service.get_portfolio_holdings(portfolio_id)
                 
-                transaction_type = "BUY_ADD"
-            else:
-                # Add new holding
-                new_holding = {
+                self.portfolio = {
+                    "cash_balance": updated_portfolio["cash_balance"],
+                    "holdings": [
+                        {
+                            "symbol": h["symbol"],
+                            "quantity": h["shares"],
+                            "purchase_price": h["average_cost"]
+                        } for h in updated_holdings
+                    ]
+                }
+                
+                return {
+                    "success": True,
                     "symbol": symbol,
                     "quantity": quantity,
-                    "purchase_price": current_price
+                    "price": current_price,
+                    "total_cost": total_cost,
+                    "new_cash_balance": result["new_cash_balance"],
+                    "transaction_id": result["transaction"]["id"],
+                    "message": f"Successfully purchased {quantity} shares of {symbol} at ${current_price:.2f} per share."
                 }
-                self.portfolio["holdings"].append(new_holding)
-                transaction_type = "BUY_NEW"
-            
-            # Deduct cash
-            self.portfolio["cash_balance"] -= total_cost
-            
-            # Record transaction
-            transaction = {
-                "id": len(self.portfolio.get("transactions", [])) + 1,
-                "type": transaction_type,
-                "symbol": symbol,
-                "quantity": quantity,
-                "price": current_price,
-                "total_amount": total_cost,
-                "timestamp": datetime.now().isoformat(),
-                "cash_balance_after": self.portfolio["cash_balance"]
-            }
-            
-            if "transactions" not in self.portfolio:
-                self.portfolio["transactions"] = []
-            self.portfolio["transactions"].append(transaction)
-            
-            # Update portfolio timestamp
-            self.portfolio["updated_at"] = datetime.now().isoformat()
-            
-            return {
-                "success": True,
-                "transaction": transaction,
-                "message": f"Successfully bought {quantity} shares of {symbol} at ${current_price:.2f} each",
-                "total_cost": total_cost,
-                "remaining_cash": self.portfolio["cash_balance"],
-                "holding": self.get_holding_by_symbol(symbol)
-            }
-            
+            except Exception as db_error:
+                return {"error": f"Database error during purchase: {str(db_error)}"}
+                
         except Exception as e:
-            return {
-                "success": False,
-                "error": f"Error buying stock: {str(e)}"
-            }
+            return {"error": f"Error buying stock: {str(e)}"}
+    
+    async def sell_stock(self, symbol: str, quantity: float) -> Dict[str, Any]:
+        """Sell a stock with improved error handling and validation"""
+        try:
+            from database import db_service
+            from market_data import MarketDataService
+            
+            symbol = symbol.upper()
+            
+            # Validate inputs
+            if not symbol:
+                return {"error": "Symbol is required"}
+            
+            if not quantity or quantity <= 0:
+                return {"error": "Quantity must be positive"}
+            
+            # Check if we have a user ID (required for database operations)
+            if not self.user_id:
+                return {"error": "User ID is required for transactions"}
+            
+            # Get the user's portfolio from database
+            portfolios = await db_service.get_user_portfolios(self.user_id)
+            if not portfolios:
+                return {"error": "No portfolio found for this user"}
+            
+            portfolio_id = portfolios[0]["id"]
+            
+            # Check if the user owns the stock and has enough shares
+            holdings = await db_service.get_portfolio_holdings(portfolio_id)
+            holding = next((h for h in holdings if h["symbol"].upper() == symbol.upper()), None)
+            
+            if not holding:
+                return {"error": f"You don't own any shares of {symbol}"}
+            
+            if holding["shares"] < quantity:
+                return {
+                    "error": f"Insufficient shares. You own {holding['shares']} shares of {symbol} but are trying to sell {quantity}.",
+                    "owned_shares": holding["shares"],
+                    "requested_shares": quantity
+                }
+            
+            # Get current price
+            market_service = MarketDataService()
+            price_data = await market_service.get_stock_price(symbol)
+            
+            if not price_data or "error" in price_data:
+                return {"error": f"Could not retrieve current price for {symbol}. Please try again later."}
+            
+            current_price = price_data.get("price")
+            if not current_price:
+                return {"error": f"Could not determine current price for {symbol}"}
+            
+            # Calculate total proceeds
+            total_proceeds = current_price * quantity
+            
+            # Execute the sell order
+            try:
+                result = await db_service.execute_sell_order(
+                    portfolio_id=portfolio_id,
+                    user_id=self.user_id,
+                    symbol=symbol,
+                    shares=quantity,
+                    price_per_share=current_price
+                )
+                
+                # Update the portfolio manager's data
+                updated_portfolio = await db_service.get_portfolio_by_id(portfolio_id, self.user_id)
+                updated_holdings = await db_service.get_portfolio_holdings(portfolio_id)
+                
+                self.portfolio = {
+                    "cash_balance": updated_portfolio["cash_balance"],
+                    "holdings": [
+                        {
+                            "symbol": h["symbol"],
+                            "quantity": h["shares"],
+                            "purchase_price": h["average_cost"]
+                        } for h in updated_holdings
+                    ]
+                }
+                
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "quantity": quantity,
+                    "price": current_price,
+                    "total_proceeds": total_proceeds,
+                    "new_cash_balance": result["new_cash_balance"],
+                    "transaction_id": result["transaction"]["id"],
+                    "message": f"Successfully sold {quantity} shares of {symbol} at ${current_price:.2f} per share."
+                }
+            except Exception as db_error:
+                return {"error": f"Database error during sale: {str(db_error)}"}
+                
+        except Exception as e:
+            return {"error": f"Error selling stock: {str(e)}"}
     
     def can_afford(self, symbol: str, quantity: int, current_price: float) -> Dict[str, Any]:
         """Check if user can afford to buy the specified quantity"""

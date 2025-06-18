@@ -556,4 +556,95 @@ class MarketDataService:
             
         except Exception as e:
             logger.error(f"Error getting cache performance metrics: {str(e)}")
-            return {'error': str(e)} 
+            return {'error': str(e)}
+
+    async def get_stock_price(self, symbol: str) -> Dict[str, Any]:
+        """
+        Get the current price of a stock with robust error handling and fallbacks.
+        This is the preferred method for getting a stock price.
+        """
+        try:
+            symbol = symbol.upper()
+            
+            # First try to get from cache
+            cached_data = await self._get_cached_price(symbol)
+            if cached_data and 'price' in cached_data:
+                return {
+                    'symbol': symbol,
+                    'price': cached_data['price'],
+                    'currency': cached_data.get('currency', 'USD'),
+                    'last_updated': cached_data.get('last_updated'),
+                    'source': 'cache'
+                }
+            
+            # If not in cache, try to get from API
+            try:
+                # First try the quote endpoint
+                quote_data = await self.get_stock_quote(symbol)
+                if quote_data and 'price' in quote_data and quote_data['price'] > 0:
+                    # Store in cache for future use
+                    await self._store_price_data(symbol, quote_data)
+                    return {
+                        'symbol': symbol,
+                        'price': quote_data['price'],
+                        'currency': quote_data.get('currency', 'USD'),
+                        'last_updated': datetime.now().isoformat(),
+                        'source': 'api_quote'
+                    }
+            except Exception as quote_error:
+                logger.warning(f"Quote API error for {symbol}: {str(quote_error)}")
+                # Continue to next fallback
+            
+            # Try search as a fallback to get basic info
+            try:
+                search_results = await self.search_stocks(symbol)
+                if search_results and len(search_results) > 0:
+                    # Find exact match
+                    exact_match = next((r for r in search_results if r.get('symbol', '').upper() == symbol.upper()), None)
+                    
+                    if exact_match:
+                        # We found the symbol but couldn't get a price
+                        return {
+                            'symbol': symbol,
+                            'error': 'Could not retrieve current price',
+                            'name': exact_match.get('instrument_name'),
+                            'exchange': exact_match.get('exchange'),
+                            'found': True,
+                            'source': 'search'
+                        }
+                    else:
+                        # No exact match found
+                        return {
+                            'symbol': symbol,
+                            'error': f'Symbol {symbol} not found',
+                            'suggestions': [r.get('symbol') for r in search_results[:3]],
+                            'found': False,
+                            'source': 'search'
+                        }
+                else:
+                    # No search results
+                    return {
+                        'symbol': symbol,
+                        'error': f'Symbol {symbol} not found',
+                        'found': False,
+                        'source': 'search'
+                    }
+            except Exception as search_error:
+                logger.warning(f"Search API error for {symbol}: {str(search_error)}")
+            
+            # Last resort - return error
+            return {
+                'symbol': symbol,
+                'error': 'Could not retrieve price data from any source',
+                'found': False,
+                'source': 'none'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_stock_price for {symbol}: {str(e)}")
+            return {
+                'symbol': symbol,
+                'error': str(e),
+                'found': False,
+                'source': 'error'
+            } 
