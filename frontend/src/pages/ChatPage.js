@@ -68,18 +68,49 @@ const ChatPage = ({ portfolio, user }) => {
         holdings: portfolio.holdings || []
       } : null;
 
+      // Prepare conversation history - only include role and content
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
       const response = await axios.post(`${API_URL}/chat`, {
         message: userMessage.content,
-        portfolio_context: portfolioContext
+        portfolio_context: portfolioContext,
+        conversation_history: conversationHistory
       });
 
-      // Handle function call data if present
+      // Process all function calls if available
       let functionContent = '';
-      if (response.data.function_called && response.data.function_response) {
+      let allFunctionCalls = [];
+      
+      // Handle multiple function calls if available
+      if (response.data.all_function_calls && response.data.all_function_calls.length > 0) {
+        allFunctionCalls = response.data.all_function_calls;
+        
+        // Process each function call
+        for (const funcCall of allFunctionCalls) {
+          const formattedResponse = formatFunctionResponse(
+            funcCall.name,
+            funcCall.response
+          );
+          
+          if (formattedResponse) {
+            functionContent += formattedResponse + "\n\n";
+          }
+        }
+      } 
+      // Fallback to legacy single function call
+      else if (response.data.function_called && response.data.function_response) {
         functionContent = formatFunctionResponse(
           response.data.function_called, 
           response.data.function_response
         );
+        
+        allFunctionCalls = [{
+          name: response.data.function_called,
+          response: response.data.function_response
+        }];
       }
 
       const assistantMessage = {
@@ -88,7 +119,8 @@ const ChatPage = ({ portfolio, user }) => {
         timestamp: new Date().toISOString(),
         function_called: response.data.function_called,
         function_response: response.data.function_response,
-        function_content: functionContent
+        function_content: functionContent,
+        all_function_calls: allFunctionCalls
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -145,7 +177,7 @@ const ChatPage = ({ portfolio, user }) => {
     // Remove function from active functions after a delay
     setTimeout(() => {
       removeActiveFunction(functionId);
-    }, 3000);
+    }, 5000); // Increased to 5 seconds for better visibility
 
     switch (functionName) {
       case 'get_portfolio_summary':
@@ -162,10 +194,15 @@ const ChatPage = ({ portfolio, user }) => {
         return formatPortfolioMetrics(responseData);
       case 'get_transaction_history':
         return formatTransactionHistory(responseData);
+      case 'get_historical_prices':
+        return formatHistoricalPrices(responseData);
+      case 'get_cache_stats':
+        return formatCacheStats(responseData);
       case 'get_market_context':
         return formatMarketContext(responseData);
       default:
-        return JSON.stringify(responseData, null, 2);
+        // For any unhandled function types, return a generic format
+        return `Function ${functionName} result:\n${JSON.stringify(responseData, null, 2)}`;
     }
   };
 
@@ -337,6 +374,43 @@ ${sectorInfo}
     return result;
   };
 
+  // Format historical prices data
+  const formatHistoricalPrices = (data) => {
+    if (data.error) return `Error: ${data.error}`;
+    
+    if (!data.prices || data.prices.length === 0) {
+      return `No historical price data available for ${data.symbol || 'this stock'}.`;
+    }
+    
+    // Get first and last price for comparison
+    const firstPrice = data.prices[0];
+    const lastPrice = data.prices[data.prices.length - 1];
+    const priceChange = lastPrice.price - firstPrice.price;
+    const percentChange = (priceChange / firstPrice.price) * 100;
+    
+    return `
+📈 Historical Prices for ${data.symbol}:
+• Period: ${data.days || 30} days
+• First Price: $${firstPrice.price?.toFixed(2) || 0} (${new Date(firstPrice.date).toLocaleDateString()})
+• Last Price: $${lastPrice.price?.toFixed(2) || 0} (${new Date(lastPrice.date).toLocaleDateString()})
+• Change: ${priceChange >= 0 ? '+' : ''}$${priceChange.toFixed(2)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%)
+• Data Points: ${data.prices.length}
+`;
+  };
+  
+  // Format cache stats
+  const formatCacheStats = (data) => {
+    if (data.error) return `Error: ${data.error}`;
+    
+    return `
+🔄 Market Data Cache Stats:
+• Total Cached Items: ${data.total_items || 0}
+• Cache Hit Rate: ${data.hit_rate ? (data.hit_rate * 100).toFixed(1) + '%' : 'N/A'}
+• Cache Size: ${data.cache_size_kb ? data.cache_size_kb.toFixed(2) + ' KB' : 'N/A'}
+• Oldest Item Age: ${data.oldest_item_age || 'N/A'}
+`;
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -381,31 +455,119 @@ ${sectorInfo}
     }));
   };
 
+  // Render the active functions display
+  const renderActiveFunctions = () => {
+    if (activeFunctions.length === 0) return null;
+    
+    return (
+      <div className="active-functions-container">
+        {activeFunctions.map(func => (
+          <div key={func.id} className="active-function-item">
+            <span className="function-icon">
+              {getFunctionIcon(func.name)}
+            </span>
+            <span className="function-name">
+              Function called: <strong>{formatFunctionName(func.name)}</strong>
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
+  // Get an appropriate icon for each function type
+  const getFunctionIcon = (functionName) => {
+    switch (functionName) {
+      case 'get_portfolio_summary':
+        return '📊';
+      case 'get_stock_details':
+      case 'search_stock':
+        return '🔍';
+      case 'buy_stock':
+        return '💰';
+      case 'sell_stock':
+        return '💸';
+      case 'calculate_portfolio_metrics':
+        return '📈';
+      case 'get_transaction_history':
+        return '📝';
+      case 'get_historical_prices':
+        return '📅';
+      case 'get_market_context':
+        return '🌐';
+      default:
+        return '⚙️';
+    }
+  };
+  
+  // Format function name for display
+  const formatFunctionName = (functionName) => {
+    return functionName
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const renderMessage = (message, index) => {
     const isUser = message.role === 'user';
     
     // Function call display - show before the message content
-    const functionCallDisplay = !isUser && message.function_called ? (
-      <div className="function-call-display">
-        <div className="function-call-header" onClick={() => toggleFunctionResponse(index)}>
-          <span className="function-icon">🔍</span>
-          <span className="function-name">
-            Function called: <strong>{message.function_called}</strong>
-          </span>
-          <span className="function-toggle">
-            {expandedFunctions[index] ? '▲' : '▼'}
-          </span>
-        </div>
-        <div className={`function-response ${expandedFunctions[index] ? 'expanded' : ''}`}>
-          <pre>{JSON.stringify(message.function_response, null, 2)}</pre>
-        </div>
-      </div>
-    ) : null;
+    let functionCallDisplay = null;
+    
+    if (!isUser) {
+      // Handle multiple function calls if available
+      if (message.all_function_calls && message.all_function_calls.length > 0) {
+        functionCallDisplay = (
+          <div className="function-calls-container">
+            {message.all_function_calls.map((funcCall, funcIndex) => (
+              <div className="function-call-display" key={funcIndex}>
+                <div 
+                  className="function-call-header" 
+                  onClick={() => toggleFunctionResponse(`${index}-${funcIndex}`)}
+                >
+                  <span className="function-icon">{getFunctionIcon(funcCall.name)}</span>
+                  <span className="function-name">
+                    Function called: <strong>{formatFunctionName(funcCall.name)}</strong>
+                  </span>
+                  <span className="function-toggle">
+                    {expandedFunctions[`${index}-${funcIndex}`] ? '▲' : '▼'}
+                  </span>
+                </div>
+                <div className={`function-response ${expandedFunctions[`${index}-${funcIndex}`] ? 'expanded' : ''}`}>
+                  <pre>{JSON.stringify(funcCall.response, null, 2)}</pre>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      // Fallback for legacy single function call
+      else if (message.function_called) {
+        functionCallDisplay = (
+          <div className="function-call-display">
+            <div 
+              className="function-call-header" 
+              onClick={() => toggleFunctionResponse(index)}
+            >
+              <span className="function-icon">{getFunctionIcon(message.function_called)}</span>
+              <span className="function-name">
+                Function called: <strong>{formatFunctionName(message.function_called)}</strong>
+              </span>
+              <span className="function-toggle">
+                {expandedFunctions[index] ? '▲' : '▼'}
+              </span>
+            </div>
+            <div className={`function-response ${expandedFunctions[index] ? 'expanded' : ''}`}>
+              <pre>{JSON.stringify(message.function_response, null, 2)}</pre>
+            </div>
+          </div>
+        );
+      }
+    }
     
     return (
       <div 
         key={index} 
-        className={`chat-message ${isUser ? 'user-message' : 'assistant-message'}`}
+        className={`chat-message ${isUser ? 'user-message' : 'assistant-message'} ${message.isError ? 'error-message' : ''}`}
       >
         <div className="message-avatar">
           <img 
@@ -449,16 +611,7 @@ ${sectorInfo}
       </div>
 
       {/* Active Functions Display */}
-      {activeFunctions.length > 0 && (
-        <div className="active-functions-container">
-          {activeFunctions.map(func => (
-            <div key={func.id} className="active-function-item">
-              <span className="function-icon">🔍</span>
-              <span className="function-name">{func.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {renderActiveFunctions()}
 
       {/* Chat Container */}
       <div className="chat-container">
@@ -497,52 +650,48 @@ ${sectorInfo}
           <div className="input-container">
             <textarea
               ref={inputRef}
+              className="message-input"
+              placeholder="Ask about your portfolio, market trends, or investment strategies..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me about your portfolio, market trends, or investment strategies..."
-              className="message-input"
-              rows="1"
               disabled={isLoading}
             />
             <button
+              className="send-button"
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isLoading}
-              className="send-button"
-              title="Send message (Enter)"
             >
-              <span className="send-icon">
-                {isLoading ? '⏳' : '📤'}
-              </span>
+              <span className="send-icon">➤</span>
             </button>
           </div>
           
-          {/* Quick Actions */}
+          {/* Quick Action Buttons */}
           <div className="quick-actions">
             <button 
               className="quick-action-btn"
-              onClick={() => setInputMessage("How is my portfolio performing?")}
+              onClick={() => setInputMessage("What's my portfolio performance?")}
               disabled={isLoading}
             >
               Portfolio Performance
             </button>
             <button 
               className="quick-action-btn"
-              onClick={() => setInputMessage("What are my biggest holdings?")}
+              onClick={() => setInputMessage("What are my top holdings?")}
               disabled={isLoading}
             >
               Top Holdings
             </button>
             <button 
               className="quick-action-btn"
-              onClick={() => setInputMessage("Should I diversify more?")}
+              onClick={() => setInputMessage("How can I diversify my portfolio?")}
               disabled={isLoading}
             >
               Diversification Advice
             </button>
             <button 
               className="quick-action-btn"
-              onClick={() => setInputMessage("What's the market outlook?")}
+              onClick={() => setInputMessage("What's the current market outlook?")}
               disabled={isLoading}
             >
               Market Outlook

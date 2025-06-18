@@ -510,104 +510,142 @@
 }
 
 /* Function call display */
+.function-calls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
 .function-call-display {
-  margin-bottom: 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
   overflow: hidden;
-  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .function-call-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  background-color: #f0f2f5;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f1f5f9;
   cursor: pointer;
-  font-size: 12px;
-  color: #555;
-  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+  transition: background 0.2s ease;
+  user-select: none;
 }
 
 .function-call-header:hover {
-  background-color: #e8eaed;
+  background: #e2e8f0;
 }
 
 .function-icon {
-  margin-right: 8px;
-  font-size: 14px;
+  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .function-name {
-  flex-grow: 1;
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.function-name strong {
+  font-weight: 600;
+  color: #0284c7;
 }
 
 .function-toggle {
-  font-size: 10px;
-  transition: transform 0.2s ease;
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .function-response {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease;
-  font-family: monospace;
-  font-size: 12px;
-  padding: 0 12px;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 1rem;
+  font-size: 0.75rem;
+  opacity: 0;
 }
 
 .function-response.expanded {
   max-height: 300px;
-  padding: 12px;
+  padding: 1rem;
   overflow-y: auto;
+  opacity: 1;
 }
 
 .function-response pre {
   margin: 0;
   white-space: pre-wrap;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #334155;
 }
 
-/* Active Functions Display */
+/* Active functions display */
 .active-functions-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 8px;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  animation: fadeIn 0.3s ease-out;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  animation: fadeIn 0.3s ease;
 }
 
 .active-function-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 16px;
-  background-color: #e8f4fd;
-  border: 1px solid #c2e0ff;
-  font-size: 12px;
-  color: #0369a1;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: #0284c7;
   animation: slideIn 0.3s ease-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .active-function-item .function-icon {
-  font-size: 14px;
+  font-size: 1rem;
 }
 
 .active-function-item .function-name {
   font-weight: 500;
 }
 
+.active-function-item .function-name strong {
+  font-weight: 600;
+}
+
 @keyframes slideIn {
   from {
-    opacity: 0;
     transform: translateY(-10px);
+    opacity: 0;
   }
   to {
-    opacity: 1;
     transform: translateY(0);
+    opacity: 1;
   }
+}
+
+/* Error message styling */
+.error-message .message-text {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
 }

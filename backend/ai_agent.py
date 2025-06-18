@@ -187,7 +187,13 @@ Your capabilities include:
 - Executing buy and sell orders for stocks when requested by the user
 - Analyzing current market conditions using economic data and news
 
-When users ask about the market or economy, you can access real-time economic indicators, 
+IMPORTANT: You must be proactive and take initiative when helping users. When users ask questions about their portfolio or the market:
+1. Call the necessary functions to gather relevant information without hesitation
+2. When multiple functions are needed, call ALL of them to gather comprehensive information
+3. When users ask for recommendations or analysis, ALWAYS get the latest market data first
+4. When users ask to make changes to their portfolio, verify the details and execute the transactions
+
+When users ask about the market or economy, you should IMMEDIATELY access real-time economic indicators, 
 financial news, and sentiment analysis to provide informed perspectives on market conditions.
 
 When users ask you to buy or sell stocks, you can execute these transactions directly. Make sure to:
@@ -198,15 +204,7 @@ When users ask you to buy or sell stocks, you can execute these transactions dir
 
 You can buy both stocks that are already in the portfolio AND new stocks that aren't currently held. For new stocks, you'll automatically verify the symbol exists before purchasing.
 
-Always be professional, accurate, and helpful. When users ask about portfolio data, I will provide you with the current portfolio information including real-time prices and performance metrics.
-
-When discussing performance, always include:
-- Specific numbers (prices, percentages, dollar amounts)
-- Context about market conditions
-- Clear explanations of calculations
-- Professional investment terminology
-
-Remember: This is a simulation environment, so any trading recommendations are for educational purposes only."""
+REMEMBER: Always maintain memory of previous interactions in the conversation. Use this context to provide more relevant and personalized responses."""
 
     async def get_portfolio_data(self) -> Dict[str, Any]:
         """Get comprehensive portfolio data for AI context"""
@@ -758,11 +756,25 @@ Use the available functions when appropriate to provide accurate market data.
                     } for func in AI_FUNCTIONS
                 ]
                 
-                # Create the initial message
+                # Create the initial message with system prompt
                 messages = [
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": context_prompt}
+                    {"role": "system", "content": self.system_prompt}
                 ]
+                
+                # Add conversation history if provided
+                if conversation_history and len(conversation_history) > 0:
+                    # Only include the last 10 messages to avoid token limits
+                    recent_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
+                    for msg in recent_history:
+                        role = msg.get("role", "user")
+                        content = msg.get("content", "")
+                        
+                        # Only add valid messages
+                        if role in ["user", "assistant", "system"] and content:
+                            messages.append({"role": role, "content": content})
+                
+                # Add the current user message with context
+                messages.append({"role": "user", "content": context_prompt})
                 
                 # Make the API call
                 response = self.client.chat.completions.create(
@@ -774,62 +786,71 @@ Use the available functions when appropriate to provide accurate market data.
                     max_tokens=2048
                 )
                 
-                # Check if the model wants to call a function
+                # Check if the model wants to call functions
                 function_called = None
                 function_response = None
+                all_function_calls = []
                 
                 response_message = response.choices[0].message
                 
                 # Process function calls if present
-                if response_message.tool_calls:
-                    # Get the function call
-                    tool_call = response_message.tool_calls[0]
-                    function_name = tool_call.function.name
-                    
-                    try:
-                        # Parse function arguments safely
-                        function_args = json.loads(tool_call.function.arguments)
-                    except json.JSONDecodeError:
-                        # Handle invalid JSON in arguments
-                        print(f"Error: Invalid JSON in function arguments: {tool_call.function.arguments}")
-                        function_args = {}
-                    
-                    print(f"Function called: {function_name} with args: {function_args}")
-                    
-                    # Execute the function
-                    function_called = function_name
-                    try:
-                        function_response = await self.execute_function(function_name, function_args)
-                        
-                        # Ensure function_response is a valid dictionary
-                        if not isinstance(function_response, dict):
-                            print(f"Warning: Function {function_name} returned non-dict response: {function_response}")
-                            function_response = {"result": str(function_response)}
-                    except Exception as func_error:
-                        print(f"Error executing function {function_name}: {str(func_error)}")
-                        function_response = {"error": str(func_error)}
-                    
-                    # Add the assistant's response and function result to the conversation
+                if response_message.tool_calls and len(response_message.tool_calls) > 0:
+                    # Add the assistant's response to the conversation
                     messages.append(response_message)
                     
-                    # Convert function response to string safely
-                    try:
-                        function_response_str = json.dumps(function_response)
-                    except (TypeError, ValueError) as json_error:
-                        print(f"Error serializing function response: {str(json_error)}")
-                        # Create a safe version of the response
-                        safe_response = {"error": "Could not serialize function response"}
-                        function_response = safe_response
-                        function_response_str = json.dumps(safe_response)
+                    # Process all tool calls
+                    for tool_call in response_message.tool_calls:
+                        function_name = tool_call.function.name
+                        
+                        try:
+                            # Parse function arguments safely
+                            function_args = json.loads(tool_call.function.arguments)
+                        except json.JSONDecodeError:
+                            # Handle invalid JSON in arguments
+                            print(f"Error: Invalid JSON in function arguments: {tool_call.function.arguments}")
+                            function_args = {}
+                        
+                        print(f"Function called: {function_name} with args: {function_args}")
+                        
+                        # Execute the function
+                        function_called = function_name
+                        try:
+                            function_response = await self.execute_function(function_name, function_args)
+                            
+                            # Ensure function_response is a valid dictionary
+                            if not isinstance(function_response, dict):
+                                print(f"Warning: Function {function_name} returned non-dict response: {function_response}")
+                                function_response = {"result": str(function_response)}
+                        except Exception as func_error:
+                            print(f"Error executing function {function_name}: {str(func_error)}")
+                            function_response = {"error": str(func_error)}
+                        
+                        # Track all function calls
+                        all_function_calls.append({
+                            "name": function_name,
+                            "args": function_args,
+                            "response": function_response
+                        })
+                        
+                        # Convert function response to string safely
+                        try:
+                            function_response_str = json.dumps(function_response)
+                        except (TypeError, ValueError) as json_error:
+                            print(f"Error serializing function response: {str(json_error)}")
+                            # Create a safe version of the response
+                            safe_response = {"error": "Could not serialize function response"}
+                            function_response = safe_response
+                            function_response_str = json.dumps(safe_response)
+                        
+                        # Add function result to the conversation
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": function_name,
+                            "content": function_response_str
+                        })
                     
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "name": function_name,
-                        "content": function_response_str
-                    })
-                    
-                    # Get a new response from the model
+                    # Get a new response from the model after all function calls
                     second_response = self.client.chat.completions.create(
                         model=self.model,
                         messages=messages,
@@ -837,11 +858,12 @@ Use the available functions when appropriate to provide accurate market data.
                         max_tokens=2048
                     )
                     
-                    # Return the final response
+                    # Return the final response with all function calls
                     return {
                         "response": second_response.choices[0].message.content,
-                        "function_called": function_called,
-                        "function_response": function_response,
+                        "function_called": function_called,  # Return the last function called for backward compatibility
+                        "function_response": function_response,  # Return the last function response for backward compatibility
+                        "all_function_calls": all_function_calls,  # Return all function calls
                         "success": True
                     }
                 else:
@@ -850,6 +872,7 @@ Use the available functions when appropriate to provide accurate market data.
                         "response": response_message.content,
                         "function_called": None,
                         "function_response": None,
+                        "all_function_calls": [],
                         "success": True
                     }
                     
@@ -874,6 +897,7 @@ Use the available functions when appropriate to provide accurate market data.
                         "response": response.choices[0].message.content,
                         "function_called": None,
                         "function_response": None,
+                        "all_function_calls": [],
                         "success": True
                     }
                 except Exception as fallback_error:

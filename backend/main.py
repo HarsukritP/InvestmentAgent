@@ -58,12 +58,14 @@ security = HTTPBearer(auto_error=False)
 # Pydantic models
 class ChatMessage(BaseModel):
     message: str
+    conversation_history: Optional[List[Dict[str, Any]]] = None
 
 class ChatResponse(BaseModel):
     response: str
     timestamp: str
     function_called: Optional[str] = None
     function_response: Optional[Dict[str, Any]] = None
+    all_function_calls: Optional[List[Dict[str, Any]]] = None
 
 class TradeRequest(BaseModel):
     symbol: str
@@ -707,8 +709,11 @@ async def chat_with_ai(
             debug_info["using_legacy_portfolio"] = True
             pass
         
-        # Get AI response
-        response = await ai_agent.chat(chat_request.message)
+        # Get conversation history from request if provided
+        conversation_history = chat_request.conversation_history if hasattr(chat_request, 'conversation_history') else None
+        
+        # Get AI response with conversation history
+        response = await ai_agent.chat(chat_request.message, conversation_history)
         
         # Add debug info to response
         if "error" in response:
@@ -719,7 +724,8 @@ async def chat_with_ai(
             response=response.get("response", "Sorry, I couldn't process your request."),
             timestamp=datetime.now().isoformat(),
             function_called=response.get("function_called"),
-            function_response=response.get("function_response")
+            function_response=response.get("function_response"),
+            all_function_calls=response.get("all_function_calls")
         )
         
     except Exception as e:
