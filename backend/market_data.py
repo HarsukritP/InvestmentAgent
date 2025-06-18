@@ -10,7 +10,7 @@ import logging
 import random
 import aiohttp
 import asyncio
-import pytz
+from zoneinfo import ZoneInfo  # Use built-in zoneinfo instead of pytz
 
 # Configure cleaner logging format
 logging.basicConfig(
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Market hours configuration (Eastern Time)
 MARKET_OPEN_TIME = time(9, 30)  # 9:30 AM ET
 MARKET_CLOSE_TIME = time(16, 0)  # 4:00 PM ET
-MARKET_TIMEZONE = pytz.timezone('US/Eastern')
+MARKET_TIMEZONE = ZoneInfo('America/New_York')  # Use ZoneInfo instead of pytz.timezone
 REFRESH_INTERVAL_MARKET_OPEN = 3 * 60  # 3 minutes in seconds
 REFRESH_INTERVAL_MARKET_CLOSED = 20 * 60  # 20 minutes in seconds
 

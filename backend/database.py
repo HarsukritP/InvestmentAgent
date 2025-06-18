@@ -3,7 +3,7 @@ from supabase import create_client, Client
 from typing import Dict, List, Optional, Any
 import logging
 from datetime import datetime, timedelta, time
-import pytz
+from zoneinfo import ZoneInfo  # Use built-in zoneinfo instead of pytz
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -615,7 +615,7 @@ class DatabaseService:
             current_time = datetime.now()
             
             # Define market hours (Eastern Time)
-            eastern_tz = pytz.timezone('US/Eastern')
+            eastern_tz = ZoneInfo('US/Eastern')
             now_et = datetime.now(eastern_tz)
             market_open = time(9, 30)  # 9:30 AM ET
             market_close = time(16, 0)  # 4:00 PM ET
