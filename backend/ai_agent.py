@@ -7,6 +7,7 @@ from typing import Dict, Any, List
 from openai import OpenAI
 from portfolio import PortfolioManager
 from market_data import MarketDataService
+from market_context import MarketContextService
 
 # Define available functions for the AI agent
 AI_FUNCTIONS = [
@@ -132,23 +133,46 @@ AI_FUNCTIONS = [
             "properties": {},
             "required": []
         }
+    },
+    {
+        "name": "get_market_context",
+        "description": "Get current market context including economic indicators, relevant news, and sentiment analysis to inform investment decisions",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "symbols": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional stock symbols to get specific news and sentiment for"
+                }
+            },
+            "required": []
+        }
     }
 ]
 
 class AIPortfolioAgent:
-    def __init__(self, portfolio_manager: PortfolioManager, market_service: MarketDataService):
+    """AI Portfolio Agent for investment advice and portfolio management"""
+    
+    def __init__(self, portfolio_manager: PortfolioManager, market_service: MarketDataService, market_context_service=None):
+        """Initialize AI Portfolio Agent with portfolio manager and market data service"""
+        # Initialize services
         self.portfolio_manager = portfolio_manager
         self.market_service = market_service
         
-        # Configure OpenAI client
-        api_key = os.getenv("OPENAI_API_KEY")
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-            self.model = "gpt-4o"
+        # Initialize OpenAI client if API key is available
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
+        
+        if self.openai_api_key:
+            self.client = OpenAI(api_key=self.openai_api_key)
+            print(f"✅ OpenAI client initialized with model: {self.model}")
         else:
-            print("Warning: OPENAI_API_KEY not found in environment variables")
             self.client = None
-            self.model = None
+            print("⚠️  WARNING: OpenAI API key not found. AI features will be limited.")
+        
+        # Initialize market context service
+        self.market_context_service = market_context_service
         
         # System prompt for the AI assistant
         self.system_prompt = """You are a professional AI investment assistant for ProCogia's Portfolio Management platform.
@@ -161,6 +185,10 @@ Your capabilities include:
 - Offering data-driven investment recommendations
 - Explaining market trends and their impact on holdings
 - Executing buy and sell orders for stocks when requested by the user
+- Analyzing current market conditions using economic data and news
+
+When users ask about the market or economy, you can access real-time economic indicators, 
+financial news, and sentiment analysis to provide informed perspectives on market conditions.
 
 When users ask you to buy or sell stocks, you can execute these transactions directly. Make sure to:
 1. Confirm the details of the transaction (symbol, quantity, price) before executing
@@ -299,6 +327,7 @@ You have access to the following functions to get additional information:
 - get_transaction_history(limit) - For the user's recent transactions history
 - get_historical_prices(symbol, days) - For historical price data of any stock (default 30 days, max 90)
 - get_cache_stats() - For information about the market data cache
+- get_market_context(symbols) - For current market context including economic indicators, relevant news, and sentiment analysis
 
 USER QUESTION: {user_message}
 
@@ -312,6 +341,7 @@ You have access to the following functions to get information:
 - search_stock(query) - To search for any stock and get current market data
 - get_historical_prices(symbol, days) - For historical price data of any stock (default 30 days, max 90)
 - get_cache_stats() - For information about the market data cache
+- get_market_context(symbols) - For current market context including economic indicators, relevant news, and sentiment analysis
 
 USER QUESTION: {user_message}
 
@@ -684,6 +714,18 @@ Use the available functions when appropriate to provide accurate market data.
                     return stats
                 else:
                     return {"stats": stats}
+            except Exception as e:
+                return {"error": str(e)}
+        
+        elif function_name == "get_market_context":
+            try:
+                symbols = params.get("symbols", [])
+                # Convert to list if it's a single string
+                if isinstance(symbols, str):
+                    symbols = [symbols]
+                    
+                market_context = await self.market_context_service.get_market_context(symbols)
+                return market_context
             except Exception as e:
                 return {"error": str(e)}
         

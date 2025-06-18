@@ -758,5 +758,52 @@ class DatabaseService:
                 'error': str(e)
             }
 
+    async def get_cached_market_context(self, key: str) -> Optional[Dict[str, Any]]:
+        """Get cached market context data by key"""
+        try:
+            result = self.supabase.table('market_context_cache').select('*').eq('key', key).execute()
+            if result.data:
+                return result.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error getting cached market context: {str(e)}")
+            return None
+
+    async def store_market_context(self, key: str, data: Dict[str, Any]) -> bool:
+        """Store market context data in cache"""
+        try:
+            # Check if entry exists
+            result = self.supabase.table('market_context_cache').select('id').eq('key', key).execute()
+            
+            cache_data = {
+                'key': key,
+                'data': data,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            if result.data:
+                # Update existing entry
+                self.supabase.table('market_context_cache').update(cache_data).eq('key', key).execute()
+            else:
+                # Insert new entry
+                self.supabase.table('market_context_cache').insert(cache_data).execute()
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error storing market context: {str(e)}")
+            return False
+
+    async def test_connection(self) -> bool:
+        """Test database connection"""
+        if not self.supabase:
+            raise Exception("Database not configured")
+            
+        # Simple test query
+        try:
+            result = self.supabase.table('users').select('count').limit(1).execute()
+            return True
+        except Exception as e:
+            raise Exception(f"Database connection test failed: {str(e)}")
+
 # Global database service instance
 db_service = DatabaseService() 

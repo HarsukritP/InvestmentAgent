@@ -21,6 +21,7 @@ from portfolio import PortfolioManager
 from market_data import MarketDataService
 from ai_agent import AIPortfolioAgent
 from auth import AuthenticationService
+from market_context import MarketContextService
 import database
 
 # Create FastAPI app
@@ -46,9 +47,10 @@ app.add_middleware(
 # Initialize services
 market_service = MarketDataService()
 portfolio_manager = PortfolioManager()
-ai_agent = AIPortfolioAgent(portfolio_manager, market_service)
 auth_service = AuthenticationService()
 db_service = database.db_service
+market_context_service = MarketContextService(db_service)
+ai_agent = AIPortfolioAgent(portfolio_manager, market_service, market_context_service)
 
 # Security
 security = HTTPBearer(auto_error=False)
@@ -726,52 +728,70 @@ async def chat_with_ai(
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint (public)"""
+    """Health check endpoint for API status"""
+    # Check database connection
+    db_status = "ok"
+    db_error = None
     try:
-        # Test market data service
-        market_health = market_service.health_check()
-        
-        # Test AI agent
-        ai_health = ai_agent.health_check()
-        
-        # Test database connection
-        try:
-            # Simple database test
-            test_result = db_service.supabase.table('users').select('count').execute()
-            db_health = {"status": "healthy"}
-        except Exception as e:
-            db_health = {"status": "error", "error": str(e)}
-        
-        # Overall status
-        overall_status = "healthy" if (
-            market_health.get("status") == "healthy" and 
-            ai_health.get("status") == "healthy" and
-            db_health.get("status") == "healthy"
-        ) else "degraded"
-        
-        return {
-            "status": overall_status,
-            "timestamp": market_health.get("last_test", datetime.now().isoformat()),
-            "services": {
-                "market_data": market_health,
-                "ai_agent": ai_health,
-                "database": db_health,
-                "portfolio": {"status": "healthy"},
-                "auth": {"status": "healthy" if auth_service.google_client_id else "not_configured"}
+        # Attempt to query the database
+        await db_service.test_connection()
+    except Exception as e:
+        db_status = "error"
+        db_error = str(e)
+    
+    # Check AI service
+    ai_status = ai_agent.health_check()
+    
+    # Check market data service
+    market_data_status = "ok"
+    market_data_error = None
+    try:
+        # Simple test of the market data service
+        test_symbol = "AAPL"
+        await market_service.get_stock_quote(test_symbol)
+    except Exception as e:
+        market_data_status = "error"
+        market_data_error = str(e)
+    
+    # Check market context service
+    market_context_status = "ok"
+    market_context_error = None
+    try:
+        # Check if API keys are configured
+        if not os.getenv("FRED_API_KEY"):
+            market_context_status = "error"
+            market_context_error = "FRED_API_KEY not configured"
+        elif not os.getenv("NEWS_API_KEY"):
+            market_context_status = "error"
+            market_context_error = "NEWS_API_KEY not configured"
+    except Exception as e:
+        market_context_status = "error"
+        market_context_error = str(e)
+    
+    # Overall API status
+    overall_status = "healthy"
+    if db_status == "error" or ai_status.get("status") == "error" or market_data_status == "error" or market_context_status == "error":
+        overall_status = "degraded"
+    
+    return {
+        "status": overall_status,
+        "timestamp": datetime.now().isoformat(),
+        "components": {
+            "database": {
+                "status": db_status,
+                "error": db_error
             },
-            "configuration": {
-                "twelvedata_key_configured": bool(os.getenv("TWELVEDATA_API_KEY")),
-                "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")),
-                "oauth_configured": bool(auth_service.google_client_id and auth_service.google_client_secret),
-                "supabase_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"))
+            "ai_service": ai_status,
+            "market_data_service": {
+                "status": market_data_status,
+                "error": market_data_error
+            },
+            "market_context_service": {
+                "status": market_context_status,
+                "error": market_context_error
             }
         }
-    except Exception as e:
-        return {
-            "status": "error",
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e)
-        }
+    }
 
 @app.get("/transaction-stats")
 async def get_transaction_stats(user: Dict[str, Any] = Depends(get_current_user)):
