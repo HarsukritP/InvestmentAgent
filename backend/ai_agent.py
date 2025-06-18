@@ -418,250 +418,182 @@ User Message: {user_message}
             return f"User Message: {user_message}\n\nNote: Unable to retrieve portfolio context."
 
     async def execute_function(self, function_name: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Execute a function based on the AI's request"""
-        if params is None:
-            params = {}
-        
-        print(f"Executing function: {function_name} with params: {params}")
+        """Execute a function with given parameters"""
+        params = params or {}
         
         if function_name == "get_portfolio_summary":
             try:
                 portfolio_data = await self.get_portfolio_data()
-                # Ensure we return a valid dictionary
-                if isinstance(portfolio_data, dict):
-                    return portfolio_data
-                else:
-                    return {"error": "Invalid portfolio data format"}
+                return portfolio_data
             except Exception as e:
                 return {"error": str(e)}
         
         elif function_name == "get_stock_details":
             symbol = params.get("symbol", "").upper()
             if not symbol:
-                return {"error": "No stock symbol provided"}
+                return {"error": "Symbol is required"}
             
             try:
-                # Check if stock is in portfolio
-                holding = self.portfolio_manager.get_holding_by_symbol(symbol)
-                if not holding:
-                    return {"error": f"Stock {symbol} not found in portfolio"}
-                
-                return await self.get_stock_performance_data(symbol)
+                stock_data = await self.get_stock_performance_data(symbol)
+                return stock_data
             except Exception as e:
                 return {"error": str(e)}
         
         elif function_name == "search_stock":
             query = params.get("query", "")
             if not query:
-                return {"error": "No search query provided"}
+                return {"error": "Query is required"}
+            
+            print(f"Executing function: {function_name} with params: {params}")
             
             try:
+                # Search for stock
                 search_results = await self.market_service.search_stocks(query)
-                # Ensure we return a valid dictionary
-                return {"results": search_results}
+                
+                if not search_results or "error" in search_results:
+                    return {"error": f"Could not find stock matching '{query}'"}
+                
+                # Get the first result (most relevant match)
+                stock = search_results[0]
+                symbol = stock.get("symbol")
+                
+                # Get current price
+                price_data = await self.market_service.get_stock_price(symbol)
+                
+                if not price_data or "error" in price_data:
+                    return {
+                        "symbol": symbol,
+                        "name": stock.get("instrument_name"),
+                        "exchange": stock.get("exchange"),
+                        "error": f"Could not retrieve current price for {symbol}",
+                        "price": None,
+                        "search_results": search_results[:5]  # Include top 5 results
+                    }
+                
+                # Return stock data with price
+                return {
+                    "symbol": symbol,
+                    "name": stock.get("instrument_name"),
+                    "exchange": stock.get("exchange"),
+                    "price": price_data.get("price"),
+                    "currency": price_data.get("currency", "USD"),
+                    "last_updated": price_data.get("last_updated"),
+                    "search_results": search_results[:5]  # Include top 5 results
+                }
             except Exception as e:
-                return {"error": str(e)}
+                return {"error": str(e), "query": query}
         
         elif function_name == "buy_stock":
             symbol = params.get("symbol", "").upper()
             quantity = params.get("quantity")
             
             if not symbol:
-                return {"error": "No stock symbol provided"}
-            
-            if not quantity or quantity <= 0:
-                return {"error": "Invalid quantity. Please provide a positive number of shares to buy."}
+                return {"error": "Symbol is required"}
+            if not quantity:
+                return {"error": "Quantity is required"}
             
             try:
-                # Check if the symbol exists by searching for it
-                search_results = None
-                try:
-                    search_results = await self.market_service.search_stocks(symbol)
-                    if not search_results or len(search_results) == 0:
-                        return {"error": f"Could not find stock with symbol {symbol}"}
-                    
-                    # Verify the symbol matches exactly what we're looking for
-                    exact_match = False
-                    for result in search_results:
-                        if result.get("symbol", "").upper() == symbol.upper():
-                            exact_match = True
-                            break
-                    
-                    if not exact_match:
-                        return {
-                            "error": f"Could not find exact match for symbol {symbol}. Did you mean one of these?",
-                            "suggestions": [r.get("symbol") for r in search_results[:5]]
-                        }
-                except Exception as search_error:
-                    print(f"Warning: Search failed but continuing: {search_error}")
-                    # Continue with the buy operation even if search fails
+                quantity = float(quantity)
+            except ValueError:
+                return {"error": "Quantity must be a number"}
+            
+            if quantity <= 0:
+                return {"error": "Quantity must be positive"}
+            
+            try:
+                # First, verify the stock exists and get its current price
+                price_data = await self.market_service.get_stock_price(symbol)
                 
-                # Get current price of the stock
-                quote_data = await self.market_service.get_stock_quote(symbol)
-                if not quote_data or "price" not in quote_data:
-                    return {"error": f"Could not get current price for {symbol}"}
+                if not price_data or "error" in price_data:
+                    return {"error": f"Could not retrieve current price for {symbol}. Please verify the symbol and try again."}
                 
-                current_price = quote_data["price"]
+                current_price = price_data.get("price")
+                if not current_price:
+                    return {"error": f"Could not determine current price for {symbol}"}
                 
-                # Check if the user can afford the purchase
-                portfolio_data = await self.get_portfolio_data()
-                cash_balance = portfolio_data["portfolio_summary"]["cash_balance"]
+                # Calculate total cost
                 total_cost = current_price * quantity
                 
-                if total_cost > cash_balance:
-                    max_affordable = int(cash_balance / current_price) if current_price > 0 else 0
+                # Check if user has enough cash
+                if self.portfolio_manager.portfolio["cash_balance"] < total_cost:
                     return {
-                        "success": False,
-                        "error": f"Insufficient funds. You need ${total_cost:.2f} but have ${cash_balance:.2f}.",
-                        "affordability": {
-                            "can_afford": False,
-                            "cash_balance": cash_balance,
-                            "total_cost": total_cost,
-                            "shortfall": total_cost - cash_balance,
-                            "max_affordable_shares": max_affordable,
-                            "current_price": current_price
-                        }
+                        "error": "Insufficient funds",
+                        "cash_balance": self.portfolio_manager.portfolio["cash_balance"],
+                        "required": total_cost,
+                        "symbol": symbol,
+                        "price": current_price,
+                        "quantity": quantity
                     }
                 
-                # Execute the buy order
-                from database import db_service
+                # Execute the buy
+                result = await self.portfolio_manager.buy_stock(symbol, quantity)
                 
-                # Get the user's portfolio ID
-                portfolios = await db_service.get_user_portfolios(self.portfolio_manager.user_id)
-                if not portfolios:
-                    return {"error": "No portfolio found for this user"}
+                if "error" in result:
+                    return result
                 
-                portfolio_id = portfolios[0]["id"]
+                # Add current price to the result
+                result["price"] = current_price
+                result["total_cost"] = total_cost
                 
-                # Execute the buy order
-                result = await db_service.execute_buy_order(
-                    portfolio_id=portfolio_id,
-                    user_id=self.portfolio_manager.user_id,
-                    symbol=symbol,
-                    shares=quantity,
-                    price_per_share=current_price
-                )
-                
-                # Update the portfolio manager's data
-                updated_portfolio = await db_service.get_portfolio_by_id(portfolio_id, self.portfolio_manager.user_id)
-                updated_holdings = await db_service.get_portfolio_holdings(portfolio_id)
-                
-                self.portfolio_manager.portfolio = {
-                    "cash_balance": updated_portfolio["cash_balance"],
-                    "holdings": [
-                        {
-                            "symbol": h["symbol"],
-                            "quantity": h["shares"],
-                            "purchase_price": h["average_cost"]
-                        } for h in updated_holdings
-                    ]
-                }
-                
-                # Include stock information in the response if we have it
-                stock_info = {}
-                if search_results and len(search_results) > 0:
-                    for result in search_results:
-                        if result.get("symbol", "").upper() == symbol.upper():
-                            stock_info = {
-                                "name": result.get("name", ""),
-                                "exchange": result.get("exchange", ""),
-                                "type": result.get("type", "")
-                            }
-                            break
-                
-                return {
-                    "success": True,
-                    "symbol": symbol,
-                    "quantity": quantity,
-                    "price": current_price,
-                    "total_cost": total_cost,
-                    "new_cash_balance": result["new_cash_balance"],
-                    "transaction_id": result["transaction"]["id"],
-                    "message": f"Successfully purchased {quantity} shares of {symbol} at ${current_price:.2f} per share.",
-                    "stock_info": stock_info
-                }
-                
+                return result
             except Exception as e:
-                return {"error": f"Error executing buy order: {str(e)}"}
+                return {"error": str(e)}
         
         elif function_name == "sell_stock":
             symbol = params.get("symbol", "").upper()
             quantity = params.get("quantity")
             
             if not symbol:
-                return {"error": "No stock symbol provided"}
-            
-            if not quantity or quantity <= 0:
-                return {"error": "Invalid quantity. Please provide a positive number of shares to sell."}
+                return {"error": "Symbol is required"}
+            if not quantity:
+                return {"error": "Quantity is required"}
             
             try:
-                # Check if the user owns the stock and has enough shares
-                holding = self.portfolio_manager.get_holding_by_symbol(symbol)
+                quantity = float(quantity)
+            except ValueError:
+                return {"error": "Quantity must be a number"}
+            
+            if quantity <= 0:
+                return {"error": "Quantity must be positive"}
+            
+            try:
+                # First, verify the stock exists in the portfolio and get its current price
+                holdings = self.portfolio_manager.portfolio.get("holdings", [])
+                holding = next((h for h in holdings if h["symbol"] == symbol), None)
+                
                 if not holding:
                     return {"error": f"You don't own any shares of {symbol}"}
                 
                 if holding["quantity"] < quantity:
                     return {
-                        "success": False,
-                        "error": f"Insufficient shares. You own {holding['quantity']} shares of {symbol} but are trying to sell {quantity}.",
-                        "available_shares": holding["quantity"]
+                        "error": f"Insufficient shares. You own {holding['quantity']} shares of {symbol}, but are trying to sell {quantity}.",
+                        "owned_shares": holding["quantity"],
+                        "requested_shares": quantity
                     }
                 
-                # Get current price of the stock
-                quote_data = await self.market_service.get_stock_quote(symbol)
-                if not quote_data or "price" not in quote_data:
-                    return {"error": f"Could not get current price for {symbol}"}
+                # Get current price
+                price_data = await self.market_service.get_stock_price(symbol)
                 
-                current_price = quote_data["price"]
-                total_proceeds = current_price * quantity
+                if not price_data or "error" in price_data:
+                    return {"error": f"Could not retrieve current price for {symbol}. Please try again later."}
                 
-                # Execute the sell order
-                from database import db_service
+                current_price = price_data.get("price")
+                if not current_price:
+                    return {"error": f"Could not determine current price for {symbol}"}
                 
-                # Get the user's portfolio ID
-                portfolios = await db_service.get_user_portfolios(self.portfolio_manager.user_id)
-                if not portfolios:
-                    return {"error": "No portfolio found for this user"}
+                # Execute the sell
+                result = await self.portfolio_manager.sell_stock(symbol, quantity)
                 
-                portfolio_id = portfolios[0]["id"]
+                if "error" in result:
+                    return result
                 
-                # Execute the sell order
-                result = await db_service.execute_sell_order(
-                    portfolio_id=portfolio_id,
-                    user_id=self.portfolio_manager.user_id,
-                    symbol=symbol,
-                    shares=quantity,
-                    price_per_share=current_price
-                )
+                # Add current price to the result
+                result["price"] = current_price
+                result["total_value"] = current_price * quantity
                 
-                # Update the portfolio manager's data
-                updated_portfolio = await db_service.get_portfolio_by_id(portfolio_id, self.portfolio_manager.user_id)
-                updated_holdings = await db_service.get_portfolio_holdings(portfolio_id)
-                
-                self.portfolio_manager.portfolio = {
-                    "cash_balance": updated_portfolio["cash_balance"],
-                    "holdings": [
-                        {
-                            "symbol": h["symbol"],
-                            "quantity": h["shares"],
-                            "purchase_price": h["average_cost"]
-                        } for h in updated_holdings
-                    ]
-                }
-                
-                return {
-                    "success": True,
-                    "symbol": symbol,
-                    "quantity": quantity,
-                    "price": current_price,
-                    "total_proceeds": total_proceeds,
-                    "new_cash_balance": result["new_cash_balance"],
-                    "transaction_id": result["transaction"]["id"],
-                    "message": f"Successfully sold {quantity} shares of {symbol} at ${current_price:.2f} per share."
-                }
-                
+                return result
             except Exception as e:
-                return {"error": f"Error executing sell order: {str(e)}"}
+                return {"error": str(e)}
         
         elif function_name == "calculate_portfolio_metrics":
             try:
