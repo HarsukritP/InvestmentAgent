@@ -9,39 +9,35 @@ const ChatPage = ({ portfolio, user }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [, setError] = useState(null);
+  const [error, setError] = useState(null);
+  const [expandedFunctions, setExpandedFunctions] = useState({});
+  const [activeFunctions, setActiveFunctions] = useState([]);
+  
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const [expandedFunctions, setExpandedFunctions] = useState({});
-
-  // Auto-scroll to bottom when new messages arrive
+  
+  // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
+  
+  // Scroll when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Focus input on mount
+  }, [messages]);
+  
+  // Focus input when loading state changes
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  // Add welcome message on first load
+    if (!isLoading) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading]);
+  
+  // Initialize with welcome message
   useEffect(() => {
     const welcomeMessage = {
       role: 'assistant',
-      content: `👋 Hello! I'm your AI investment assistant. I can help you analyze your portfolio, answer questions about your investments, and provide market insights.
-
-Here are some things you can ask me:
-• "How is my portfolio performing?"
-• "What are my biggest holdings?"
-• "Should I diversify more?"
-• "Tell me about [stock symbol]"
-• "What's the market outlook?"
-
-How can I help you today?`,
+      content: `👋 Hello! I'm your AI investment assistant. How can I help you today?`,
       timestamp: new Date().toISOString()
     };
     setMessages([welcomeMessage]);
@@ -61,6 +57,8 @@ How can I help you today?`,
     setInputMessage('');
     setIsLoading(true);
     setError(null);
+    // Clear active functions when sending a new message
+    setActiveFunctions([]);
 
     try {
       // Prepare portfolio context
@@ -119,9 +117,35 @@ How can I help you today?`,
     }
   };
 
+  // Add a function to track active functions
+  const addActiveFunction = (functionName, args = {}) => {
+    const functionCall = {
+      name: functionName,
+      args: args,
+      timestamp: new Date().toISOString(),
+      id: Date.now() + Math.random().toString(36).substring(2, 9)
+    };
+    
+    setActiveFunctions(prev => [...prev, functionCall]);
+    return functionCall.id;
+  };
+
+  // Remove function from active functions
+  const removeActiveFunction = (functionId) => {
+    setActiveFunctions(prev => prev.filter(func => func.id !== functionId));
+  };
+
   // Format function response data for display
   const formatFunctionResponse = (functionName, responseData) => {
     if (!responseData) return '';
+
+    // Add function to active functions when it's called
+    const functionId = addActiveFunction(functionName, responseData);
+    
+    // Remove function from active functions after a delay
+    setTimeout(() => {
+      removeActiveFunction(functionId);
+    }, 3000);
 
     switch (functionName) {
       case 'get_portfolio_summary':
@@ -138,6 +162,8 @@ How can I help you today?`,
         return formatPortfolioMetrics(responseData);
       case 'get_transaction_history':
         return formatTransactionHistory(responseData);
+      case 'get_market_context':
+        return formatMarketContext(responseData);
       default:
         return JSON.stringify(responseData, null, 2);
     }
@@ -274,6 +300,43 @@ ${sectorInfo}
 `;
   };
 
+  const formatMarketContext = (data) => {
+    if (data.error) return `Error: ${data.error}`;
+    
+    let result = '🌍 Market Context:\n';
+    
+    // Add market sentiment if available
+    if (data.market_sentiment) {
+      const sentiment = data.market_sentiment;
+      result += `• Market Sentiment: ${sentiment.sentiment_category.replace('_', ' ')}\n`;
+      result += `• Sentiment Score: ${sentiment.sentiment_score}\n`;
+      
+      if (sentiment.sentiment_factors && sentiment.sentiment_factors.length > 0) {
+        result += '\nKey Factors:\n';
+        sentiment.sentiment_factors.forEach(factor => {
+          result += `• ${factor}\n`;
+        });
+      }
+      
+      if (sentiment.economic_indicators_summary) {
+        result += `\nEconomic Indicators: ${sentiment.economic_indicators_summary}\n`;
+      }
+    }
+    
+    // Add news if available
+    if (data.market_news && data.market_news.general_news) {
+      const news = data.market_news.general_news.slice(0, 3);
+      if (news.length > 0) {
+        result += '\nRecent News:\n';
+        news.forEach((item, index) => {
+          result += `• ${item.title} (${item.source})\n`;
+        });
+      }
+    }
+    
+    return result;
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -384,6 +447,18 @@ ${sectorInfo}
           Clear Chat
         </button>
       </div>
+
+      {/* Active Functions Display */}
+      {activeFunctions.length > 0 && (
+        <div className="active-functions-container">
+          {activeFunctions.map(func => (
+            <div key={func.id} className="active-function-item">
+              <span className="function-icon">🔍</span>
+              <span className="function-name">{func.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Chat Container */}
       <div className="chat-container">
