@@ -5,6 +5,8 @@ import { API_URL } from '../config';
 import defaultAvatar from '../assets/default-avatar.js';
 import assistantAvatar from '../assets/assistant-avatar.js';
 
+const STORAGE_KEY = 'procogia_chat_history';
+
 const ChatPage = ({ portfolio, user }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -33,8 +35,26 @@ const ChatPage = ({ portfolio, user }) => {
     }
   }, [isLoading]);
   
-  // Initialize with welcome message
+  // Load chat history from localStorage on mount
   useEffect(() => {
+    const savedMessages = localStorage.getItem(STORAGE_KEY);
+    
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages);
+        
+        // Only use saved messages if they exist and are in the correct format
+        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+          setMessages(parsedMessages);
+          return; // Skip adding welcome message if we loaded history
+        }
+      } catch (error) {
+        console.error('Error parsing saved chat history:', error);
+        // If there's an error, we'll fall through to the default welcome message
+      }
+    }
+    
+    // Initialize with welcome message if no history was loaded
     const welcomeMessage = {
       role: 'assistant',
       content: `👋 Hello! I'm your AI investment assistant. How can I help you today?`,
@@ -42,6 +62,13 @@ const ChatPage = ({ portfolio, user }) => {
     };
     setMessages([welcomeMessage]);
   }, []); // Only run once on mount
+  
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }
+  }, [messages]);
 
   // Handle transaction confirmation
   const handleTransactionConfirm = (confirmed, transactionDetails) => {
@@ -437,8 +464,13 @@ ${sectorInfo}
   };
 
   const clearChat = () => {
+    // Clear messages state
     setMessages([]);
     setError(null);
+    
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEY);
+    
     // Re-add welcome message
     const welcomeMessage = {
       role: 'assistant',
