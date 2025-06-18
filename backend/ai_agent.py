@@ -193,6 +193,15 @@ IMPORTANT: You must be proactive and take initiative when helping users. When us
 3. When users ask for recommendations or analysis, ALWAYS get the latest market data first
 4. When users ask to make changes to their portfolio, verify the details and execute the transactions
 
+TRANSACTION CONFIRMATION PROTOCOL:
+When users request to buy or sell stocks or make portfolio changes:
+1. ALWAYS present a clear confirmation request BEFORE executing any transaction
+2. Clearly state what you're about to do (e.g., "I'm about to sell 5 shares of AAPL at approximately $180/share")
+3. Include the estimated total value of the transaction
+4. Ask explicitly: "Would you like me to proceed with this transaction?"
+5. Only execute the transaction after receiving clear confirmation from the user
+6. If the user modifies the transaction details, adapt your plan accordingly
+
 When users ask about the market or economy, you should IMMEDIATELY access real-time economic indicators, 
 financial news, and sentiment analysis to provide informed perspectives on market conditions.
 
@@ -204,7 +213,22 @@ When users ask you to buy or sell stocks, you can execute these transactions dir
 
 You can buy both stocks that are already in the portfolio AND new stocks that aren't currently held. For new stocks, you'll automatically verify the symbol exists before purchasing.
 
-REMEMBER: Always maintain memory of previous interactions in the conversation. Use this context to provide more relevant and personalized responses."""
+REMEMBER: Always maintain memory of previous interactions in the conversation. Use this context to provide more relevant and personalized responses.
+
+MULTI-STEP PROCESSES:
+For complex requests involving multiple steps:
+1. Break down the request into clear steps
+2. Execute each step in logical sequence
+3. Provide updates after completing each major step
+4. Summarize the entire process when complete
+
+For portfolio rebalancing or complex strategies:
+1. First analyze the current portfolio composition
+2. Evaluate market conditions and relevant economic factors
+3. Present a clear plan with specific actions
+4. Request confirmation before executing any trades
+5. Execute trades only after receiving explicit approval
+6. Provide a comprehensive summary of changes made"""
 
     async def get_portfolio_data(self) -> Dict[str, Any]:
         """Get comprehensive portfolio data for AI context"""
@@ -266,93 +290,127 @@ REMEMBER: Always maintain memory of previous interactions in the conversation. U
             return {"error": str(e)}
 
     async def format_portfolio_context(self, user_message: str) -> str:
-        """Create context-aware prompt with portfolio data only when relevant"""
-        # Check if the message is related to portfolio or investments
-        portfolio_keywords = [
-            'portfolio', 'stock', 'invest', 'holding', 'share', 'market', 'price', 
-            'value', 'performance', 'balance', 'cash', 'position', 'asset', 'equity',
-            'gain', 'loss', 'return', 'profit', 'dividend', 'buy', 'sell', 'trade',
-            'pnl', 'p&l', 'allocation', 'diversif', 'risk', 'volatility'
-        ]
-        
-        # Check for stock symbols in common formats
-        stock_symbols = ['aapl', 'msft', 'googl', 'goog', 'amzn', 'tsla', 'nvda', 'meta', 'amd']
-        
-        # Normalize user message for easier matching
-        normalized_message = user_message.lower()
-        
-        # Check if message contains portfolio-related keywords or stock symbols
-        is_portfolio_related = any(keyword in normalized_message for keyword in portfolio_keywords) or \
-                              any(symbol in normalized_message.split() for symbol in stock_symbols)
-        
-        context = ""
-        
-        # Only add portfolio context if the query is related to portfolio/investments
-        if is_portfolio_related:
+        """Format portfolio context for the AI prompt"""
+        try:
             # Get portfolio data
             portfolio_data = await self.get_portfolio_data()
             
-            if "error" in portfolio_data:
-                context = "Portfolio data is currently unavailable."
-            else:
-                # Format portfolio context - keep it concise to reduce token usage
-                context = f"""
-CURRENT PORTFOLIO DATA:
-Total Portfolio Value: ${portfolio_data['portfolio_summary']['total_portfolio_value']:,.2f}
-Total P&L: ${portfolio_data['portfolio_summary']['total_pnl']:,.2f} ({portfolio_data['portfolio_summary']['total_pnl_percent']:+.2f}%)
-Cash Balance: ${portfolio_data['portfolio_summary']['cash_balance']:,.2f}
-
-HOLDINGS:"""
-                for holding in portfolio_data['holdings']:
-                    context += f"\n- {holding['symbol']}: {holding['quantity']} shares, ${holding['current_price']:.2f}/share, P&L: ${holding['pnl']:,.2f} ({holding['pnl_percent']:+.2f}%)"
+            # Calculate basic portfolio metrics
+            total_portfolio_value = 0
+            cash_balance = portfolio_data.get("cash_balance", 0)
+            holdings = portfolio_data.get("holdings", [])
             
-                # Only add detailed stock analysis if specifically asked about a stock
-                for symbol in ['AAPL', 'GOOGL', 'MSFT', 'NVDA', 'AMD']:
-                    if symbol in user_message.upper() or (symbol == 'AAPL' and 'APPLE' in user_message.upper()) or (symbol == 'GOOGL' and 'GOOGLE' in user_message.upper()) or (symbol == 'MSFT' and 'MICROSOFT' in user_message.upper()):
-                        stock_data = await self.get_stock_performance_data(symbol)
-                        if "error" not in stock_data:
-                            context += f"\n\nDETAILED {symbol} ANALYSIS: {stock_data['shares_owned']} shares, bought at ${stock_data['purchase_price']:.2f}, now ${stock_data['current_price']:.2f}, P&L: ${stock_data['pnl']:,.2f} ({stock_data['pnl_percent']:+.2f}%)"
-        
-        # Provide a clear instruction for the AI - different based on whether portfolio data was included
-        if is_portfolio_related:
-            instruction = """
-You are a professional investment assistant. Answer the user's question using the portfolio data above.
-You have access to the following functions to get additional information:
-- get_portfolio_summary() - For overall portfolio information and performance metrics
-- get_stock_details(symbol) - For detailed information about a specific stock in the portfolio
-- search_stock(query) - To search for any stock and get current market data
-- calculate_portfolio_metrics() - For portfolio risk, diversification, and sector allocation metrics
-- get_transaction_history(limit) - For the user's recent transactions history
-- get_historical_prices(symbol, days) - For historical price data of any stock (default 30 days, max 90)
-- get_cache_stats() - For information about the market data cache
-- get_market_context(symbols) - For current market context including economic indicators, relevant news, and sentiment analysis
-
-USER QUESTION: {user_message}
-
-Respond with helpful, specific information about their portfolio. Include relevant numbers and insights.
-Use the available functions to provide the most accurate and detailed answer possible.
-"""
-        else:
-            instruction = """
-You are a professional investment assistant. Answer the user's question thoughtfully.
-You have access to the following functions to get information:
-- search_stock(query) - To search for any stock and get current market data
-- get_historical_prices(symbol, days) - For historical price data of any stock (default 30 days, max 90)
-- get_cache_stats() - For information about the market data cache
-- get_market_context(symbols) - For current market context including economic indicators, relevant news, and sentiment analysis
-
-USER QUESTION: {user_message}
-
-Respond with helpful information. Since the question is not about their specific portfolio,
-focus on providing general advice, information, or answering their question directly.
-Use the available functions when appropriate to provide accurate market data.
-"""
-        
-        full_prompt = instruction.format(user_message=user_message)
-        if context:
-            full_prompt = context + "\n\n" + full_prompt
+            # Format holdings data
+            holdings_text = ""
+            symbols = []
             
-        return full_prompt
+            if holdings:
+                for holding in holdings:
+                    symbol = holding.get("symbol", "")
+                    quantity = holding.get("quantity", 0)
+                    purchase_price = holding.get("purchase_price", 0)
+                    current_price = holding.get("current_price", 0)
+                    
+                    # Calculate metrics
+                    position_value = quantity * current_price
+                    total_portfolio_value += position_value
+                    cost_basis = quantity * purchase_price
+                    pnl = position_value - cost_basis
+                    pnl_percent = (pnl / cost_basis) * 100 if cost_basis > 0 else 0
+                    
+                    # Format holding text
+                    holdings_text += f"- {symbol}: {quantity} shares, purchase price: ${purchase_price:.2f}, current price: ${current_price:.2f}, value: ${position_value:.2f}, P&L: ${pnl:.2f} ({pnl_percent:.2f}%)\n"
+                    
+                    # Add symbol to list for market context
+                    symbols.append(symbol)
+            
+            # Calculate total account value
+            total_account_value = total_portfolio_value + cash_balance
+            
+            # Get portfolio diversification metrics
+            diversification = "Not diversified"
+            risk_level = "Unknown"
+            
+            try:
+                # Try to get more detailed portfolio metrics if available
+                metrics = await self.execute_function("calculate_portfolio_metrics")
+                if metrics and not isinstance(metrics, str) and "error" not in metrics:
+                    diversification = metrics.get("diversification_score", "Not calculated")
+                    risk_level = metrics.get("risk_level", "Not calculated")
+                    sector_allocation = metrics.get("sector_allocation", {})
+                    
+                    # Add sector allocation to the context
+                    if sector_allocation:
+                        holdings_text += "\nSector Allocation:\n"
+                        for sector, percentage in sector_allocation.items():
+                            holdings_text += f"- {sector}: {percentage:.1f}%\n"
+            except Exception as metrics_error:
+                print(f"Error getting portfolio metrics: {metrics_error}")
+            
+            # Get market context if available
+            market_context = ""
+            try:
+                if self.market_context_service:
+                    context_data = await self.market_context_service.get_market_context(symbols)
+                    
+                    if context_data and "error" not in context_data:
+                        # Extract economic indicators
+                        indicators = context_data.get("economic_indicators", {})
+                        if indicators:
+                            market_context += "\nEconomic Indicators:\n"
+                            for name, value in indicators.items():
+                                market_context += f"- {name}: {value}\n"
+                        
+                        # Extract market sentiment
+                        sentiment = context_data.get("market_sentiment", {})
+                        if sentiment:
+                            sentiment_score = sentiment.get("sentiment_score", 0)
+                            sentiment_label = "Bullish" if sentiment_score > 0 else "Bearish" if sentiment_score < 0 else "Neutral"
+                            market_context += f"\nMarket Sentiment: {sentiment_label} (score: {sentiment_score})\n"
+                            
+                            # Add sentiment factors
+                            factors = sentiment.get("factors", [])
+                            if factors:
+                                market_context += "Sentiment Factors:\n"
+                                for factor in factors:
+                                    market_context += f"- {factor}\n"
+                        
+                        # Extract relevant news
+                        news = context_data.get("relevant_news", [])
+                        if news:
+                            market_context += "\nRecent Market News:\n"
+                            # Limit to top 5 news items
+                            for i, item in enumerate(news[:5]):
+                                market_context += f"- {item.get('title', 'No title')}\n"
+            except Exception as context_error:
+                print(f"Error getting market context: {context_error}")
+            
+            # Format the complete portfolio context
+            portfolio_context = f"""
+Current Portfolio Information:
+- Cash Balance: ${cash_balance:.2f}
+- Portfolio Value: ${total_portfolio_value:.2f}
+- Total Account Value: ${total_account_value:.2f}
+- Diversification Score: {diversification}
+- Risk Level: {risk_level}
+
+Holdings:
+{holdings_text}
+{market_context}
+"""
+            
+            # Combine user message with portfolio context
+            combined_prompt = f"""
+User Message: {user_message}
+
+{portfolio_context}
+"""
+            return combined_prompt
+            
+        except Exception as e:
+            print(f"Error formatting portfolio context: {e}")
+            # Return the original message if there's an error
+            return f"User Message: {user_message}\n\nNote: Unable to retrieve portfolio context."
 
     async def execute_function(self, function_name: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Execute a function based on the AI's request"""
@@ -786,21 +844,32 @@ Use the available functions when appropriate to provide accurate market data.
                     max_tokens=2048
                 )
                 
-                # Check if the model wants to call functions
+                # Initialize tracking variables
                 function_called = None
                 function_response = None
                 all_function_calls = []
                 
-                response_message = response.choices[0].message
+                # Process the response in a loop to handle multiple function calls
+                # This allows the model to decide when it's done calling functions
+                max_function_calls = 5  # Limit to prevent infinite loops
+                function_call_count = 0
+                current_response = response
                 
-                # Process function calls if present
-                if response_message.tool_calls and len(response_message.tool_calls) > 0:
+                while function_call_count < max_function_calls:
+                    response_message = current_response.choices[0].message
+                    
                     # Add the assistant's response to the conversation
                     messages.append(response_message)
                     
-                    # Process all tool calls
+                    # Check if the model wants to call functions
+                    if not response_message.tool_calls or len(response_message.tool_calls) == 0:
+                        # No more function calls, we're done
+                        break
+                    
+                    # Process all tool calls in this response
                     for tool_call in response_message.tool_calls:
                         function_name = tool_call.function.name
+                        function_call_count += 1
                         
                         try:
                             # Parse function arguments safely
@@ -850,31 +919,36 @@ Use the available functions when appropriate to provide accurate market data.
                             "content": function_response_str
                         })
                     
-                    # Get a new response from the model after all function calls
-                    second_response = self.client.chat.completions.create(
+                    # If we've reached the max number of function calls, break the loop
+                    if function_call_count >= max_function_calls:
+                        break
+                    
+                    # Get a new response from the model to see if it wants to call more functions
+                    current_response = self.client.chat.completions.create(
                         model=self.model,
                         messages=messages,
                         temperature=0.2,
+                        tools=tools,
+                        tool_choice="auto",
                         max_tokens=2048
                     )
-                    
-                    # Return the final response with all function calls
-                    return {
-                        "response": second_response.choices[0].message.content,
-                        "function_called": function_called,  # Return the last function called for backward compatibility
-                        "function_response": function_response,  # Return the last function response for backward compatibility
-                        "all_function_calls": all_function_calls,  # Return all function calls
-                        "success": True
-                    }
-                else:
-                    # No function was called, return the direct response
-                    return {
-                        "response": response_message.content,
-                        "function_called": None,
-                        "function_response": None,
-                        "all_function_calls": [],
-                        "success": True
-                    }
+                
+                # Get the final response after all function calls
+                final_response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=0.2,
+                    max_tokens=2048
+                )
+                
+                # Return the final response with all function calls
+                return {
+                    "response": final_response.choices[0].message.content,
+                    "function_called": function_called,  # Return the last function called for backward compatibility
+                    "function_response": function_response,  # Return the last function response for backward compatibility
+                    "all_function_calls": all_function_calls,  # Return all function calls
+                    "success": True
+                }
                     
             except Exception as e:
                 print(f"Function calling approach failed: {e}")

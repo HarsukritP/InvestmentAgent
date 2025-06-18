@@ -43,12 +43,30 @@ const ChatPage = ({ portfolio, user }) => {
     setMessages([welcomeMessage]);
   }, []); // Only run once on mount
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  // Handle transaction confirmation
+  const handleTransactionConfirm = (confirmed, transactionDetails) => {
+    if (confirmed) {
+      // User confirmed the transaction, send confirmation message
+      const confirmMessage = `Yes, please proceed with the transaction as described.`;
+      setInputMessage(confirmMessage);
+      handleSendMessage(confirmMessage);
+    } else {
+      // User declined the transaction
+      const declineMessage = `No, please don't proceed with the transaction.`;
+      setInputMessage(declineMessage);
+      handleSendMessage(declineMessage);
+    }
+  };
+  
+  // Custom function to send a message programmatically
+  const handleSendMessage = async (overrideMessage = null) => {
+    const messageToSend = overrideMessage || inputMessage;
+    
+    if (!messageToSend.trim() || isLoading) return;
 
     const userMessage = {
       role: 'user',
-      content: inputMessage.trim(),
+      content: messageToSend.trim(),
       timestamp: new Date().toISOString()
     };
 
@@ -75,7 +93,7 @@ const ChatPage = ({ portfolio, user }) => {
       }));
 
       const response = await axios.post(`${API_URL}/chat`, {
-        message: userMessage.content,
+        message: messageToSend.trim(),
         portfolio_context: portfolioContext,
         conversation_history: conversationHistory
       });
@@ -564,6 +582,11 @@ ${sectorInfo}
       }
     }
     
+    // Check if this message needs transaction confirmation
+    const showConfirmation = !isUser && message.content && 
+      index === messages.length - 1 && // Only show for the last message
+      !isLoading; // Don't show while loading
+    
     return (
       <div 
         key={index} 
@@ -581,11 +604,56 @@ ${sectorInfo}
           
           <div className="message-text">
             {message.content}
+            
+            {/* Show transaction confirmation if needed */}
+            {showConfirmation && <TransactionConfirmation message={message.content} />}
           </div>
           
           <div className="message-timestamp">
             {new Date(message.timestamp).toLocaleTimeString()}
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Transaction confirmation component
+  const TransactionConfirmation = ({ message }) => {
+    // Check if message contains a transaction confirmation request
+    const containsConfirmationRequest = (text) => {
+      const patterns = [
+        /would you like (me )?to proceed with this transaction/i,
+        /would you like (me )?to execute this (trade|transaction)/i,
+        /shall i proceed with (this|the) (trade|transaction)/i,
+        /do you (want|wish) (me )?to (proceed|continue) with (this|the) (trade|transaction)/i,
+        /confirm (this|the) (trade|transaction)/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    };
+    
+    if (!containsConfirmationRequest(message)) {
+      return null;
+    }
+    
+    return (
+      <div className="transaction-confirmation">
+        <div className="confirmation-message">
+          Transaction confirmation required:
+        </div>
+        <div className="confirmation-buttons">
+          <button 
+            className="confirm-button"
+            onClick={() => handleTransactionConfirm(true)}
+          >
+            Yes, proceed
+          </button>
+          <button 
+            className="decline-button"
+            onClick={() => handleTransactionConfirm(false)}
+          >
+            No, cancel
+          </button>
         </div>
       </div>
     );
