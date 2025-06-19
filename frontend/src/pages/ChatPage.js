@@ -637,7 +637,11 @@ ${sectorInfo}
         /shall i proceed with (this|the) (trade|transaction)/i,
         /do you (want|wish) (me )?to (proceed|continue) with (this|the) (trade|transaction)/i,
         /confirm (this|the) (trade|transaction)/i,
-        /please confirm if you'd like to proceed/i
+        /please confirm if you('d| would) like to proceed/i,
+        /confirm (if|that) you approve this plan/i,
+        /please confirm (if|that) you approve/i,
+        /confirm (this|the) (plan|action|strategy)/i,
+        /let('s| us) confirm the execution of this plan/i
       ];
       
       return patterns.some(pattern => pattern.test(text));
@@ -691,29 +695,52 @@ ${sectorInfo}
       return confirmationCall ? confirmationCall.response : null;
     };
     
+    // Extract action plan from text if no function call
+    const extractActionPlanFromText = (text) => {
+      if (!text) return null;
+      
+      // Look for common patterns that indicate a transaction plan
+      const planPatterns = [
+        /let('s| us) confirm the execution of this plan:\s*([\s\S]+?)(?=please confirm|$)/i,
+        /strategic rebalancing plan outlined:\s*([\s\S]+?)(?=please confirm|$)/i,
+        /here('s| is) the recommended strategy:\s*([\s\S]+?)(?=please confirm|$)/i,
+        /recommended actions?:\s*([\s\S]+?)(?=please confirm|$)/i
+      ];
+      
+      for (const pattern of planPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+      
+      // If no specific pattern matched, return a default message
+      return "Execute the transaction as described above?";
+    };
+    
     const confirmationDetails = getConfirmationDetails();
-    const actionPlan = confirmationDetails?.action_plan || "Proceed with the transaction as described above?";
+    const actionPlan = confirmationDetails?.action_plan || extractActionPlanFromText(message.content);
     
     return (
       <div className="transaction-confirmation">
         <div className="confirmation-message">
-          Transaction confirmation required:
+          ⚠️ Transaction Confirmation Required
         </div>
-        {confirmationDetails && (
-          <div className="confirmation-plan">{actionPlan}</div>
-        )}
+        <div className="confirmation-plan">
+          {actionPlan}
+        </div>
         <div className="confirmation-buttons">
-          <button 
-            className="confirm-button"
-            onClick={() => handleTransactionConfirm(true)}
-          >
-            Execute Action
-          </button>
           <button 
             className="decline-button"
             onClick={() => handleTransactionConfirm(false)}
           >
             Decline
+          </button>
+          <button 
+            className="confirm-button"
+            onClick={() => handleTransactionConfirm(true)}
+          >
+            Execute Action
           </button>
         </div>
       </div>
