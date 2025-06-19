@@ -36,13 +36,13 @@ AI_FUNCTIONS = [
     },
     {
         "name": "search_stock",
-        "description": "Search for a stock by name or symbol to get current market data",
+        "description": "Search for a specific stock by company name or symbol to get current market data. ONLY accepts specific company names or symbols (e.g., 'Apple', 'AAPL', 'Microsoft'). Does NOT accept generic categories like 'tech stocks' or 'healthcare sector'.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The stock name or symbol to search for"
+                    "description": "The specific company name or stock symbol to search for (e.g., 'Apple', 'AAPL', 'Microsoft', 'MSFT'). Do NOT use generic terms like 'tech stocks' or 'healthcare sector'."
                 }
             },
             "required": ["query"]
@@ -189,6 +189,20 @@ Your capabilities include:
 
 CRITICAL: BE EXTREMELY PROACTIVE AND DECISIVE. Users expect you to take complete action without requiring multiple interactions.
 
+FUNCTION USAGE GUIDELINES:
+1. search_stock: 
+   - This function ONLY accepts SPECIFIC stock symbols or company names (e.g., "AAPL", "Apple", "MSFT", "Tesla")
+   - It CANNOT search for generic categories like "healthcare stocks" or "renewable energy stocks"
+   - If you need stocks from a specific sector, you MUST search for KNOWN companies in that sector
+   - Example valid inputs: "AAPL", "Microsoft", "TSLA", "Amazon"
+   - Example invalid inputs: "tech stocks", "healthcare sector", "renewable energy companies"
+
+2. buy_stock and sell_stock:
+   - These functions require SPECIFIC stock symbols that exist in the market
+   - Always verify a stock exists by using search_stock before attempting to buy it
+   - The quantity parameter must be a positive number
+   - These functions will return detailed error messages if the transaction cannot be completed
+
 When users ask you to perform complex tasks:
 1. GATHER ALL NECESSARY INFORMATION UPFRONT - don't ask for information piece by piece
 2. Use ALL available functions to collect comprehensive data before making decisions
@@ -233,7 +247,15 @@ For portfolio rebalancing or complex strategies:
 4. Present a complete plan with specific actions
 5. Request confirmation before executing any trades
 6. Execute trades only after receiving explicit approval
-7. Provide a comprehensive summary of changes made"""
+7. Provide a comprehensive summary of changes made
+
+SECTOR-BASED RECOMMENDATIONS:
+When asked to recommend stocks from specific sectors:
+1. Use your knowledge to identify SPECIFIC well-known companies in that sector
+2. Search for these specific companies by name or symbol using search_stock
+3. If the search fails, try other well-known companies in the sector
+4. NEVER search for generic sector terms like "healthcare stocks" or "renewable energy companies"
+5. Example: Instead of searching for "renewable energy stock", search for specific companies like "NEE" (NextEra Energy) or "ENPH" (Enphase Energy)"""
 
     async def get_portfolio_data(self) -> Dict[str, Any]:
         """Get comprehensive portfolio data for AI context"""
@@ -446,11 +468,34 @@ User Message: {user_message}
             
             print(f"Executing function: {function_name} with params: {params}")
             
+            # Check if query looks like a generic category rather than a specific stock
+            generic_terms = ["stock", "stocks", "sector", "industry", "companies", "etf", "fund", "index"]
+            sector_terms = ["tech", "technology", "healthcare", "energy", "renewable", "financial", "consumer", 
+                           "retail", "industrial", "materials", "utilities", "telecom", "real estate"]
+            
+            is_likely_generic = False
+            # Check if query contains both sector terms and generic terms
+            if any(term in query.lower() for term in generic_terms) and any(term in query.lower() for term in sector_terms):
+                is_likely_generic = True
+            
+            if is_likely_generic:
+                # Provide helpful error message with examples
+                return {
+                    "error": f"'{query}' appears to be a generic category search. The search_stock function only accepts specific company names or symbols.",
+                    "help": "Try searching for specific companies instead. For example:",
+                    "examples": {
+                        "technology": ["AAPL", "MSFT", "GOOGL", "NVDA"],
+                        "healthcare": ["JNJ", "UNH", "PFE", "ABBV"],
+                        "renewable_energy": ["NEE", "ENPH", "SEDG", "RUN"],
+                        "financial": ["JPM", "BAC", "GS", "V"]
+                    }
+                }
+            
             try:
                 # Search for stock
                 search_results = await self.market_service.search_stocks(query)
                 
-                if not search_results or "error" in search_results:
+                if not search_results or len(search_results) == 0:
                     return {"error": f"Could not find stock matching '{query}'"}
                 
                 # Get the first result (most relevant match)
@@ -465,7 +510,7 @@ User Message: {user_message}
                         "symbol": symbol,
                         "name": stock.get("instrument_name"),
                         "exchange": stock.get("exchange"),
-                        "error": f"Could not retrieve current price for {symbol}",
+                        "error": f"Found stock but could not retrieve current price for {symbol}",
                         "price": None,
                         "search_results": search_results[:5]  # Include top 5 results
                     }
