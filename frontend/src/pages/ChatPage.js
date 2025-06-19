@@ -559,31 +559,54 @@ ${sectorInfo}
 
   const renderMessage = (message, index) => {
     const isUser = message.role === 'user';
+    
+    // Function call display - show before the message content
     let functionCallDisplay = null;
     
-    // Process function calls for assistant messages
-    if (!isUser && message.all_function_calls && message.all_function_calls.length > 0) {
-      // Filter out request_confirmation from visible function calls
-      const visibleFunctionCalls = message.all_function_calls.filter(
-        call => call.name !== 'request_confirmation'
-      );
-      
-      if (visibleFunctionCalls.length > 0) {
+    if (!isUser) {
+      // Handle multiple function calls if available
+      if (message.all_function_calls && message.all_function_calls.length > 0) {
         functionCallDisplay = (
-          <div className="function-calls">
+          <div className="function-calls-container">
+            {message.all_function_calls.map((funcCall, funcIndex) => (
+              // Skip rendering request_confirmation function calls
+              funcCall.name !== 'request_confirmation' && (
+                <div className="function-call-display" key={funcIndex}>
+                  <div 
+                    className="function-call-header" 
+                    onClick={() => toggleFunctionResponse(`${index}-${funcIndex}`)}
+                  >
+                    <span className="function-icon">{getFunctionIcon(funcCall.name)}</span>
+                    <span className="function-name">
+                      Function called: <strong>{formatFunctionName(funcCall.name)}</strong>
+                    </span>
+                    <span className="function-toggle">
+                      {expandedFunctions[`${index}-${funcIndex}`] ? '▲' : '▼'}
+                    </span>
+                  </div>
+                  <div className={`function-response ${expandedFunctions[`${index}-${funcIndex}`] ? 'expanded' : ''}`}>
+                    <pre>{JSON.stringify(funcCall.response, null, 2)}</pre>
+                  </div>
+                </div>
+              )
+            ))}
+          </div>
+        );
+      }
+      // Fallback for legacy single function call
+      else if (message.function_called) {
+        functionCallDisplay = (
+          <div className="function-call-display">
             <div 
-              className="function-header" 
+              className="function-call-header" 
               onClick={() => toggleFunctionResponse(index)}
-              title="Click to expand/collapse function details"
             >
-              <span className="function-icon">
-                {getFunctionIcon(visibleFunctionCalls[0].name)}
-              </span>
+              <span className="function-icon">{getFunctionIcon(message.function_called)}</span>
               <span className="function-name">
-                Function called: {formatFunctionName(visibleFunctionCalls[0].name)}
-                {visibleFunctionCalls.length > 1 && 
-                  <span className="function-count">+{visibleFunctionCalls.length - 1} more</span>
-                }
+                Function called: <strong>{formatFunctionName(message.function_called)}</strong>
+              </span>
+              <span className="function-toggle">
+                {expandedFunctions[index] ? '▲' : '▼'}
               </span>
             </div>
             <div className={`function-response ${expandedFunctions[index] ? 'expanded' : ''}`}>
@@ -603,9 +626,26 @@ ${sectorInfo}
       );
     };
     
+    // Also check for text-based confirmation patterns as fallback
+    const containsConfirmationRequest = (text) => {
+      if (!text) return false;
+      
+      const patterns = [
+        /would you like (me )?to proceed with this rebalancing/i,
+        /would you like (me )?to proceed with this transaction/i,
+        /would you like (me )?to execute this (trade|transaction)/i,
+        /shall i proceed with (this|the) (trade|transaction)/i,
+        /do you (want|wish) (me )?to (proceed|continue) with (this|the) (trade|transaction)/i,
+        /confirm (this|the) (trade|transaction)/i,
+        /please confirm if you'd like to proceed/i
+      ];
+      
+      return patterns.some(pattern => pattern.test(text));
+    };
+    
     const showConfirmation = !isUser && 
       index === messages.length - 1 && // Only show for the last message
-      hasConfirmationRequest() && 
+      (hasConfirmationRequest() || containsConfirmationRequest(message.content)) && 
       !isLoading; // Don't show while loading
     
     return (
@@ -640,22 +680,11 @@ ${sectorInfo}
 
   // Transaction confirmation component
   const TransactionConfirmation = ({ message }) => {
-    // Check if the last function call was a request_confirmation
-    const hasConfirmationRequest = () => {
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage || !lastMessage.all_function_calls) return false;
-      
-      return lastMessage.all_function_calls.some(
-        call => call.name === 'request_confirmation' && call.response?.confirmation_requested
-      );
-    };
-    
-    // Get confirmation details from the function call
+    // First try to get confirmation details from function call
     const getConfirmationDetails = () => {
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage || !lastMessage.all_function_calls) return null;
+      if (!message.all_function_calls) return null;
       
-      const confirmationCall = lastMessage.all_function_calls.find(
+      const confirmationCall = message.all_function_calls?.find(
         call => call.name === 'request_confirmation' && call.response?.confirmation_requested
       );
       
@@ -663,19 +692,16 @@ ${sectorInfo}
     };
     
     const confirmationDetails = getConfirmationDetails();
-    
-    if (!hasConfirmationRequest() || !confirmationDetails) {
-      return null;
-    }
+    const actionPlan = confirmationDetails?.action_plan || "Proceed with the transaction as described above?";
     
     return (
       <div className="transaction-confirmation">
         <div className="confirmation-message">
-          <strong>Action Confirmation Required</strong>
+          Transaction confirmation required:
         </div>
-        <div className="confirmation-plan">
-          {confirmationDetails.action_plan}
-        </div>
+        {confirmationDetails && (
+          <div className="confirmation-plan">{actionPlan}</div>
+        )}
         <div className="confirmation-buttons">
           <button 
             className="confirm-button"

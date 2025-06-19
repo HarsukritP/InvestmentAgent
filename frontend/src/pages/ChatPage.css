@@ -652,57 +652,60 @@
 
 /* Transaction confirmation styling */
 .transaction-confirmation {
-  margin-top: 15px;
-  padding: 12px;
-  background-color: #f0f9ff;
-  border: 1px solid #bae6fd;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
   border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s ease;
 }
 
 .confirmation-message {
-  margin-bottom: 8px;
-  color: #0369a1;
-  font-weight: 500;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
 }
 
 .confirmation-plan {
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
   line-height: 1.5;
+  color: #1e293b;
 }
 
 .confirmation-buttons {
   display: flex;
-  gap: 10px;
+  gap: 0.75rem;
   justify-content: flex-end;
 }
 
-.confirm-button {
-  padding: 8px 16px;
-  background-color: #0ea5e9;
-  color: white;
-  border: none;
+.confirm-button,
+.decline-button {
+  padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-button {
+  background-color: #22c55e;
+  color: white;
 }
 
 .confirm-button:hover {
-  background-color: #0284c7;
+  background-color: #16a34a;
 }
 
 .decline-button {
-  padding: 8px 16px;
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  background-color: #ef4444;
+  color: white;
 }
 
 .decline-button:hover {
-  background-color: #e2e8f0;
-  color: #475569;
+  background-color: #dc2626;
 }
