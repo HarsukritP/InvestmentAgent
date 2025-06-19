@@ -85,6 +85,51 @@ AI_FUNCTIONS = [
         }
     },
     {
+        "name": "request_confirmation",
+        "description": "Request user confirmation before executing portfolio actions. This will display a confirmation button to the user.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action_plan": {
+                    "type": "string",
+                    "description": "A clear, concise description of the action plan to be executed (e.g., 'Sell 5 shares of AAPL and buy 2 shares of MSFT')"
+                },
+                "details": {
+                    "type": "object",
+                    "description": "Detailed information about the transaction(s)",
+                    "properties": {
+                        "sell": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "symbol": {"type": "string"},
+                                    "quantity": {"type": "number"},
+                                    "estimated_price": {"type": "number"},
+                                    "estimated_value": {"type": "number"}
+                                }
+                            }
+                        },
+                        "buy": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "symbol": {"type": "string"},
+                                    "quantity": {"type": "number"},
+                                    "estimated_price": {"type": "number"},
+                                    "estimated_value": {"type": "number"}
+                                }
+                            }
+                        },
+                        "total_value": {"type": "number"}
+                    }
+                }
+            },
+            "required": ["action_plan"]
+        }
+    },
+    {
         "name": "calculate_portfolio_metrics",
         "description": "Calculate advanced portfolio metrics like diversification score, risk level, etc.",
         "parameters": {
@@ -216,9 +261,17 @@ When users request to buy or sell stocks or make portfolio changes:
 2. Create a COMPLETE plan with specific stocks, quantities, and estimated prices
 3. Present the FULL transaction details in one clear confirmation request
 4. Include the estimated total value and expected outcome
-5. Ask explicitly: "Would you like me to proceed with this complete transaction plan?"
+5. Use the request_confirmation function to ask for explicit approval before executing any transactions
 6. Only execute the transaction after receiving clear confirmation
 7. If the user modifies any details, adapt your plan accordingly
+
+DECISION-MAKING APPROACH:
+1. NEVER present multiple options and ask the user to choose - this creates decision fatigue
+2. Instead, analyze the data thoroughly and make a SPECIFIC recommendation
+3. Explain your reasoning clearly but concisely
+4. Present ONE clear course of action that best meets the user's goals
+5. Use request_confirmation to get approval before executing any portfolio changes
+6. If the user wants alternatives, they will ask for them explicitly
 
 When users ask about the market or economy, you should IMMEDIATELY access real-time economic indicators, 
 financial news, and sentiment analysis to provide informed perspectives on market conditions.
@@ -766,6 +819,19 @@ User Message: {user_message}
                 return market_context
             except Exception as e:
                 return {"error": str(e)}
+        
+        elif function_name == "request_confirmation":
+            action_plan = params.get("action_plan", "")
+            details = params.get("details", None)
+            
+            if not action_plan:
+                return {"error": "Action plan is required"}
+            
+            return {
+                "confirmation_requested": True,
+                "action_plan": action_plan,
+                "details": details if details else {}
+            }
         
         else:
             return {"error": f"Unknown function: {function_name}"}

@@ -12,6 +12,7 @@ const Chat = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -22,28 +23,51 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Load conversation history from localStorage on component mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chatMessages');
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (e) {
+        console.error('Failed to parse saved messages:', e);
+      }
+    }
+  }, []);
+
+  // Save conversation history to localStorage when messages change
+  useEffect(() => {
+    if (messages.length > 1) { // Only save if there's more than the initial message
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
   const sendMessage = async (e) => {
     e.preventDefault();
     
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() && !pendingConfirmation) return;
+    if (isLoading) return;
 
     const userMessage = inputMessage.trim();
     setInputMessage('');
     setError(null);
 
-    // Add user message to conversation
-    const newUserMessage = {
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date().toLocaleTimeString()
-    };
+    // Add user message to conversation if there's input
+    if (userMessage) {
+      const newUserMessage = {
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      setMessages(prev => [...prev, newUserMessage]);
+    }
     
-    setMessages(prev => [...prev, newUserMessage]);
     setIsLoading(true);
 
     try {
-      // Prepare conversation history for API (last 10 messages for context)
-      const conversationHistory = messages.slice(-10).map(msg => ({
+      // Prepare conversation history for API (last 15 messages for context)
+      const conversationHistory = messages.slice(-15).map(msg => ({
         role: msg.role,
         content: msg.content
       }));
@@ -58,8 +82,23 @@ const Chat = () => {
           role: 'assistant',
           content: response.data.response,
           timestamp: new Date().toLocaleTimeString(),
-          function_called: response.data.function_called
+          function_called: response.data.function_called,
+          all_function_calls: response.data.all_function_calls || []
         };
+        
+        // Check if any function call is requesting confirmation
+        const confirmationRequest = assistantMessage.all_function_calls?.find(
+          call => call.name === 'request_confirmation' && call.response?.confirmation_requested
+        );
+        
+        if (confirmationRequest) {
+          setPendingConfirmation({
+            action_plan: confirmationRequest.response.action_plan,
+            details: confirmationRequest.response.details
+          });
+        } else {
+          setPendingConfirmation(null);
+        }
         
         setMessages(prev => [...prev, assistantMessage]);
       } else {
@@ -79,8 +118,28 @@ const Chat = () => {
       };
       
       setMessages(prev => [...prev, errorResponse]);
+      setPendingConfirmation(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmation = async (confirmed) => {
+    if (!pendingConfirmation) return;
+    
+    const confirmationMessage = {
+      role: 'user',
+      content: confirmed ? 'I confirm this action. Please proceed.' : 'I decline this action. Let\'s discuss alternatives.',
+      timestamp: new Date().toLocaleTimeString()
+    };
+    
+    setMessages(prev => [...prev, confirmationMessage]);
+    setPendingConfirmation(null);
+    
+    // If confirmed, send the confirmation message to continue the conversation
+    if (confirmed) {
+      setInputMessage('');
+      await sendMessage({ preventDefault: () => {} });
     }
   };
 
@@ -93,6 +152,8 @@ const Chat = () => {
       }
     ]);
     setError(null);
+    setPendingConfirmation(null);
+    localStorage.removeItem('chatMessages');
   };
 
   const formatMessage = (content) => {
@@ -169,6 +230,53 @@ const Chat = () => {
               </div>
             )}
             
+            {pendingConfirmation && (
+              <div className="message assistant confirmation-request">
+                <div className="message-content">
+                  <div style={{ 
+                    padding: '10px',
+                    marginTop: '10px',
+                    backgroundColor: '#f0f9ff',
+                    borderRadius: '8px',
+                    border: '1px solid #bae6fd'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#0369a1' }}>Action Confirmation Required</h4>
+                    <p style={{ margin: '0 0 15px 0' }}>{pendingConfirmation.action_plan}</p>
+                    
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => handleConfirmation(false)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: '#64748b'
+                        }}
+                      >
+                        Decline
+                      </button>
+                      <button
+                        onClick={() => handleConfirmation(true)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#0ea5e9',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        Execute Action
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
           
@@ -200,7 +308,7 @@ const Chat = () => {
               <button
                 type="submit"
                 className="chat-button"
-                disabled={isLoading || !inputMessage.trim()}
+                disabled={isLoading || (!inputMessage.trim() && !pendingConfirmation)}
               >
                 {isLoading ? 'Sending...' : 'Analyze 🔍'}
               </button>
