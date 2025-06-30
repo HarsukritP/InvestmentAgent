@@ -24,6 +24,14 @@ from auth import AuthenticationService
 from market_context import MarketContextService
 import database
 
+# Import hub services (new multi-agent functionality)
+try:
+    from hub.hub_api import router as hub_router
+    HUB_ROUTES_AVAILABLE = True
+except ImportError as e:
+    print(f"Hub routes not available: {e}")
+    HUB_ROUTES_AVAILABLE = False
+
 # Create FastAPI app
 app = FastAPI(
     title="AI Portfolio Agent",
@@ -891,6 +899,13 @@ async def get_transaction_stats(user: Dict[str, Any] = Depends(get_current_user)
             "status": "error",
             "message": str(e)
         }
+
+# Add hub routes if available (multi-agent functionality)
+if HUB_ROUTES_AVAILABLE:
+    app.include_router(hub_router)
+    print("✅ Hub routes enabled - Multi-agent functionality available")
+else:
+    print("ℹ️  Hub routes disabled - Running in portfolio-only mode")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
