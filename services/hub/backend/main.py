@@ -3,6 +3,7 @@ ProCogia AI Hub - FastAPI backend for multi-agent management
 """
 import os
 import sys
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, Depends
@@ -12,8 +13,11 @@ from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
 
-# Add shared directory to path for imports
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'shared'))
+# Add shared directory to Python path
+# This allows importing shared modules like database_manager
+project_root = Path(__file__).parent.parent.parent.parent  # Go up to project root
+shared_path = os.path.join(project_root, "shared")
+sys.path.append(str(shared_path))
 
 # Load environment variables
 load_dotenv()

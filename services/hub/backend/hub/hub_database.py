@@ -3,25 +3,77 @@ import logging
 from datetime import datetime
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'shared'))
-from database_manager import db_manager
+from pathlib import Path
+
+# Try to import from shared directory first
+try:
+    from database_manager import db_manager
+    print("Successfully imported database_manager from path")
+except ImportError:
+    # If that fails, try to find it in the project structure
+    try:
+        project_root = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
+        shared_path = os.path.join(project_root, "shared")
+        sys.path.append(str(shared_path))
+        from database_manager import db_manager
+        print(f"Successfully imported database_manager from {shared_path}")
+    except ImportError as e:
+        print(f"Warning: Shared services not available: {e}")
+        # Create a minimal implementation for testing
+        class MinimalDBManager:
+            def get_hub_connection(self):
+                return None
+        db_manager = MinimalDBManager()
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 class HubDatabaseService:
-    """Database service specifically for hub operations"""
+    """Service for interacting with the hub database"""
     
     def __init__(self):
-        self.db_manager = db_manager
+        self.supabase = None
+        try:
+            # Get connection from database manager
+            self.supabase = db_manager.get_hub_connection()
+            if self.supabase:
+                print("Hub database connection established")
+            else:
+                print("Warning: Hub database connection not available")
+        except Exception as e:
+            print(f"Error connecting to hub database: {e}")
     
+    async def get_agents(self) -> List[Dict[str, Any]]:
+        """Get all available agents"""
+        if not self.supabase:
+            return []
+        
+        try:
+            response = self.supabase.table("agents").select("*").eq("is_active", True).execute()
+            return response.data
+        except Exception as e:
+            print(f"Error fetching agents: {e}")
+            return []
+    
+    async def get_agent_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
+        """Get agent by slug"""
+        if not self.supabase:
+            return None
+        
+        try:
+            response = self.supabase.table("agents").select("*").eq("slug", slug).single().execute()
+            return response.data
+        except Exception as e:
+            print(f"Error fetching agent {slug}: {e}")
+            return None
+
     # Agent Management Methods
     async def register_agent(self, name: str, slug: str, description: str, 
                            detailed_description: str = None, icon_url: str = None, 
                            api_prefix: str = None, frontend_route: str = None, 
                            database_url: str = None) -> Optional[Dict[str, Any]]:
         """Register a new agent in Hub Database"""
-        hub_client = self.db_manager.get_hub_client()
+        hub_client = self.supabase
         if not hub_client:
             logger.error("Hub database not configured")
             return None
@@ -46,7 +98,7 @@ class HubDatabaseService:
 
     async def get_all_agents(self) -> List[Dict[str, Any]]:
         """Get all active agents from Hub Database"""
-        hub_client = self.db_manager.get_hub_client()
+        hub_client = self.supabase
         if not hub_client:
             logger.warning("Hub database not configured, returning empty list")
             return []
@@ -58,23 +110,9 @@ class HubDatabaseService:
             logger.error(f"Error getting agents: {str(e)}")
             return []
 
-    async def get_agent_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
-        """Get specific agent by slug from Hub Database"""
-        hub_client = self.db_manager.get_hub_client()
-        if not hub_client:
-            logger.warning("Hub database not configured")
-            return None
-            
-        try:
-            result = hub_client.table('agents').select('*').eq('slug', slug).eq('status', 'active').execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            logger.error(f"Error getting agent {slug}: {str(e)}")
-            return None
-
     async def update_user_agent_usage(self, user_id: str, agent_slug: str, time_spent: int = None) -> bool:
         """Update user's agent usage statistics in Hub Database"""
-        hub_client = self.db_manager.get_hub_client()
+        hub_client = self.supabase
         if not hub_client:
             logger.warning("Hub database not configured")
             return False
@@ -109,7 +147,7 @@ class HubDatabaseService:
 
     async def get_user_agent_stats(self, user_id: str) -> Dict[str, Any]:
         """Get user's agent usage statistics from Hub Database"""
-        hub_client = self.db_manager.get_hub_client()
+        hub_client = self.supabase
         if not hub_client:
             logger.warning("Hub database not configured")
             return {}
@@ -129,7 +167,7 @@ class HubDatabaseService:
     
     async def create_user_session(self, user_id: str, agent_slug: str) -> Optional[Dict[str, Any]]:
         """Create a new user session for tracking"""
-        hub_client = self.db_manager.get_hub_client()
+        hub_client = self.supabase
         if not hub_client:
             logger.warning("Hub database not configured")
             return None
@@ -148,7 +186,7 @@ class HubDatabaseService:
     
     async def end_user_session(self, session_id: str, time_spent: int) -> bool:
         """End a user session and record time spent"""
-        hub_client = self.db_manager.get_hub_client()
+        hub_client = self.supabase
         if not hub_client:
             logger.warning("Hub database not configured")
             return False
@@ -164,5 +202,5 @@ class HubDatabaseService:
             logger.error(f"Error ending user session: {str(e)}")
             return False
 
-# Global hub database service instance
+# Create a singleton instance
 hub_db_service = HubDatabaseService() 
