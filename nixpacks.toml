@@ -4,11 +4,8 @@ aptPkgs = ["python3-venv"]
 
 [phases.install]
 cmds = [
-  "cd backend",
-  "python -m venv .venv",
-  "source .venv/bin/activate",
-  "pip install -r requirements.txt"
+  "cd backend && python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt"
 ]
 
 [start]
-cmd = "cd backend && source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port $PORT" 
+cmd = "cd backend && . .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port $PORT" 
