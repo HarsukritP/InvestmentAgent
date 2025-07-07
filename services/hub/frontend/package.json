@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "ProCogia AI Hub - Central management for AI agents",
   "private": true,
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
