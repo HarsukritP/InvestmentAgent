@@ -23,7 +23,8 @@ const AgentsPage = () => {
         bestFor: ['Financial Advisors', 'Investment Managers', 'Individual Investors'],
         connectors: ['Market Data APIs', 'Trading Platforms', 'Banking Systems'],
         status: 'active',
-        route: '/agents/portfolio-management',
+        infoRoute: '/agents/info/portfolio-agent',
+        agentRoute: 'https://portfolio-agent-frontend-production.up.railway.app',
         icon: '📊'
       },
       {
@@ -40,7 +41,8 @@ const AgentsPage = () => {
         bestFor: ['Legal Teams', 'Compliance Officers', 'Contract Managers'],
         connectors: ['Document Management', 'Legal Databases', 'Workflow Systems'],
         status: 'coming-soon',
-        route: '/agents/document-review',
+        infoRoute: '/agents/info/document-review',
+        agentRoute: null,
         icon: '📄'
       },
       {
@@ -57,7 +59,8 @@ const AgentsPage = () => {
         bestFor: ['Support Teams', 'Customer Success', 'Service Managers'],
         connectors: ['Help Desk Software', 'CRM Systems', 'Chat Platforms'],
         status: 'coming-soon',
-        route: '/agents/customer-support',
+        infoRoute: '/agents/info/customer-support',
+        agentRoute: null,
         icon: '🎧'
       },
       {
@@ -74,7 +77,8 @@ const AgentsPage = () => {
         bestFor: ['Sales Teams', 'Business Development', 'Account Managers'],
         connectors: ['CRM Systems', 'Email Platforms', 'Sales Tools'],
         status: 'coming-soon',
-        route: '/agents/sales-assistant',
+        infoRoute: '/agents/info/sales-assistant',
+        agentRoute: null,
         icon: '💼'
       }
     ];
@@ -88,7 +92,7 @@ const AgentsPage = () => {
 
   const handleViewClick = (agent) => {
     // Navigate to agent info page
-    window.location.href = agent.route;
+    window.location.href = agent.infoRoute;
   };
 
   if (loading) {
