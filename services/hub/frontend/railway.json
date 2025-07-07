@@ -2,7 +2,8 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm install && npm run build"
+    "nixpacksConfigPath": "nixpacks.toml",
+    "buildCommand": "chmod +x setup.sh && ./setup.sh && npm install && npm run build"
   },
   "deploy": {
     "startCommand": "npx serve -s build -l $PORT",

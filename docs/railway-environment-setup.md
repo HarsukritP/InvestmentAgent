@@ -36,7 +36,7 @@ REACT_APP_HUB_API_URL=${{HUB_BACKEND_URL}}/api
 REACT_APP_PORTFOLIO_API_URL=${{PORTFOLIO_BACKEND_URL}}/api
 
 # Authentication
-REACT_APP_GOOGLE_CLIENT_ID=[your-existing-google-client-id]
+REACT_APP_GOOGLE_CLIENT_ID=999018005773-fh94g2r07sr6pa5mfu5hq843ks4itiva.apps.googleusercontent.com
 ```
 
 ## Portfolio Backend Service Variables (Update)
@@ -58,7 +58,7 @@ Update your existing portfolio frontend service with these additional variables:
 
 ```
 # Hub API URL
-REACT_APP_HUB_API_URL=${{HUB_BACKEND_URL}}/api
+REACT_APP_HUB_API_URL=agenthub-backend.up.railway.app/api
 
 # Keep existing variables as they are
 ```
