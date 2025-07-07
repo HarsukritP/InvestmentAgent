@@ -22,14 +22,11 @@ RUN npm ci --only=production
 # Install our custom runtime dependencies if they were removed
 RUN npm install express http-proxy-middleware
 
-# Create a simple startup script inline to avoid file permission issues
-RUN echo '#!/bin/sh\necho "🚀 Starting ProCogia AI Hub Frontend..."\necho "Environment PORT: $PORT"\nexec node server.js' > /app/start.sh && chmod +x /app/start.sh
-
-# Remove any conflicting files that might trigger auto-detection
-RUN rm -f package-lock.json || true
+# Remove package.json to prevent Railway from auto-detecting scripts
+RUN cp package.json package.json.backup && echo '{"name":"procogia-ai-hub","version":"1.0.0","private":true}' > package.json
 
 # Expose port
 EXPOSE $PORT
 
-# Use exec form to prevent shell interpretation and conflicts
-ENTRYPOINT ["/app/start.sh"] 
+# Use CMD with explicit node command - Railway should respect this
+CMD ["node", "server.js"] 
