@@ -10,17 +10,15 @@ const HubPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check authentication
+    // Check authentication (optional for demo)
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/');
-      return;
-    }
-
-    // Fetch user info
-    fetchUserInfo(token);
     
-    // Fetch hub status and agents
+    if (token) {
+      // Only fetch user info if token exists
+      fetchUserInfo(token);
+    }
+    
+    // Always fetch hub data (will fallback gracefully)
     fetchHubData(token);
   }, [navigate]);
 
@@ -44,45 +42,59 @@ const HubPage = () => {
 
   const fetchHubData = async (token) => {
     try {
-      // Fetch hub status
-      const statusResponse = await fetch('/api/hub/status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      if (token) {
+        // Try to fetch hub status if authenticated
+        const statusResponse = await fetch('/api/hub/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (statusResponse.ok) {
+          const status = await statusResponse.json();
+          setHubStatus(status);
         }
-      });
 
-      if (statusResponse.ok) {
-        const status = await statusResponse.json();
-        setHubStatus(status);
-      }
+        // Try to fetch available agents if authenticated
+        const agentsResponse = await fetch('/api/hub/agents', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-      // Fetch available agents
-      const agentsResponse = await fetch('/api/hub/agents', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+        if (agentsResponse.ok) {
+          const agentsData = await agentsResponse.json();
+          setAgents(agentsData);
+          setLoading(false);
+          return;
         }
-      });
-
-      if (agentsResponse.ok) {
-        const agentsData = await agentsResponse.json();
-        setAgents(agentsData);
-      } else {
-        // If hub is not configured, show portfolio agent manually
-        setAgents([{
-          id: 'portfolio-agent',
-          name: 'Portfolio Management Agent',
-          slug: 'portfolio-agent',
-          description: 'AI-powered portfolio management with real-time market data and intelligent trading recommendations.',
-          icon_url: '/assets/portfolio-icon.png',
-          frontend_route: '/portfolio-agent',
-          status: 'active'
-        }]);
       }
+      
+      // Fallback: show demo mode with portfolio agent
+      setHubStatus({
+        hub_configured: false,
+        agents_configured: ['portfolio-agent']
+      });
+      
+      setAgents([{
+        id: 'portfolio-agent',
+        name: 'Portfolio Management Agent',
+        slug: 'portfolio-agent',
+        description: 'AI-powered portfolio management with real-time market data and intelligent trading recommendations.',
+        icon_url: '/assets/portfolio-icon.png',
+        frontend_route: '/portfolio-agent',
+        status: 'active'
+      }]);
     } catch (error) {
       console.error('Error fetching hub data:', error);
       // Fallback to show portfolio agent
+      setHubStatus({
+        hub_configured: false,
+        agents_configured: ['portfolio-agent']
+      });
+      
       setAgents([{
         id: 'portfolio-agent',
         name: 'Portfolio Management Agent',
