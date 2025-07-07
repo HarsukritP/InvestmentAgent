@@ -26,4 +26,4 @@ RUN npm prune --production
 EXPOSE $PORT
 
 # Start the application
-CMD ["sh", "-c", "serve -s build -p $PORT"] 
+CMD ["sh", "-c", "serve -s build -l $PORT"] 
