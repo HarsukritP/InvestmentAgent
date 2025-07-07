@@ -1,5 +1,6 @@
 [phases.setup]
 nixPkgs = ["nodejs_18", "npm"]
+# No Python packages
 
 [phases.install]
 cmds = ["chmod +x setup.sh && ./setup.sh && npm install"]
