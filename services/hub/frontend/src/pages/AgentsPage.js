@@ -23,7 +23,7 @@ const AgentsPage = () => {
         bestFor: ['Financial Advisors', 'Investment Managers', 'Individual Investors'],
         connectors: ['Market Data APIs', 'Trading Platforms', 'Banking Systems'],
         status: 'active',
-        route: 'https://portfolio-agent-frontend-production.up.railway.app',
+        route: '/agents/portfolio-management',
         icon: '📊'
       },
       {
@@ -40,7 +40,7 @@ const AgentsPage = () => {
         bestFor: ['Legal Teams', 'Compliance Officers', 'Contract Managers'],
         connectors: ['Document Management', 'Legal Databases', 'Workflow Systems'],
         status: 'coming-soon',
-        route: '/document-review',
+        route: '/agents/document-review',
         icon: '📄'
       },
       {
@@ -57,7 +57,7 @@ const AgentsPage = () => {
         bestFor: ['Support Teams', 'Customer Success', 'Service Managers'],
         connectors: ['Help Desk Software', 'CRM Systems', 'Chat Platforms'],
         status: 'coming-soon',
-        route: '/customer-support',
+        route: '/agents/customer-support',
         icon: '🎧'
       },
       {
@@ -74,7 +74,7 @@ const AgentsPage = () => {
         bestFor: ['Sales Teams', 'Business Development', 'Account Managers'],
         connectors: ['CRM Systems', 'Email Platforms', 'Sales Tools'],
         status: 'coming-soon',
-        route: '/sales-assistant',
+        route: '/agents/sales-assistant',
         icon: '💼'
       }
     ];
@@ -86,18 +86,9 @@ const AgentsPage = () => {
     }, 500);
   }, []);
 
-  const handleTrialClick = (agent) => {
-    if (agent.status === 'active') {
-      // Navigate to agent - check if external URL or internal route
-      if (agent.route.startsWith('http')) {
-        window.open(agent.route, '_blank');
-      } else {
-        window.location.href = agent.route;
-      }
-    } else {
-      // Show coming soon message
-      alert('This agent is coming soon! Contact us for early access.');
-    }
+  const handleViewClick = (agent) => {
+    // Navigate to agent info page
+    window.location.href = agent.route;
   };
 
   if (loading) {
@@ -133,10 +124,10 @@ const AgentsPage = () => {
                   <span className="agent-category">{agent.category}</span>
                 </div>
                 <button 
-                  className={`trial-btn ${agent.status === 'active' ? 'active' : 'disabled'}`}
-                  onClick={() => handleTrialClick(agent)}
+                  className="view-btn"
+                  onClick={() => handleViewClick(agent)}
                 >
-                  {agent.status === 'active' ? 'Try Agent' : 'Coming Soon'}
+                  View
                 </button>
               </div>
               
@@ -147,7 +138,7 @@ const AgentsPage = () => {
                 <h4>Capabilities</h4>
                 <ul className="capabilities-list">
                   {agent.capabilities.map((capability, index) => (
-                    <li key={index}>✓ {capability}</li>
+                    <li key={index}>{capability}</li>
                   ))}
                 </ul>
               </div>

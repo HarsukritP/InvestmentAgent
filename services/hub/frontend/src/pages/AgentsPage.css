@@ -66,7 +66,7 @@
   letter-spacing: 0.5px;
 }
 
-.trial-btn {
+.view-btn {
   background: #6366f1;
   color: white;
   border: none;
@@ -79,20 +79,9 @@
   white-space: nowrap;
 }
 
-.trial-btn:hover {
+.view-btn:hover {
   background: #5855eb;
   transform: translateY(-1px);
-}
-
-.trial-btn.disabled {
-  background: #e5e7eb;
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.trial-btn.disabled:hover {
-  background: #e5e7eb;
-  transform: none;
 }
 
 /* Agent Description */
@@ -128,15 +117,16 @@
   font-size: 14px;
   color: #4b5563;
   margin-bottom: 8px;
-  display: flex;
-  align-items: center;
+  padding-left: 16px;
+  position: relative;
 }
 
 .capabilities-list li:before {
-  content: "✓";
-  color: #10b981;
+  content: "•";
+  color: #6366f1;
   font-weight: bold;
-  margin-right: 8px;
+  position: absolute;
+  left: 0;
 }
 
 /* Tags */
@@ -214,7 +204,7 @@
     width: 100%;
   }
   
-  .trial-btn {
+  .view-btn {
     width: 100%;
     text-align: center;
   }
