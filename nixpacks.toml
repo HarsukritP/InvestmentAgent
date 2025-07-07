@@ -1,8 +1,14 @@
 [phases.setup]
-nixPkgs = ["python310", "python310Packages.pip", "python310Packages.setuptools"]
+nixPkgs = ["python310", "python310Packages.pip", "python310Packages.setuptools", "python310Packages.wheel"]
+aptPkgs = ["python3-venv"]
 
 [phases.install]
-cmds = ["cd backend", "pip install -r requirements.txt"]
+cmds = [
+  "cd backend",
+  "python -m venv .venv",
+  "source .venv/bin/activate",
+  "pip install -r requirements.txt"
+]
 
 [start]
-cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT" 
+cmd = "cd backend && source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port $PORT" 
