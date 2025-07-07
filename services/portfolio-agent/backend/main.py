@@ -16,11 +16,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Add shared directory to path for imports
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'shared'))
-
 # Import services
 from portfolio import PortfolioManager
 from market_data import MarketDataService
@@ -34,7 +29,7 @@ try:
     from database_manager import db_manager
     SHARED_SERVICES_AVAILABLE = True
 except ImportError as e:
-    print(f"Warning: Shared services not available: {e}")
+    print(f"Warning: Database manager not available: {e}")
     SHARED_SERVICES_AVAILABLE = False
 
 # Create FastAPI app

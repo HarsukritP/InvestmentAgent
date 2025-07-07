@@ -2,8 +2,6 @@
 ProCogia AI Hub - FastAPI backend for multi-agent management
 """
 import os
-import sys
-from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, Depends
@@ -13,21 +11,24 @@ from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
 
-# Add shared directory to Python path
-# This allows importing shared modules like database_manager
-project_root = Path(__file__).parent.parent.parent.parent  # Go up to project root
-shared_path = os.path.join(project_root, "shared")
-sys.path.append(str(shared_path))
-
 # Load environment variables
 load_dotenv()
 
-# Import shared services
+# Import services (these should be local to the service)
 try:
     from database_manager import db_manager
     SHARED_SERVICES_AVAILABLE = True
 except ImportError as e:
-    print(f"Warning: Shared services not available: {e}")
+    print(f"Warning: Database manager not available: {e}")
+    # Create a minimal fallback
+    class MinimalDBManager:
+        def test_connections(self):
+            return {"hub": False}
+        def is_hub_configured(self):
+            return False
+        def list_configured_agents(self):
+            return []
+    db_manager = MinimalDBManager()
     SHARED_SERVICES_AVAILABLE = False
 
 # Import hub services

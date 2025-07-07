@@ -3,27 +3,18 @@ import logging
 from datetime import datetime
 import sys
 import os
-from pathlib import Path
 
-# Try to import from shared directory first
+# Import database manager from local copy
 try:
     from database_manager import db_manager
-    print("Successfully imported database_manager from path")
-except ImportError:
-    # If that fails, try to find it in the project structure
-    try:
-        project_root = Path(__file__).parent.parent.parent.parent.parent  # Go up to project root
-        shared_path = os.path.join(project_root, "shared")
-        sys.path.append(str(shared_path))
-        from database_manager import db_manager
-        print(f"Successfully imported database_manager from {shared_path}")
-    except ImportError as e:
-        print(f"Warning: Shared services not available: {e}")
-        # Create a minimal implementation for testing
-        class MinimalDBManager:
-            def get_hub_connection(self):
-                return None
-        db_manager = MinimalDBManager()
+    print("Successfully imported database_manager from local copy")
+except ImportError as e:
+    print(f"Warning: Database manager not available: {e}")
+    # Create a minimal implementation for testing
+    class MinimalDBManager:
+        def get_hub_connection(self):
+            return None
+    db_manager = MinimalDBManager()
 
 # Configure logging
 logger = logging.getLogger(__name__)

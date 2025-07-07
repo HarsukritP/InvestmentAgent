@@ -5,10 +5,20 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from .hub_database import hub_db_service
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'shared'))
-from database_manager import db_manager
+
+# Import database manager from local copy
+try:
+    from database_manager import db_manager
+except ImportError:
+    # Create a minimal fallback
+    class MinimalDBManager:
+        def test_connections(self):
+            return {"hub": False}
+        def is_hub_configured(self):
+            return False
+        def list_configured_agents(self):
+            return []
+    db_manager = MinimalDBManager()
 
 # Configure logging
 logger = logging.getLogger(__name__)

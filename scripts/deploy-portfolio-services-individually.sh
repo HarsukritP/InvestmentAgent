@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy hub services individually from their own directories
+# Deploy portfolio agent services individually from their own directories
 # 
 # IMPORTANT: Each service is deployed from its own isolated directory
 # and cannot access files outside that directory. This ensures:
@@ -9,7 +9,7 @@
 
 set -e  # Exit on any error
 
-echo "🚀 Deploying Hub Services Individually..."
+echo "🚀 Deploying Portfolio Agent Services Individually..."
 
 # Function to deploy a service from its directory
 deploy_service() {
@@ -38,19 +38,13 @@ deploy_service() {
     fi
     
     # Check for required files
-    if [ ! -f "Dockerfile" ]; then
-        echo "❌ Error: Dockerfile not found in $(pwd)"
+    if [ ! -f "railway.json" ] && [ ! -f "railway.toml" ]; then
+        echo "❌ Error: railway.json or railway.toml not found in $(pwd)"
         cd "$ORIGINAL_DIR"
         return 1
     fi
     
-    if [ ! -f "railway.toml" ]; then
-        echo "❌ Error: railway.toml not found in $(pwd)"
-        cd "$ORIGINAL_DIR"
-        return 1
-    fi
-    
-    echo "✅ Found required files"
+    echo "✅ Found required Railway configuration"
     
     # Initialize Railway in this directory if needed
     if [ ! -f ".railway" ] && [ ! -d ".railway" ]; then
@@ -73,12 +67,12 @@ echo "Starting individual service deployments..."
 echo ""
 
 # Deploy backend first
-deploy_service "services/hub/backend" "hub-backend"
+deploy_service "services/portfolio-agent/backend" "portfolio-agent-backend"
 
 # Deploy frontend
-deploy_service "services/hub/frontend" "hub-frontend"
+deploy_service "services/portfolio-agent/frontend" "portfolio-agent-frontend"
 
-echo "🎉 All hub services deployed successfully!"
+echo "🎉 All portfolio agent services deployed successfully!"
 echo ""
 echo "Next steps:"
 echo "1. Configure environment variables in Railway dashboard"

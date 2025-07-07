@@ -1,3 +1,15 @@
+#!/bin/bash
+# Setup script for portfolio agent backend
+
+echo "Setting up portfolio agent backend..."
+
+# Check if database_manager.py exists and is properly configured
+if [ -f "database_manager.py" ]; then
+    echo "✅ database_manager.py already exists"
+else
+    echo "Creating database_manager.py..."
+    
+    cat > database_manager.py << 'EOF'
 import os
 from supabase import create_client, Client
 from typing import Dict, List, Optional, Any
@@ -130,4 +142,12 @@ class PortfolioDatabaseManager:
 
 # Global database manager instance
 # This will be imported by other modules
-db_manager = PortfolioDatabaseManager() 
+db_manager = PortfolioDatabaseManager()
+EOF
+    echo "✅ Created database_manager.py"
+fi
+
+# Ensure proper file permissions
+chmod +x setup.sh
+
+echo "Portfolio agent backend setup complete!" 
