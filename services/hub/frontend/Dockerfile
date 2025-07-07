@@ -16,7 +16,7 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Install serve globally for production
+# Install serve globally for production (serve handles SPAs properly)
 RUN npm install -g serve
 
 # Remove devDependencies to reduce image size
@@ -26,4 +26,4 @@ RUN npm prune --production
 EXPOSE $PORT
 
 # Start the application
-CMD ["sh", "-c", "serve -s build --port $PORT"] 
+CMD ["npm", "run", "serve"] 
