@@ -2,6 +2,10 @@
   "name": "portfolio-agent-frontend",
   "version": "1.0.0",
   "description": "AI Portfolio Agent Frontend - ProCogia MVP",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
     "axios": "^1.6.2",
@@ -9,13 +13,15 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.2",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "http-server": "^14.1.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "serve": "http-server build -p $PORT -a 0.0.0.0"
   },
   "eslintConfig": {
     "extends": [
