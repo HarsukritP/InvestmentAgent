@@ -25,6 +25,20 @@
   font-size: 20px;
 }
 
+.logo-placeholder {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+  margin-right: 12px;
+}
+
 .logo-img {
   height: 32px;
   width: auto;
@@ -107,5 +121,11 @@
   
   .logo-text {
     display: none;
+  }
+  
+  .logo-placeholder {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
   }
 } 

@@ -11,7 +11,7 @@ const Navigation = () => {
     <nav className="navigation">
       <div className="nav-container">
         <Link to="/" className="nav-logo">
-          <img src="/assets/procogia-logo.png" alt="ProCogia" className="logo-img" />
+          <div className="logo-placeholder">P</div>
           <span className="logo-text">PROCOGIA</span>
         </Link>
         

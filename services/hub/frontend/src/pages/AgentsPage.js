@@ -23,7 +23,7 @@ const AgentsPage = () => {
         bestFor: ['Financial Advisors', 'Investment Managers', 'Individual Investors'],
         connectors: ['Market Data APIs', 'Trading Platforms', 'Banking Systems'],
         status: 'active',
-        route: '/portfolio-agent',
+        route: 'https://portfolio-agent-frontend-production.up.railway.app',
         icon: '📊'
       },
       {
@@ -88,8 +88,12 @@ const AgentsPage = () => {
 
   const handleTrialClick = (agent) => {
     if (agent.status === 'active') {
-      // Navigate to agent
-      window.location.href = agent.route;
+      // Navigate to agent - check if external URL or internal route
+      if (agent.route.startsWith('http')) {
+        window.open(agent.route, '_blank');
+      } else {
+        window.location.href = agent.route;
+      }
     } else {
       // Show coming soon message
       alert('This agent is coming soon! Contact us for early access.');
