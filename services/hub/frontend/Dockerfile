@@ -16,8 +16,7 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Install serve globally for production (serve handles SPAs properly)
-RUN npm install -g serve
+# Production dependencies are already installed via npm ci
 
 # Remove devDependencies to reduce image size
 RUN npm prune --production

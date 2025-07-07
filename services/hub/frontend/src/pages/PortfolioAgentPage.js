@@ -4,7 +4,8 @@ import './AgentInfoPage.css';
 
 const PortfolioAgentPage = () => {
   const handleTryAgent = () => {
-    window.open('https://portfolio-agent-frontend-production.up.railway.app', '_blank');
+    // Navigate to the portfolio agent within the same domain
+    window.location.href = '/portfolio';
   };
 
   return (
