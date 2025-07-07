@@ -1,0 +1,12 @@
+# Disable nixpacks to force Dockerfile usage
+[config]
+disabled = true
+
+[build]
+disabled = true
+
+[start]
+disabled = true
+
+[install]
+disabled = true 

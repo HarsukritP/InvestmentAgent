@@ -16,8 +16,6 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Production dependencies are already installed via npm ci
-
 # Remove devDependencies to reduce image size
 RUN npm prune --production
 
