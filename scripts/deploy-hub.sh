@@ -1,31 +1,14 @@
 #!/bin/bash
-# Hub Deployment Script
+# Deploy both hub services to Railway
 
-echo "🚀 Deploying ProCogia AI Hub Services..."
+echo "Deploying hub services to Railway..."
 
-# Check if Railway CLI is installed
-if ! command -v railway &> /dev/null; then
-    echo "❌ Railway CLI not found. Please install it first:"
-    echo "npm i -g @railway/cli"
-    exit 1
-fi
+# Deploy backend
+echo "Deploying hub backend..."
+./scripts/deploy-hub-backend.sh
 
-# Check if logged in
-railway whoami || railway login
+# Deploy frontend
+echo "Deploying hub frontend..."
+./scripts/deploy-frontend.sh
 
-echo "📦 Deploying Hub Backend..."
-cd services/hub/backend
-railway up --service hub-backend
-cd ../../..
-
-echo "🖥️ Deploying Hub Frontend..."
-cd services/hub/frontend
-railway up --service hub-frontend
-cd ../../..
-
-echo "✅ Deployment complete!"
-echo ""
-echo "Next steps:"
-echo "1. Set up environment variables in Railway dashboard"
-echo "2. Configure domain routing"
-echo "3. Test the hub services" 
+echo "Hub deployment complete!" 
