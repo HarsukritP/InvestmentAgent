@@ -13,14 +13,17 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the app
+# Build the React app
 RUN npm run build
 
 # Remove devDependencies to reduce image size
 RUN npm prune --production
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Expose port
 EXPOSE $PORT
 
-# Start the application
-CMD ["npm", "run", "serve"] 
+# Start the application using our custom script
+CMD ["./start.sh"] 
