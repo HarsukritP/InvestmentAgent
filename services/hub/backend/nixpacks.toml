@@ -8,4 +8,4 @@ cmds = [
 ]
 
 [start]
-cmd = ". .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port $PORT" 
+cmd = "bash -c 'source .venv/bin/activate && python -m uvicorn main:app --host 0.0.0.0 --port $PORT'" 
