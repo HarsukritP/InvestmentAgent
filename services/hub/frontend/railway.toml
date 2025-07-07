@@ -1,12 +1,18 @@
 [build]
+# Force ONLY Dockerfile usage - disable ALL auto-detection
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
+# Health check configuration
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+restartPolicyMaxRetries = 2
+
+# Explicitly prevent any auto-start commands
+[start]
+# This section intentionally left empty to prevent auto-detection
 
 [service]
 name = "hub-frontend" 
