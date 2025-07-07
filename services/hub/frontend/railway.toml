@@ -1,7 +1,6 @@
 [build]
-# Force ONLY Dockerfile usage - disable ALL auto-detection
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+# Use Nixpacks for auto-detection and building
+builder = "NIXPACKS"
 
 [deploy]
 # Health check configuration

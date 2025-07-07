@@ -3,10 +3,12 @@
 disabled = true
 
 [build]
-disabled = true
+# Re-enable Nixpacks auto-detection
+# disabled = true
 
 [start]
-disabled = true
+# Use our custom server instead of default static serving
+cmd = "node server.js"
 
 [install]
-disabled = true 
+# disabled = true 
