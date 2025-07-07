@@ -9,4 +9,4 @@ cmd = "npm install"
 cmd = "npm run build"
 
 [start]
-cmd = "npx serve -s build --port $PORT" 
+cmd = "npm run serve" 
