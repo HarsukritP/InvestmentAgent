@@ -25,7 +25,7 @@
 
 /* Agent Hero Section */
 .agent-hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
   border-radius: 20px;
   padding: 48px;
   margin-bottom: 60px;
@@ -42,10 +42,11 @@
 
 .agent-icon-large {
   font-size: 4rem;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   padding: 24px;
   border-radius: 16px;
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .agent-info h1 {
@@ -53,25 +54,31 @@
   font-weight: 700;
   margin-bottom: 16px;
   color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .agent-category {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  padding: 6px 16px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   margin-bottom: 16px;
   display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .agent-tagline {
   font-size: 1.25rem;
   margin-bottom: 32px;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.95);
   line-height: 1.6;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-weight: 400;
 }
 
 .agent-actions {
@@ -82,22 +89,29 @@
 
 .agent-actions .btn-primary {
   background: white;
-  color: #6366f1;
+  color: #1e293b;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
 .agent-actions .btn-primary:hover {
   background: #f8fafc;
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
 .agent-actions .btn-secondary {
-  border-color: white;
+  border: 2px solid rgba(255, 255, 255, 0.8);
   color: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  font-weight: 600;
 }
 
 .agent-actions .btn-secondary:hover {
   background: white;
-  color: #6366f1;
+  color: #1e293b;
+  transform: translateY(-2px);
 }
 
 .agent-status {
@@ -109,16 +123,19 @@
 .status-badge {
   background: #10b981;
   color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 10px 20px;
+  border-radius: 25px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .status-badge.coming-soon {
   background: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
 /* Section Styling */
