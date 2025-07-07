@@ -18,8 +18,8 @@ const LandingPage = () => {
               Built for your specific needs, integrated seamlessly with your systems.
             </p>
             <div className="hero-actions">
-              <Link to="/demos" className="btn-primary large">
-                View Demos
+              <Link to="/agents" className="btn-primary large">
+                View Agents
               </Link>
               <Link to="/contact" className="btn-secondary large">
                 Contact Us
