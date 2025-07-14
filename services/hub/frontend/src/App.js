@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import LandingPage from './pages/LandingPage';
 import AgentsPage from './pages/AgentsPage';
@@ -12,13 +12,27 @@ import FAQsPage from './pages/FAQsPage';
 import ContactPage from './pages/ContactPage';
 import './App.css';
 
+// External redirect component
+const ExternalRedirect = ({ url }) => {
+  React.useEffect(() => {
+    window.location.href = url;
+  }, [url]);
+  
+  return (
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <p>Redirecting to ProCogia Solutions...</p>
+    </div>
+  );
+};
+
 function App() {
   return (
     <Router>
       <div className="App">
         <Navigation />
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* Redirect main page to ProCogia Solutions */}
+          <Route path="/" element={<ExternalRedirect url="https://procogia.com/solutions/" />} />
           <Route path="/agents" element={<AgentsPage />} />
           
           {/* Agent Info Pages */}
