@@ -1,7 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
-import LandingPage from './pages/LandingPage';
 import AgentsPage from './pages/AgentsPage';
 import PortfolioAgentPage from './pages/PortfolioAgentPage';
 import DocumentReviewAgentPage from './pages/DocumentReviewAgentPage';
