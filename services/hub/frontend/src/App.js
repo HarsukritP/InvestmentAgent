@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
 
 // External redirect component for the base route
 const ExternalRedirect = ({ url }) => {

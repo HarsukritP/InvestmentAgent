@@ -45,7 +45,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",  # Local React app URL
         "https://procogia-investment-aiagent.up.railway.app",  # Frontend Railway URL
-        "https://investmentaiagentservice.up.railway.app",  # Backend Railway URL
+        "https://investmentaiagentservice.up.railway.app",  # Backend Railway URL (current)
+        "https://portfolio-frontend.railway.internal",  # Internal frontend
+        "https://portfolio-backend.railway.internal",  # Internal backend
+        "https://procogia-ai.up.railway.app",  # Hub frontend (for future routing)
+        "https://portfolio-agent-frontend.up.railway.app",  # In case service name changes
+        "https://portfolio-agent-backend.up.railway.app",  # In case service name changes
     ],
     allow_credentials=True,
     allow_methods=["*"],
