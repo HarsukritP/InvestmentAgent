@@ -147,8 +147,14 @@ async def favicon():
 
 # Authentication Endpoints
 @app.get("/auth/login")
-async def login():
+async def login(response: Response):
     """Initiate OAuth login with Google"""
+    # Add explicit CORS headers
+    response.headers["Access-Control-Allow-Origin"] = "https://procogia-investment-aiagent.up.railway.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    
     if not auth_service.google_client_id:
         raise HTTPException(status_code=500, detail="OAuth not configured")
     
@@ -157,6 +163,15 @@ async def login():
     oauth_url = auth_service.get_google_oauth_url(redirect_uri)
     
     return {"oauth_url": oauth_url}
+
+@app.options("/auth/login")
+async def login_options(response: Response):
+    """Handle CORS preflight for auth/login"""
+    response.headers["Access-Control-Allow-Origin"] = "https://procogia-investment-aiagent.up.railway.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return {}
 
 @app.get("/auth/callback")
 async def auth_callback(code: str, state: Optional[str] = None):
