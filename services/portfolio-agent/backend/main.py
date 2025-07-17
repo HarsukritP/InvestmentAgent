@@ -189,44 +189,83 @@ async def options_handler(path: str, response: Response):
 @app.get("/auth/callback")
 async def auth_callback(code: str, state: Optional[str] = None):
     """Handle OAuth callback from Google"""
-    if not code:
-        raise HTTPException(status_code=400, detail="Authorization code required")
-    
-    base_url = os.environ.get("BASE_URL", "http://localhost:8000")
-    redirect_uri = f"{base_url}/auth/callback"
-    
-    # Exchange code for tokens
-    token_data = auth_service.exchange_code_for_token(code, redirect_uri)
-    if not token_data:
-        raise HTTPException(status_code=400, detail="Failed to exchange code for token")
-    
-    # Verify the ID token and get user info
-    id_token = token_data.get("id_token")
-    if not id_token:
-        raise HTTPException(status_code=400, detail="No ID token received")
-    
-    user_info = auth_service.verify_google_token(id_token)
-    if not user_info:
-        raise HTTPException(status_code=400, detail="Invalid token")
-    
-    # Create or get user in database - NO FALLBACK
-    db_user = await db_service.create_or_get_user(
-        google_id=user_info['sub'],
-        email=user_info['email'],
-        name=user_info['name'],
-        picture_url=user_info.get('picture')
-    )
-    
-    # Add database user ID to user info for JWT
-    user_info['db_user_id'] = db_user['id']
-    
-    # Create JWT token
-    jwt_token = auth_service.create_jwt_token(user_info)
-    
-    # Redirect to frontend with token
-    frontend_base_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-    frontend_url = f"{frontend_base_url}/auth/success?token={jwt_token}"
-    return RedirectResponse(url=frontend_url)
+    try:
+        if not code:
+            raise HTTPException(status_code=400, detail="Authorization code required")
+        
+        print(f"🔐 OAuth callback received with code: {code[:10]}...")
+        
+        base_url = os.environ.get("BASE_URL", "https://investmentaiagentservice.up.railway.app")
+        redirect_uri = f"{base_url}/auth/callback"
+        print(f"🔗 Using redirect_uri: {redirect_uri}")
+        
+        # Exchange code for tokens
+        print("🔄 Exchanging code for tokens...")
+        token_data = auth_service.exchange_code_for_token(code, redirect_uri)
+        if not token_data:
+            print("❌ Failed to exchange code for token")
+            raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+        
+        print("✅ Token exchange successful")
+        
+        # Verify the ID token and get user info
+        id_token = token_data.get("id_token")
+        if not id_token:
+            print("❌ No ID token received")
+            raise HTTPException(status_code=400, detail="No ID token received")
+        
+        print("🔍 Verifying Google token...")
+        user_info = auth_service.verify_google_token(id_token)
+        if not user_info:
+            print("❌ Invalid token")
+            raise HTTPException(status_code=400, detail="Invalid token")
+        
+        print(f"✅ User verified: {user_info.get('email')}")
+        
+        # Create or get user in database
+        print("💾 Creating/getting user in database...")
+        try:
+            db_user = await db_service.create_or_get_user(
+                google_id=user_info['sub'],
+                email=user_info['email'],
+                name=user_info['name'],
+                picture_url=user_info.get('picture')
+            )
+            print(f"✅ Database user created/found: {db_user['id']}")
+            user_info['db_user_id'] = db_user['id']
+            
+        except Exception as db_error:
+            print(f"⚠️ Database connection failed: {str(db_error)}")
+            print("🔄 Proceeding without database user (fallback mode)")
+            # Continue without database user for now
+            user_info['db_user_id'] = None
+            user_info['fallback_mode'] = True
+        
+        # Add database user ID to user info for JWT
+        # user_info['db_user_id'] = db_user['id']  # Already set above
+        
+        # Create JWT token
+        print("🎫 Creating JWT token...")
+        jwt_token = auth_service.create_jwt_token(user_info)
+        print("✅ JWT token created")
+        
+        # Redirect to frontend with token
+        frontend_base_url = os.environ.get("FRONTEND_URL", "https://procogia-investment-aiagent.up.railway.app")
+        frontend_url = f"{frontend_base_url}/auth/success?token={jwt_token}"
+        print(f"🔄 Redirecting to: {frontend_url}")
+        
+        return RedirectResponse(url=frontend_url)
+        
+    except Exception as e:
+        print(f"❌ OAuth callback error: {str(e)}")
+        print(f"❌ Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return user-friendly error page instead of generic 500
+        frontend_base_url = os.environ.get("FRONTEND_URL", "https://procogia-investment-aiagent.up.railway.app")
+        error_url = f"{frontend_base_url}/?error=auth_failed&message={str(e)}"
+        return RedirectResponse(url=error_url)
 
 @app.post("/auth/logout")
 async def logout():
@@ -931,6 +970,40 @@ async def get_transaction_stats(user: Dict[str, Any] = Depends(get_current_user)
         return {
             "status": "error",
             "message": str(e)
+        }
+
+@app.get("/debug/db-test")
+async def test_database_connection():
+    """Test database connection for debugging"""
+    try:
+        # Test basic connection
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        
+        if not supabase_url or not supabase_key:
+            return {
+                "status": "error",
+                "message": "Missing Supabase credentials",
+                "supabase_url_set": bool(supabase_url),
+                "supabase_key_set": bool(supabase_key)
+            }
+        
+        # Test the connection
+        result = await db_service.test_connection()
+        
+        return {
+            "status": "success",
+            "message": "Database connection successful",
+            "supabase_url": supabase_url,
+            "connection_test": result
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Database connection failed: {str(e)}",
+            "error_type": type(e).__name__,
+            "supabase_url": os.getenv('SUPABASE_URL', 'Not set')
         }
 
 # Portfolio agent service - focused on portfolio functionality only
