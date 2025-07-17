@@ -2,8 +2,8 @@
  * Application configuration
  */
 
-// API URL - defaults to localhost:8000 in development
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// API URL - use environment variable or default to external Railway URL for direct access
+export const API_URL = process.env.REACT_APP_API_URL || 'https://investmentaiagentservice.up.railway.app';
 
 // Google OAuth Client ID
 export const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;

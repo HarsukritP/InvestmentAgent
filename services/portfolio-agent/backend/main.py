@@ -122,6 +122,8 @@ async def root():
         "message": "AI Portfolio Agent API",
         "version": "2.0.0",
         "description": "ProCogia's AI-powered portfolio management platform with database integration",
+        "status": "running",
+        "cors_configured": True,
         "endpoints": {
             "portfolio": "/portfolio",
             "portfolios": "/portfolios",
@@ -171,6 +173,16 @@ async def login_options(response: Response):
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
+    return {}
+
+@app.options("/{path:path}")
+async def options_handler(path: str, response: Response):
+    """Handle CORS preflight for all routes"""
+    response.headers["Access-Control-Allow-Origin"] = "https://procogia-investment-aiagent.up.railway.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.status_code = 200
     return {}
 
 @app.get("/auth/callback")

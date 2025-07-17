@@ -5,23 +5,23 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Portfolio agent proxy configuration using Railway private networking
+// Portfolio agent proxy configuration using Railway internal networking
 const portfolioProxy = createProxyMiddleware({
-  target: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app',
+  target: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal',
   changeOrigin: true,
   pathRewrite: {
     '^/portfolio-agent': '', // Remove /portfolio-agent prefix when forwarding to the target
   },
   onError: (err, req, res) => {
     console.error('Portfolio proxy error:', err);
-    console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app');
+    console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal');
     console.error('Request URL:', req.url);
     console.error('Request method:', req.method);
     res.status(502).json({ error: 'Portfolio agent temporarily unavailable', details: err.message });
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying portfolio request: ${req.method} ${req.url} -> ${proxyReq.path}`);
-    console.log(`Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app'}`);
+    console.log(`Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal'}`);
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`Portfolio proxy response: ${proxyRes.statusCode} for ${req.url}`);
@@ -31,7 +31,7 @@ const portfolioProxy = createProxyMiddleware({
 
 // Manufacturing agent proxy configuration (placeholder)
 const manufacturingProxy = createProxyMiddleware({
-  target: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal:8080',
+  target: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal',
   changeOrigin: true,
   pathRewrite: {
     '^/manufacturing-agent': '',
@@ -47,7 +47,7 @@ const manufacturingProxy = createProxyMiddleware({
 
 // Document review agent proxy configuration (placeholder)
 const documentReviewProxy = createProxyMiddleware({
-  target: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal:8080',
+  target: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal',
   changeOrigin: true,
   pathRewrite: {
     '^/document-review-agent': '',
@@ -63,7 +63,7 @@ const documentReviewProxy = createProxyMiddleware({
 
 // Customer support agent proxy configuration (placeholder)
 const customerSupportProxy = createProxyMiddleware({
-  target: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal:8080',
+  target: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal',
   changeOrigin: true,
   pathRewrite: {
     '^/customer-support-agent': '',
@@ -79,7 +79,7 @@ const customerSupportProxy = createProxyMiddleware({
 
 // API proxy for hub backend
 const apiProxy = createProxyMiddleware({
-  target: process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal:8080',
+  target: process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal',
   changeOrigin: true,
   onError: (err, req, res) => {
     console.error('API proxy error:', err);
@@ -93,18 +93,18 @@ app.get('/health', (req, res) => {
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     proxies: {
-      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app',
-      manufacturing: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal:8080',
-      documentReview: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal:8080',
-      customerSupport: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal:8080',
-      hubApi: process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal:8080'
+      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal',
+      manufacturing: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal',
+      documentReview: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal',
+      customerSupport: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal',
+      hubApi: process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal'
     }
   });
 });
 
 // Debug endpoint to test portfolio agent connection (simplified)
 app.get('/debug/portfolio-test', (req, res) => {
-  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app';
+  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal';
   
   res.json({
     targetUrl,
@@ -140,7 +140,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Hub router server running on port ${PORT}`);
-  console.log(`Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app'}`);
+  console.log(`Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal'}`);
   console.log(`Manufacturing agent proxied at /manufacturing-agent/*`);
   console.log(`Document review agent proxied at /document-review-agent/*`);
   console.log(`Customer support agent proxied at /customer-support-agent/*`);
