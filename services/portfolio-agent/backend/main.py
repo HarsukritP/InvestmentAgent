@@ -1,5 +1,6 @@
 """
 AI Portfolio Agent - FastAPI backend with OAuth authentication and database integration
+Updated with comprehensive CORS support for Railway deployment
 """
 import os
 import uuid
@@ -936,4 +937,5 @@ async def get_transaction_stats(user: Dict[str, Any] = Depends(get_current_user)
 print("✅ Portfolio Agent service initialized")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port) 
