@@ -7,19 +7,24 @@ const PORT = process.env.PORT || 8080;
 
 // Portfolio agent proxy configuration using Railway private networking
 const portfolioProxy = createProxyMiddleware({
-  target: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal:8080',
+  target: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app',
   changeOrigin: true,
   pathRewrite: {
     '^/portfolio-agent': '', // Remove /portfolio-agent prefix when forwarding to the target
   },
   onError: (err, req, res) => {
     console.error('Portfolio proxy error:', err);
-    console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal:8080');
-    res.status(502).json({ error: 'Portfolio agent temporarily unavailable' });
+    console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app');
+    console.error('Request URL:', req.url);
+    console.error('Request method:', req.method);
+    res.status(502).json({ error: 'Portfolio agent temporarily unavailable', details: err.message });
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying portfolio request: ${req.method} ${req.url} -> ${proxyReq.path}`);
-    console.log(`Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal:8080'}`);
+    console.log(`Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app'}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`Portfolio proxy response: ${proxyRes.statusCode} for ${req.url}`);
   },
   logLevel: 'debug'
 });
@@ -88,7 +93,7 @@ app.get('/health', (req, res) => {
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     proxies: {
-      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal:8080',
+      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app',
       manufacturing: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal:8080',
       documentReview: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal:8080',
       customerSupport: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal:8080',
@@ -99,12 +104,13 @@ app.get('/health', (req, res) => {
 
 // Debug endpoint to test portfolio agent connection (simplified)
 app.get('/debug/portfolio-test', (req, res) => {
-  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal:8080';
+  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app';
   
   res.json({
     targetUrl,
     message: 'This endpoint shows what URL the proxy is trying to connect to',
-    envVar: process.env.PORTFOLIO_FRONTEND_URL ? 'Custom URL set' : 'Using default Railway internal URL'
+    envVar: process.env.PORTFOLIO_FRONTEND_URL ? 'Custom URL set' : 'Using external Railway URL',
+    test: 'Visit /portfolio-agent to test the proxy'
   });
 });
 
@@ -134,7 +140,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Hub router server running on port ${PORT}`);
-  console.log(`Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal:8080'}`);
+  console.log(`Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app'}`);
   console.log(`Manufacturing agent proxied at /manufacturing-agent/*`);
   console.log(`Document review agent proxied at /document-review-agent/*`);
   console.log(`Customer support agent proxied at /customer-support-agent/*`);
@@ -142,4 +148,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Environment PORT: ${process.env.PORT}`);
   console.log(`Server listening on all interfaces (0.0.0.0:${PORT})`);
   console.log(`Health check available at /health`);
+  console.log(`Proxy debug available at /debug/portfolio-test`);
 }); 
