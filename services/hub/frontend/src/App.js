@@ -1,36 +1,60 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 
-// External redirect component for the base route
-const ExternalRedirect = ({ url }) => {
+function App() {
+  // Auto-redirect to ProCogia services page when accessing root
   React.useEffect(() => {
-    window.location.href = url;
-  }, [url]);
+    // Only redirect if we're at the exact root path
+    if (window.location.pathname === '/') {
+      console.log('🔄 Redirecting from root to ProCogia services...');
+      window.location.href = 'https://procogia.com/services';
+    }
+  }, []);
   
   return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      <p>Redirecting to ProCogia Solutions...</p>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <Router>
-      <div className="App">
-        <Routes>
-          {/* Base route - redirect to ProCogia Solutions */}
-          <Route path="/" element={<ExternalRedirect url="https://procogia.com/solutions/" />} />
-          
-          {/* All agent routes are handled by server.js proxy - no React routes needed */}
-          {/* /portfolio-agent/* -> proxied to portfolio frontend */}
-          {/* /manufacturing-agent/* -> proxied to manufacturing frontend */}
-          {/* /document-review-agent/* -> proxied to document review frontend */}
-          {/* /customer-support-agent/* -> proxied to customer support frontend */}
-        </Routes>
+    <div className="App">
+      <div style={{ 
+        padding: '40px', 
+        textAlign: 'center', 
+        fontFamily: 'system-ui, sans-serif',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '2rem',
+          borderRadius: '16px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <h1 style={{ margin: '0 0 1rem 0', fontSize: '2rem' }}>ProCogia AI Hub</h1>
+          <p style={{ margin: '0 0 1.5rem 0', opacity: 0.9 }}>
+            Redirecting to ProCogia Solutions...
+          </p>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid rgba(255, 255, 255, 0.3)',
+            borderTop: '4px solid white',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}></div>
+        </div>
+        
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
-    </Router>
+    </div>
   );
 }
 

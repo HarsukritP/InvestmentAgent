@@ -219,8 +219,9 @@ app.use(express.static(path.join(__dirname, 'build'), {
   }
 }));
 
-// Handle React routing - serve index.html for specific routes only
+// Handle React routing - serve index.html ONLY for the root route
 app.get('/', (req, res) => {
+  console.log('🏠 Serving root route - will redirect to ProCogia services');
   // Add cache-busting headers for index.html
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -229,20 +230,24 @@ app.get('/', (req, res) => {
 });
 
 // Catch-all for any other routes not handled by proxies - return 404
+// This prevents React Router from interfering with proxy routes
 app.get('*', (req, res) => {
+  console.log(`❌ Route not found: ${req.url}`);
   res.status(404).json({ 
     error: 'Route not found', 
+    message: 'This route is not available through the ProCogia AI Hub',
     availableRoutes: [
-      '/',
-      '/portfolio-agent',
-      '/manufacturing-agent', 
-      '/document-review-agent',
-      '/customer-support-agent',
-      '/api/*',
-      '/health',
-      '/debug/portfolio-test'
+      '/ - ProCogia Hub (redirects to procogia.com/services)',
+      '/portfolio-agent - Portfolio Management Agent',
+      '/manufacturing-agent - Manufacturing Agent (coming soon)', 
+      '/document-review-agent - Document Review Agent (coming soon)',
+      '/customer-support-agent - Customer Support Agent (coming soon)',
+      '/api/* - Hub API endpoints',
+      '/health - Health check',
+      '/debug/portfolio-test - Debug endpoint'
     ],
     requestedRoute: req.url,
+    suggestion: req.url.startsWith('/portfolio') ? 'Did you mean /portfolio-agent?' : 'Check the available routes above',
     timestamp: new Date().toISOString()
   });
 });
