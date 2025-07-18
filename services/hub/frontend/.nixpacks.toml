@@ -1,10 +1,10 @@
 [build]
-# Enable build process for React app
-cmd = "npm run build"
+# Skip React build for testing - just install deps
+cmd = "echo 'Skipping React build for test'"
 
 [start]
-# Use our custom server instead of default static serving
-cmd = "node server.js"
+# Use test server to isolate the issue
+cmd = "node test-server.js"
 
 [install]
 # Use npm to install dependencies
