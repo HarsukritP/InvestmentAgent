@@ -14,15 +14,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy setup script and make it executable
-COPY setup.sh .
-RUN chmod +x setup.sh
-
 # Copy the rest of the application
 COPY . .
 
-# Run setup script
-RUN ./setup.sh
+# Ensure database_manager.py exists (it should already be there)
+RUN ls -la database_manager.py || echo "Warning: database_manager.py not found"
 
 # Create a non-root user
 RUN useradd --create-home --shell /bin/bash app
@@ -37,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD python -c "import requests; requests.get('http://localhost:8001/health')"
 
 # Start the application
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"] 
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"] 
