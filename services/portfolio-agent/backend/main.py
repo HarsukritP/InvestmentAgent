@@ -167,7 +167,8 @@ async def login(response: Response, request: Request):
     if not auth_service.google_client_id:
         raise HTTPException(status_code=500, detail="OAuth not configured")
     
-    base_url = os.environ.get("BASE_URL", "http://localhost:8000")
+    # IMPORTANT: Must match the authorized redirect URI in Google OAuth
+    base_url = os.environ.get("BASE_URL", "https://procogia-portfolioagent-service.up.railway.app")
     redirect_uri = f"{base_url}/auth/callback"
     oauth_url = auth_service.get_google_oauth_url(redirect_uri)
     
@@ -207,8 +208,8 @@ async def auth_callback(code: str, state: Optional[str] = None, request: Request
         
         print(f"🔐 OAuth callback received with code: {code[:10]}...")
         
-        # Get the base URL for the backend
-        base_url = os.environ.get("BASE_URL", "https://investmentaiagentservice.up.railway.app")
+        # Get the base URL for the backend - IMPORTANT: Must match the authorized redirect URI in Google OAuth
+        base_url = os.environ.get("BASE_URL", "https://procogia-portfolioagent-service.up.railway.app")
         redirect_uri = f"{base_url}/auth/callback"
         print(f"🔗 Using redirect_uri: {redirect_uri}")
         
