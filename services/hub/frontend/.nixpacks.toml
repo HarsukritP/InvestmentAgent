@@ -1,7 +1,3 @@
-# Disable nixpacks to force Dockerfile usage
-[config]
-disabled = true
-
 [build]
 # Enable build process for React app
 cmd = "npm run build"

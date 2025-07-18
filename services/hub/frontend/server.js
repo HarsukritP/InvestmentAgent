@@ -1,9 +1,17 @@
+console.log('🚀 Starting hub frontend server...');
+console.log('📍 Current working directory:', process.cwd());
+console.log('📍 Server file location:', __dirname);
+
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 
+console.log('✅ Required modules loaded successfully');
+
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+console.log('🎯 Server will run on port:', PORT);
 
 // Portfolio agent proxy configuration using Railway internal networking
 const portfolioProxy = createProxyMiddleware({
@@ -198,17 +206,34 @@ const fs = require('fs');
 const buildPath = path.join(__dirname, 'build');
 
 console.log('🔍 Checking build directory...');
-if (fs.existsSync(buildPath)) {
-  console.log('✅ Build directory found:', buildPath);
-  const buildFiles = fs.readdirSync(buildPath);
-  console.log('📁 Build files:', buildFiles);
-} else {
-  console.log('❌ Build directory NOT found:', buildPath);
-  console.log('📂 Current directory contents:', fs.readdirSync(__dirname));
+try {
+  if (fs.existsSync(buildPath)) {
+    console.log('✅ Build directory found:', buildPath);
+    const buildFiles = fs.readdirSync(buildPath);
+    console.log('📁 Build files:', buildFiles.slice(0, 5)); // Show first 5 files only
+  } else {
+    console.log('❌ Build directory NOT found:', buildPath);
+    console.log('📂 Current directory contents:', fs.readdirSync(__dirname));
+  }
+} catch (error) {
+  console.error('❌ Error checking build directory:', error.message);
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Hub router server running on port ${PORT}`);
+// Add error handling for server startup
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+console.log('🔄 Attempting to start server...');
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 SUCCESS! Hub router server running on port ${PORT}`);
   console.log(`📡 Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal'}`);
   console.log(`📡 Manufacturing agent proxied at /manufacturing-agent/* -> ${process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal'}`);
   console.log(`📡 Document review agent proxied at /document-review-agent/* -> ${process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal'}`);
@@ -219,22 +244,13 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌍 Server listening on all interfaces (0.0.0.0:${PORT})`);
   console.log(`❤️  Health check available at /health`);
   console.log(`🔧 Proxy debug available at /debug/portfolio-test`);
-  
-  // Test health endpoint immediately after startup
-  setTimeout(() => {
-    console.log('🩺 Testing health endpoint...');
-    const http = require('http');
-    const req = http.request({
-      hostname: 'localhost',
-      port: PORT,
-      path: '/health',
-      method: 'GET'
-    }, (res) => {
-      console.log(`✅ Health endpoint responding with status: ${res.statusCode}`);
-    });
-    req.on('error', (err) => {
-      console.log(`❌ Health endpoint test failed:`, err.message);
-    });
-    req.end();
-  }, 1000);
+  console.log(`✅ SERVER STARTUP COMPLETE!`);
+});
+
+server.on('error', (error) => {
+  console.error('❌ Server failed to start:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  }
+  process.exit(1);
 }); 
