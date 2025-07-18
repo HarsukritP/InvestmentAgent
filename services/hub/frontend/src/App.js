@@ -15,15 +15,6 @@ const ExternalRedirect = ({ url }) => {
   );
 };
 
-// Simple proxy placeholder component (actual proxying handled by server.js)
-const AgentProxy = ({ agentName }) => {
-  return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      <p>Loading {agentName}...</p>
-    </div>
-  );
-};
-
 function App() {
   return (
     <Router>
@@ -32,11 +23,11 @@ function App() {
           {/* Base route - redirect to ProCogia Solutions */}
           <Route path="/" element={<ExternalRedirect url="https://procogia.com/solutions/" />} />
           
-          {/* Agent routes - proxied by server.js */}
-          <Route path="/portfolio-agent" element={<AgentProxy agentName="Portfolio Agent" />} />
-          <Route path="/manufacturing-agent" element={<AgentProxy agentName="Manufacturing Agent" />} />
-          <Route path="/document-review-agent" element={<AgentProxy agentName="Document Review Agent" />} />
-          <Route path="/customer-support-agent" element={<AgentProxy agentName="Customer Support Agent" />} />
+          {/* All agent routes are handled by server.js proxy - no React routes needed */}
+          {/* /portfolio-agent/* -> proxied to portfolio frontend */}
+          {/* /manufacturing-agent/* -> proxied to manufacturing frontend */}
+          {/* /document-review-agent/* -> proxied to document review frontend */}
+          {/* /customer-support-agent/* -> proxied to customer support frontend */}
         </Routes>
       </div>
     </Router>

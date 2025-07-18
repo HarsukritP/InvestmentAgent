@@ -7,21 +7,21 @@ const PORT = process.env.PORT || 8080;
 
 // Portfolio agent proxy configuration using Railway internal networking
 const portfolioProxy = createProxyMiddleware({
-  target: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal',
+  target: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal',
   changeOrigin: true,
   pathRewrite: {
     '^/portfolio-agent': '', // Remove /portfolio-agent prefix when forwarding to the target
   },
   onError: (err, req, res) => {
     console.error('Portfolio proxy error:', err);
-    console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal');
+    console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal');
     console.error('Request URL:', req.url);
     console.error('Request method:', req.method);
     res.status(502).json({ error: 'Portfolio agent temporarily unavailable', details: err.message });
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying portfolio request: ${req.method} ${req.url} -> ${proxyReq.path}`);
-    console.log(`Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal'}`);
+    console.log(`Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal'}`);
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`Portfolio proxy response: ${proxyRes.statusCode} for ${req.url}`);
@@ -93,7 +93,7 @@ app.get('/health', (req, res) => {
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     proxies: {
-      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal',
+      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal',
       manufacturing: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal',
       documentReview: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal',
       customerSupport: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal',
@@ -104,7 +104,7 @@ app.get('/health', (req, res) => {
 
 // Debug endpoint to test portfolio agent connection (simplified)
 app.get('/debug/portfolio-test', (req, res) => {
-  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal';
+  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal';
   
   res.json({
     targetUrl,
@@ -112,6 +112,13 @@ app.get('/debug/portfolio-test', (req, res) => {
     envVar: process.env.PORTFOLIO_FRONTEND_URL ? 'Custom URL set' : 'Using external Railway URL',
     test: 'Visit /portfolio-agent to test the proxy'
   });
+});
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`Headers:`, req.headers);
+  next();
 });
 
 // IMPORTANT: Apply proxy middleware BEFORE static file serving
@@ -124,23 +131,31 @@ app.use('/api', apiProxy);
 // Serve static files from the React app build directory AFTER proxies
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Handle React routing - serve index.html for all non-API and non-agent routes
-app.get('*', (req, res) => {
-  // Don't interfere with agent proxy or API routes
-  if (req.path.startsWith('/portfolio-agent') || 
-      req.path.startsWith('/manufacturing-agent') || 
-      req.path.startsWith('/document-review-agent') || 
-      req.path.startsWith('/customer-support-agent') || 
-      req.path.startsWith('/api')) {
-    return;
-  }
-  
+// Handle React routing - serve index.html for specific routes only
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
+
+// Catch-all for any other routes not handled by proxies - return 404
+app.get('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Route not found', 
+    availableRoutes: [
+      '/',
+      '/portfolio-agent',
+      '/manufacturing-agent', 
+      '/document-review-agent',
+      '/customer-support-agent',
+      '/api/*',
+      '/health',
+      '/debug/portfolio-test'
+    ] 
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Hub router server running on port ${PORT}`);
-  console.log(`Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-frontend.railway.internal'}`);
+  console.log(`Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal'}`);
   console.log(`Manufacturing agent proxied at /manufacturing-agent/*`);
   console.log(`Document review agent proxied at /document-review-agent/*`);
   console.log(`Customer support agent proxied at /customer-support-agent/*`);
