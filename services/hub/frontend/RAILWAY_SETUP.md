@@ -1,12 +1,12 @@
 # Hub Frontend Railway Setup
 
-## Required Environment Variables
+## Your Current Configuration (CORRECT)
 
-Set these variables in the Railway dashboard for the `hub-frontend` service:
+Your existing Railway variables are perfect as configured:
 
 ### Portfolio Agent
 ```
-PORTFOLIO_FRONTEND_URL=http://portfolio-agent-frontend.railway.internal
+PORTFOLIO_FRONTEND_URL=http://portfolio-frontend.railway.internal
 ```
 
 ### Other Agents (when available)
@@ -26,30 +26,9 @@ HUB_BACKEND_URL=http://hub-backend.railway.internal
 NODE_ENV=production
 ```
 
-## Service Name Mapping
+## Your Configuration is Working
 
-Your Railway variables need to match the actual service names from `railway.toml`:
-
-| Service | railway.toml name | Internal URL |
-|---------|-------------------|--------------|
-| Portfolio Frontend | `portfolio-agent-frontend` | `http://portfolio-agent-frontend.railway.internal` |
-| Portfolio Backend | `portfolio-agent-backend` | `http://portfolio-agent-backend.railway.internal` |
-| Hub Frontend | `hub-frontend` | `http://hub-frontend.railway.internal` |
-| Hub Backend | `hub-backend` | `http://hub-backend.railway.internal` |
-
-## Fix Your Current Variables
-
-I noticed your current variables use simplified names. Update them to:
-
-**CHANGE FROM:**
-```
-PORTFOLIO_FRONTEND_URL=http://portfolio-frontend.railway.internal
-```
-
-**CHANGE TO:**
-```
-PORTFOLIO_FRONTEND_URL=http://portfolio-agent-frontend.railway.internal
-```
+The proxy server now uses exactly the URLs you have configured in Railway. No changes needed on your end - your internal Railway URLs are correctly set up.
 
 ## How to Set Variables in Railway
 
