@@ -170,7 +170,14 @@ async def login(response: Response, request: Request):
     # IMPORTANT: Must match the authorized redirect URI in Google OAuth
     base_url = os.environ.get("BASE_URL", "https://procogia-portfolioagent-service.up.railway.app")
     redirect_uri = f"{base_url}/auth/callback"
+    
+    # Log detailed information about the OAuth configuration
+    print(f"🔑 Google Client ID: {auth_service.google_client_id[:5]}...{auth_service.google_client_id[-5:]}")
+    print(f"🔄 Using redirect URI: {redirect_uri}")
+    
+    # Generate the OAuth URL
     oauth_url = auth_service.get_google_oauth_url(redirect_uri)
+    print(f"🔗 Generated OAuth URL: {oauth_url}")
     
     return {"oauth_url": oauth_url}
 

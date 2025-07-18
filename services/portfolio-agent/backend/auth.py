@@ -31,8 +31,13 @@ class AuthenticationService:
             "prompt": "select_account"
         }
         
+        # Log the parameters for debugging
+        print(f"🔍 OAuth params: client_id={self.google_client_id[:5]}...{self.google_client_id[-5:]}, redirect_uri={redirect_uri}")
+        
         query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-        return f"{base_url}?{query_string}"
+        full_url = f"{base_url}?{query_string}"
+        
+        return full_url
     
     def exchange_code_for_token(self, code: str, redirect_uri: str) -> Optional[Dict[str, Any]]:
         """Exchange authorization code for access token"""
@@ -46,15 +51,20 @@ class AuthenticationService:
             "redirect_uri": redirect_uri
         }
         
+        # Log the token exchange request
+        print(f"🔄 Token exchange request: code={code[:5]}..., redirect_uri={redirect_uri}")
+        print(f"🔑 Using client_id={self.google_client_id[:5]}...{self.google_client_id[-5:]}")
+        
         try:
             response = requests.post(token_url, data=data)
             if response.status_code == 200:
+                print("✅ Token exchange successful")
                 return response.json()
             else:
-                print(f"Token exchange failed: {response.status_code} - {response.text}")
+                print(f"❌ Token exchange failed: {response.status_code} - {response.text}")
                 return None
         except Exception as e:
-            print(f"Error exchanging code for token: {e}")
+            print(f"❌ Error exchanging code for token: {e}")
             return None
     
     def verify_google_token(self, id_token_str: str) -> Optional[Dict[str, Any]]:
