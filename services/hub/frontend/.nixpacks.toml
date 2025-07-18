@@ -3,12 +3,13 @@
 disabled = true
 
 [build]
-# Re-enable Nixpacks auto-detection
-# disabled = true
+# Enable build process for React app
+cmd = "npm run build"
 
 [start]
 # Use our custom server instead of default static serving
 cmd = "node server.js"
 
 [install]
-# disabled = true 
+# Use npm to install dependencies
+cmd = "npm install" 
