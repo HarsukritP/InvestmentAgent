@@ -6,24 +6,49 @@ Set these variables in the Railway dashboard for the `hub-frontend` service:
 
 ### Portfolio Agent
 ```
-PORTFOLIO_FRONTEND_URL=https://procogia-investment-aiagent.up.railway.app
+PORTFOLIO_FRONTEND_URL=http://portfolio-agent-frontend.railway.internal
 ```
 
 ### Other Agents (when available)
 ```
-MANUFACTURING_FRONTEND_URL=https://your-manufacturing-agent.up.railway.app
-DOCUMENT_REVIEW_FRONTEND_URL=https://your-document-review-agent.up.railway.app
-CUSTOMER_SUPPORT_FRONTEND_URL=https://your-customer-support-agent.up.railway.app
+MANUFACTURING_FRONTEND_URL=http://manufacturing-frontend.railway.internal
+DOCUMENT_REVIEW_FRONTEND_URL=http://document-review-frontend.railway.internal
+CUSTOMER_SUPPORT_FRONTEND_URL=http://customer-support-frontend.railway.internal
 ```
 
 ### Hub Backend (when available)
 ```
-HUB_BACKEND_URL=https://your-hub-backend.up.railway.app
+HUB_BACKEND_URL=http://hub-backend.railway.internal
 ```
 
 ### Environment
 ```
 NODE_ENV=production
+```
+
+## Service Name Mapping
+
+Your Railway variables need to match the actual service names from `railway.toml`:
+
+| Service | railway.toml name | Internal URL |
+|---------|-------------------|--------------|
+| Portfolio Frontend | `portfolio-agent-frontend` | `http://portfolio-agent-frontend.railway.internal` |
+| Portfolio Backend | `portfolio-agent-backend` | `http://portfolio-agent-backend.railway.internal` |
+| Hub Frontend | `hub-frontend` | `http://hub-frontend.railway.internal` |
+| Hub Backend | `hub-backend` | `http://hub-backend.railway.internal` |
+
+## Fix Your Current Variables
+
+I noticed your current variables use simplified names. Update them to:
+
+**CHANGE FROM:**
+```
+PORTFOLIO_FRONTEND_URL=http://portfolio-frontend.railway.internal
+```
+
+**CHANGE TO:**
+```
+PORTFOLIO_FRONTEND_URL=http://portfolio-agent-frontend.railway.internal
 ```
 
 ## How to Set Variables in Railway

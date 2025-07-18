@@ -5,17 +5,17 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Portfolio agent proxy configuration using environment variables
+// Portfolio agent proxy configuration using Railway internal networking
 const portfolioProxy = createProxyMiddleware({
-  target: process.env.PORTFOLIO_FRONTEND_URL || 'http://localhost:3000',
+  target: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal',
   changeOrigin: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false, // Internal Railway networking uses HTTP
   pathRewrite: {
     '^/portfolio-agent': '', // Remove /portfolio-agent prefix when forwarding to the target
   },
       onError: (err, req, res) => {
       console.error('🚨 Portfolio proxy error:', err.message);
-      console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'http://localhost:3000');
+      console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal');
       console.error('Request URL:', req.url);
       console.error('Request method:', req.method);
       console.error('Error details:', err);
@@ -24,17 +24,17 @@ const portfolioProxy = createProxyMiddleware({
       res.status(502).json({ 
         error: 'Portfolio agent temporarily unavailable', 
         details: err.message,
-        target: process.env.PORTFOLIO_FRONTEND_URL || 'http://localhost:3000',
+        target: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal',
         timestamp: new Date().toISOString()
       });
     },
       onProxyReq: (proxyReq, req, res) => {
       console.log(`✅ Proxying portfolio request: ${req.method} ${req.url} -> ${proxyReq.path}`);
-      console.log(`🎯 Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'http://localhost:3000'}`);
+      console.log(`🎯 Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal'}`);
       
       // Add headers to help with proxy
       proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
-      proxyReq.setHeader('X-Forwarded-Proto', process.env.NODE_ENV === 'production' ? 'https' : 'http');
+      proxyReq.setHeader('X-Forwarded-Proto', 'http'); // Internal Railway networking uses HTTP
     },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`📥 Portfolio proxy response: ${proxyRes.statusCode} for ${req.url}`);
@@ -45,9 +45,9 @@ const portfolioProxy = createProxyMiddleware({
 
 // Manufacturing agent proxy configuration (placeholder)
 const manufacturingProxy = createProxyMiddleware({
-  target: process.env.MANUFACTURING_FRONTEND_URL || 'http://localhost:3001',
+  target: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal',
   changeOrigin: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false,
   pathRewrite: {
     '^/manufacturing-agent': '',
   },
@@ -62,9 +62,9 @@ const manufacturingProxy = createProxyMiddleware({
 
 // Document review agent proxy configuration (placeholder)
 const documentReviewProxy = createProxyMiddleware({
-  target: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://localhost:3002',
+  target: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal',
   changeOrigin: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false,
   pathRewrite: {
     '^/document-review-agent': '',
   },
@@ -79,9 +79,9 @@ const documentReviewProxy = createProxyMiddleware({
 
 // Customer support agent proxy configuration (placeholder)
 const customerSupportProxy = createProxyMiddleware({
-  target: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://localhost:3003',
+  target: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal',
   changeOrigin: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false,
   pathRewrite: {
     '^/customer-support-agent': '',
   },
@@ -96,9 +96,9 @@ const customerSupportProxy = createProxyMiddleware({
 
 // API proxy for hub backend
 const apiProxy = createProxyMiddleware({
-  target: process.env.HUB_BACKEND_URL || 'http://localhost:8001',
+  target: process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal',
   changeOrigin: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false,
   onError: (err, req, res) => {
     console.error('API proxy error:', err);
     res.status(502).json({ error: 'API temporarily unavailable' });
@@ -111,11 +111,11 @@ app.get('/health', (req, res) => {
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     proxies: {
-      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'NOT_CONFIGURED',
-      manufacturing: process.env.MANUFACTURING_FRONTEND_URL || 'NOT_CONFIGURED',
-      documentReview: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'NOT_CONFIGURED',
-      customerSupport: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'NOT_CONFIGURED',
-      hubApi: process.env.HUB_BACKEND_URL || 'NOT_CONFIGURED'
+      portfolio: process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal',
+      manufacturing: process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal',
+      documentReview: process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal',
+      customerSupport: process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal',
+      hubApi: process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal'
     },
     environment: {
       PORT: process.env.PORT,
@@ -126,13 +126,20 @@ app.get('/health', (req, res) => {
 
 // Debug endpoint to test portfolio agent connection (simplified)
 app.get('/debug/portfolio-test', (req, res) => {
-  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'NOT_CONFIGURED';
+  const targetUrl = process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal';
   
   res.json({
     targetUrl,
     message: 'This endpoint shows what URL the proxy is trying to connect to',
-    envVar: process.env.PORTFOLIO_FRONTEND_URL ? 'Custom URL set in Railway' : 'NOT CONFIGURED - Set PORTFOLIO_FRONTEND_URL in Railway',
+    envVar: process.env.PORTFOLIO_FRONTEND_URL ? 'Custom URL set in Railway' : 'Using default internal Railway URL',
     test: 'Visit /portfolio-agent to test the proxy',
+    serviceName: 'Expected: portfolio-agent-frontend (from railway.toml)',
+    correctUrls: {
+      portfolioFrontend: 'http://portfolio-agent-frontend.railway.internal',
+      portfolioBackend: 'http://portfolio-agent-backend.railway.internal',
+      hubFrontend: 'http://hub-frontend.railway.internal',
+      hubBackend: 'http://hub-backend.railway.internal'
+    },
     allEnvVars: {
       PORTFOLIO_FRONTEND_URL: process.env.PORTFOLIO_FRONTEND_URL || 'NOT_SET',
       MANUFACTURING_FRONTEND_URL: process.env.MANUFACTURING_FRONTEND_URL || 'NOT_SET',
@@ -202,11 +209,11 @@ if (fs.existsSync(buildPath)) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Hub router server running on port ${PORT}`);
-  console.log(`📡 Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'NOT_CONFIGURED'}`);
-  console.log(`📡 Manufacturing agent proxied at /manufacturing-agent/* -> ${process.env.MANUFACTURING_FRONTEND_URL || 'NOT_CONFIGURED'}`);
-  console.log(`📡 Document review agent proxied at /document-review-agent/* -> ${process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'NOT_CONFIGURED'}`);
-  console.log(`📡 Customer support agent proxied at /customer-support-agent/* -> ${process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'NOT_CONFIGURED'}`);
-  console.log(`📡 Hub API proxied at /api/* -> ${process.env.HUB_BACKEND_URL || 'NOT_CONFIGURED'}`);
+  console.log(`📡 Portfolio agent proxied at /portfolio-agent/* -> ${process.env.PORTFOLIO_FRONTEND_URL || 'http://portfolio-agent-frontend.railway.internal'}`);
+  console.log(`📡 Manufacturing agent proxied at /manufacturing-agent/* -> ${process.env.MANUFACTURING_FRONTEND_URL || 'http://manufacturing-frontend.railway.internal'}`);
+  console.log(`📡 Document review agent proxied at /document-review-agent/* -> ${process.env.DOCUMENT_REVIEW_FRONTEND_URL || 'http://document-review-frontend.railway.internal'}`);
+  console.log(`📡 Customer support agent proxied at /customer-support-agent/* -> ${process.env.CUSTOMER_SUPPORT_FRONTEND_URL || 'http://customer-support-frontend.railway.internal'}`);
+  console.log(`📡 Hub API proxied at /api/* -> ${process.env.HUB_BACKEND_URL || 'http://hub-backend.railway.internal'}`);
   console.log(`🌍 Environment NODE_ENV: ${process.env.NODE_ENV || 'NOT_SET'}`);
   console.log(`🌍 Environment PORT: ${process.env.PORT || 'NOT_SET'}`);
   console.log(`🌍 Server listening on all interfaces (0.0.0.0:${PORT})`);
