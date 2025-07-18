@@ -175,10 +175,26 @@ app.use((req, res, next) => {
 });
 
 // Serve static files from the React app build directory AFTER proxies
-app.use(express.static(path.join(__dirname, 'build')));
+// Add cache-busting headers to prevent stale file issues
+app.use(express.static(path.join(__dirname, 'build'), {
+  setHeaders: (res, filePath) => {
+    // Cache static assets for 1 hour, but index.html for 0 seconds
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour for assets
+    }
+  }
+}));
 
 // Handle React routing - serve index.html for specific routes only
 app.get('/', (req, res) => {
+  // Add cache-busting headers for index.html
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
