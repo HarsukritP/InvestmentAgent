@@ -164,6 +164,35 @@ app.get('/debug/portfolio-test', (req, res) => {
 // CRITICAL: Apply proxy middleware BEFORE any other middleware
 app.use('/portfolio-agent', portfolioProxy);
 
+// Portfolio backend API proxy - for OAuth and other API requests
+const portfolioApiProxy = createProxyMiddleware({
+  target: process.env.PORTFOLIO_BACKEND_URL || 'https://investmentaiagentservice.up.railway.app',
+  changeOrigin: true,
+  secure: true,
+  pathRewrite: {
+    '^/portfolio-agent/api': '', // Remove /portfolio-agent/api prefix when forwarding
+  },
+  onError: (err, req, res) => {
+    console.error('🚨 Portfolio API proxy error:', err.message);
+    res.status(502).json({ error: 'Portfolio API temporarily unavailable' });
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`🔌 Proxying portfolio API: ${req.method} ${req.url} -> ${proxyReq.path}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`📡 Portfolio API response: ${proxyRes.statusCode} for ${req.url}`);
+    
+    // Add CORS headers for OAuth
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+  }
+});
+
+// Apply portfolio API proxy for /portfolio-agent/api routes
+app.use('/portfolio-agent/api', portfolioApiProxy);
+
 // Handle React routing - serve index.html ONLY for the root route
 // IMPORTANT: This must come BEFORE the static proxy to ensure root route is handled correctly
 app.get('/', (req, res) => {
