@@ -45,11 +45,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local React app URL
-        "https://procogia-investment-aiagent.up.railway.app",  # Frontend Railway URL
+        "https://procogia-investment-aiagent.up.railway.app",  # Old Frontend Railway URL
+        "https://procogia-portfolioagent.up.railway.app",  # New Frontend Railway URL
         "https://investmentaiagentservice.up.railway.app",  # Backend Railway URL (current)
+        "https://procogia-portfolioagent-service.up.railway.app",  # New Backend Railway URL
         "https://portfolio-frontend.railway.internal",  # Internal frontend
         "https://portfolio-backend.railway.internal",  # Internal backend
         "https://procogia-ai.up.railway.app",  # Hub frontend (for future routing)
+        "https://procogia-aihub.up.railway.app",  # Hub frontend URL
         "https://portfolio-agent-frontend.up.railway.app",  # In case service name changes
         "https://portfolio-agent-backend.up.railway.app",  # In case service name changes
     ],
@@ -150,10 +153,13 @@ async def favicon():
 
 # Authentication Endpoints
 @app.get("/auth/login")
-async def login(response: Response):
+async def login(response: Response, request: Request):
     """Initiate OAuth login with Google"""
+    # Get the origin from the request
+    origin = request.headers.get("origin", "https://procogia-portfolioagent.up.railway.app")
+    
     # Add explicit CORS headers
-    response.headers["Access-Control-Allow-Origin"] = "https://procogia-investment-aiagent.up.railway.app"
+    response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
@@ -168,18 +174,24 @@ async def login(response: Response):
     return {"oauth_url": oauth_url}
 
 @app.options("/auth/login")
-async def login_options(response: Response):
+async def login_options(response: Response, request: Request):
     """Handle CORS preflight for auth/login"""
-    response.headers["Access-Control-Allow-Origin"] = "https://procogia-investment-aiagent.up.railway.app"
+    # Get the origin from the request
+    origin = request.headers.get("origin", "https://procogia-portfolioagent.up.railway.app")
+    
+    response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
     return {}
 
 @app.options("/{path:path}")
-async def options_handler(path: str, response: Response):
+async def options_handler(path: str, response: Response, request: Request):
     """Handle CORS preflight for all routes"""
-    response.headers["Access-Control-Allow-Origin"] = "https://procogia-investment-aiagent.up.railway.app"
+    # Get the origin from the request
+    origin = request.headers.get("origin", "https://procogia-portfolioagent.up.railway.app")
+    
+    response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
@@ -187,7 +199,7 @@ async def options_handler(path: str, response: Response):
     return {}
 
 @app.get("/auth/callback")
-async def auth_callback(code: str, state: Optional[str] = None):
+async def auth_callback(code: str, state: Optional[str] = None, request: Request = None):
     """Handle OAuth callback from Google"""
     try:
         if not code:
@@ -195,6 +207,7 @@ async def auth_callback(code: str, state: Optional[str] = None):
         
         print(f"🔐 OAuth callback received with code: {code[:10]}...")
         
+        # Get the base URL for the backend
         base_url = os.environ.get("BASE_URL", "https://investmentaiagentservice.up.railway.app")
         redirect_uri = f"{base_url}/auth/callback"
         print(f"🔗 Using redirect_uri: {redirect_uri}")
@@ -241,16 +254,22 @@ async def auth_callback(code: str, state: Optional[str] = None):
             user_info['db_user_id'] = None
             user_info['fallback_mode'] = True
         
-        # Add database user ID to user info for JWT
-        # user_info['db_user_id'] = db_user['id']  # Already set above
-        
         # Create JWT token
         print("🎫 Creating JWT token...")
         jwt_token = auth_service.create_jwt_token(user_info)
         print("✅ JWT token created")
         
-        # Redirect to frontend with token
-        frontend_base_url = os.environ.get("FRONTEND_URL", "https://procogia-investment-aiagent.up.railway.app")
+        # Determine the frontend URL to redirect to
+        # Use the FRONTEND_URL environment variable, or fallback to the new URL
+        frontend_base_url = os.environ.get("FRONTEND_URL", "https://procogia-portfolioagent.up.railway.app")
+        
+        # Check if the request came from the hub proxy
+        referer = request.headers.get("referer", "") if request else ""
+        if referer and "procogia-aihub.up.railway.app" in referer:
+            # If the request came from the hub, redirect back to the hub
+            frontend_base_url = "https://procogia-aihub.up.railway.app/portfolio-agent"
+            print(f"🔄 Detected request from hub proxy, redirecting to: {frontend_base_url}")
+        
         frontend_url = f"{frontend_base_url}/auth/success?token={jwt_token}"
         print(f"🔄 Redirecting to: {frontend_url}")
         
@@ -263,7 +282,7 @@ async def auth_callback(code: str, state: Optional[str] = None):
         traceback.print_exc()
         
         # Return user-friendly error page instead of generic 500
-        frontend_base_url = os.environ.get("FRONTEND_URL", "https://procogia-investment-aiagent.up.railway.app")
+        frontend_base_url = os.environ.get("FRONTEND_URL", "https://procogia-portfolioagent.up.railway.app")
         error_url = f"{frontend_base_url}/?error=auth_failed&message={str(e)}"
         return RedirectResponse(url=error_url)
 
