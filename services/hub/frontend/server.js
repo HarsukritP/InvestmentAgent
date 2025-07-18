@@ -164,6 +164,17 @@ app.get('/debug/portfolio-test', (req, res) => {
 // CRITICAL: Apply proxy middleware BEFORE any other middleware
 app.use('/portfolio-agent', portfolioProxy);
 
+// Handle React routing - serve index.html ONLY for the root route
+// IMPORTANT: This must come BEFORE the static proxy to ensure root route is handled correctly
+app.get('/', (req, res) => {
+  console.log('🏠 Serving root route - will redirect to ProCogia services');
+  // Add cache-busting headers for index.html
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
+
 // PORTFOLIO STATIC ASSETS PROXY - Handle static file requests when viewing portfolio agent
 // This forwards static asset requests to the portfolio frontend
 const portfolioStaticProxy = createProxyMiddleware({
@@ -234,16 +245,6 @@ app.use(express.static(path.join(__dirname, 'build'), {
     }
   }
 }));
-
-// Handle React routing - serve index.html ONLY for the root route
-app.get('/', (req, res) => {
-  console.log('🏠 Serving root route - will redirect to ProCogia services');
-  // Add cache-busting headers for index.html
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
 
 // Catch-all for any other routes not handled by proxies - return 404
 // This prevents React Router from interfering with proxy routes
