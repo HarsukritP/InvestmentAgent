@@ -163,6 +163,36 @@ app.get('/debug/portfolio-test', (req, res) => {
 
 // CRITICAL: Apply proxy middleware BEFORE any other middleware
 app.use('/portfolio-agent', portfolioProxy);
+
+// PORTFOLIO STATIC ASSETS PROXY - Handle static file requests when viewing portfolio agent
+// This forwards static asset requests to the portfolio frontend
+const portfolioStaticProxy = createProxyMiddleware({
+  target: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-portfolioagent.up.railway.app',
+  changeOrigin: true,
+  secure: true,
+  // Only proxy static requests that would come from the portfolio frontend
+  pathFilter: (pathname, req) => {
+    // Check if the request is for static assets AND the referer suggests it's from portfolio agent
+    const isStaticAsset = pathname.startsWith('/static/');
+    const isFromPortfolioAgent = req.get('referer') && req.get('referer').includes('/portfolio-agent');
+    
+    console.log(`🔍 Static asset check: ${pathname}, from portfolio: ${isFromPortfolioAgent}, is static: ${isStaticAsset}`);
+    return isStaticAsset && isFromPortfolioAgent;
+  },
+  onError: (err, req, res) => {
+    console.error('🚨 Portfolio static proxy error:', err.message);
+    res.status(502).json({ error: 'Portfolio static assets temporarily unavailable' });
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`📁 Proxying portfolio static: ${req.method} ${req.url} -> ${proxyReq.path}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`📁 Portfolio static response: ${proxyRes.statusCode} for ${req.url}`);
+  }
+});
+
+app.use(portfolioStaticProxy);
+
 app.use('/manufacturing-agent', manufacturingProxy);
 app.use('/document-review-agent', documentReviewProxy);
 app.use('/customer-support-agent', customerSupportProxy);
