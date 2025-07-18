@@ -1,17 +1,12 @@
 [build]
-# Use Nixpacks for auto-detection and building
 builder = "NIXPACKS"
 
 [deploy]
-# Health check configuration
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 2
-
-# Explicitly prevent any auto-start commands
-[start]
-# This section intentionally left empty to prevent auto-detection
+startCommand = "node test-server.js"
 
 [service]
 name = "hub-frontend" 
