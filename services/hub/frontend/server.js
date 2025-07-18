@@ -13,9 +13,9 @@ const PORT = process.env.PORT || 8080;
 
 console.log('🎯 Server will run on port:', PORT);
 
-// Portfolio agent proxy configuration - testing with external URL first
+// Portfolio agent proxy configuration - using external URL until portfolio services are redeployed
 const portfolioProxy = createProxyMiddleware({
-  target: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app',
+  target: 'https://procogia-investment-aiagent.up.railway.app', // Temporary: external URL until internal services updated
   changeOrigin: true,
   secure: true, // External URL uses HTTPS
   pathRewrite: {
@@ -23,7 +23,7 @@ const portfolioProxy = createProxyMiddleware({
   },
       onError: (err, req, res) => {
       console.error('🚨 Portfolio proxy error:', err.message);
-      console.error('Target URL:', process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app');
+      console.error('Target URL:', 'https://procogia-investment-aiagent.up.railway.app'); // External URL fallback
       console.error('Request URL:', req.url);
       console.error('Request method:', req.method);
       console.error('Error details:', err);
@@ -32,13 +32,13 @@ const portfolioProxy = createProxyMiddleware({
       res.status(502).json({ 
         error: 'Portfolio agent temporarily unavailable', 
         details: err.message,
-        target: process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app',
+        target: 'https://procogia-investment-aiagent.up.railway.app',
         timestamp: new Date().toISOString()
       });
     },
       onProxyReq: (proxyReq, req, res) => {
       console.log(`✅ Proxying portfolio request: ${req.method} ${req.url} -> ${proxyReq.path}`);
-      console.log(`🎯 Target: ${process.env.PORTFOLIO_FRONTEND_URL || 'https://procogia-investment-aiagent.up.railway.app'}`);
+      console.log(`🎯 Target: https://procogia-investment-aiagent.up.railway.app`); // External URL fallback
       
       // Add headers to help with proxy
       proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
