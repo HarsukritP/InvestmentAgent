@@ -18,6 +18,15 @@ import AdjustHolding from './AdjustHolding';
 // Configure axios with base URL
 axios.defaults.baseURL = API_URL;
 
+// Determine if we're being accessed through the hub proxy
+const isProxied = window.location.pathname.startsWith('/portfolio-agent');
+const routerBasename = isProxied ? '/portfolio-agent' : '/';
+
+// Log routing information for debugging
+console.log('📍 Current pathname:', window.location.pathname);
+console.log('🔄 Is proxied through hub:', isProxied);
+console.log('🌐 Using router basename:', routerBasename);
+
 function App() {
   const [user, setUser] = useState(null);
   const [portfolio, setPortfolio] = useState(null);
@@ -202,7 +211,7 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router basename={routerBasename}>
       <div className={`App ${isMobile ? 'mobile' : ''}`}>
         <Routes>
           {/* Public routes */}
