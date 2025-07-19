@@ -13,7 +13,7 @@ export const API_URL = isProxied
 
 // Special URL just for OAuth endpoints - this is needed because the proxy rewrite is different
 export const AUTH_URL = isProxied
-  ? '/portfolio-agent/api/auth' // Special case for auth endpoints
+  ? '/portfolio-agent/auth' // Direct auth endpoint through dedicated proxy
   : `${API_URL}/auth`;
 
 // Log the API URL for debugging
