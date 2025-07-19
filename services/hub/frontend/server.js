@@ -169,8 +169,12 @@ const portfolioApiProxy = createProxyMiddleware({
   target: process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app',
   changeOrigin: true,
   secure: true,
-  pathRewrite: {
-    '^/portfolio-agent/api': '/', // Rewrite /portfolio-agent/api to / (root path)
+  pathRewrite: function(path, req) {
+    // Custom path rewrite function to handle all cases correctly
+    // Remove /portfolio-agent/api prefix and ensure proper routing
+    const newPath = path.replace(/^\/portfolio-agent\/api/, '');
+    console.log(`🔄 Rewriting API path: ${path} -> ${newPath}`);
+    return newPath;
   },
   onError: (err, req, res) => {
     console.error('🚨 Portfolio API proxy error:', err.message);
