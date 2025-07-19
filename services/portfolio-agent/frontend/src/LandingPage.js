@@ -8,12 +8,16 @@ const LandingPage = ({ onLogin }) => {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      // Import API_URL from config
-      const { API_URL } = await import('./config');
+      // Import API_URL and AUTH_URL from config
+      const { AUTH_URL } = await import('./config');
+      
+      console.log('🔒 Using AUTH_URL for login:', AUTH_URL);
       
       // Get OAuth URL from backend
-      const response = await fetch(`${API_URL}/auth/login`);
+      const response = await fetch(`${AUTH_URL}/login`);
       const data = await response.json();
+      
+      console.log('🔗 Received OAuth URL:', data.oauth_url);
       
       if (data.oauth_url) {
         // Redirect to Google OAuth

@@ -11,8 +11,14 @@ export const API_URL = isProxied
   ? '/portfolio-agent/api' // When accessed via proxy, use relative path with /api
   : (process.env.REACT_APP_API_URL || 'https://procogia-portfolioagent-service.up.railway.app');
 
+// Special URL just for OAuth endpoints - this is needed because the proxy rewrite is different
+export const AUTH_URL = isProxied
+  ? '/portfolio-agent/api/auth' // Special case for auth endpoints
+  : `${API_URL}/auth`;
+
 // Log the API URL for debugging
 console.log('🔗 Using API URL:', API_URL);
+console.log('🔒 Using AUTH URL:', AUTH_URL);
 console.log('📍 Current pathname:', window.location.pathname);
 console.log('🔄 Is proxied:', isProxied);
 console.log('📊 Full URL info:', {
