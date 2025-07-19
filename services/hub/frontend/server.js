@@ -200,7 +200,18 @@ const portfolioAuthProxy = createProxyMiddleware({
 // Apply portfolio auth proxy for /portfolio-agent/auth routes
 app.use('/portfolio-agent/auth', portfolioAuthProxy);
 
+// IMPORTANT: Add OPTIONS handler for auth routes to handle preflight requests
+app.options('/portfolio-agent/auth/*', (req, res) => {
+  console.log('🔑 Handling OPTIONS request for auth endpoint:', req.url);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
 // Portfolio backend API proxy - for other API requests
+// IMPORTANT: This must come AFTER the auth proxy to ensure auth routes are handled first
 const portfolioApiProxy = createProxyMiddleware({
   target: process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app',
   changeOrigin: true,
