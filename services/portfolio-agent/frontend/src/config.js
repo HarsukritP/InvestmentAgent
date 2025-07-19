@@ -8,13 +8,19 @@ const isProxied = window.location.pathname.startsWith('/portfolio-agent');
 
 // If accessed through proxy, use relative API URL to ensure OAuth works
 export const API_URL = isProxied 
-  ? '/portfolio-agent/api' // When accessed via proxy, use relative path
-  : (process.env.REACT_APP_API_URL || 'https://investmentaiagentservice.up.railway.app');
+  ? '/portfolio-agent/api' // When accessed via proxy, use relative path with /api
+  : (process.env.REACT_APP_API_URL || 'https://procogia-portfolioagent-service.up.railway.app');
 
 // Log the API URL for debugging
 console.log('🔗 Using API URL:', API_URL);
 console.log('📍 Current pathname:', window.location.pathname);
 console.log('🔄 Is proxied:', isProxied);
+console.log('📊 Full URL info:', {
+  hostname: window.location.hostname,
+  pathname: window.location.pathname,
+  origin: window.location.origin,
+  href: window.location.href
+});
 
 // Google OAuth Client ID
 export const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
