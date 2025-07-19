@@ -6,6 +6,17 @@
 // This ensures OAuth works correctly when accessed through the hub proxy
 const isProxied = window.location.pathname.startsWith('/portfolio-agent');
 
+// Debug information about the current environment
+console.log('🔍 Config initialization:');
+console.log('📊 Window location:', {
+  href: window.location.href,
+  origin: window.location.origin,
+  pathname: window.location.pathname,
+  host: window.location.host,
+  hostname: window.location.hostname
+});
+console.log('🔄 Is proxied through hub:', isProxied);
+
 // If accessed through proxy, use relative API URL to ensure OAuth works
 export const API_URL = isProxied 
   ? '/portfolio-agent/api' // When accessed via proxy, use relative path with /api

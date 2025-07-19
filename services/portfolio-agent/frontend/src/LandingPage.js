@@ -12,22 +12,44 @@ const LandingPage = ({ onLogin }) => {
       const { AUTH_URL } = await import('./config');
       
       console.log('🔒 Using AUTH_URL for login:', AUTH_URL);
+      console.log('📍 Current location:', window.location.href);
+      console.log('🔄 Starting OAuth login flow...');
       
       // Get OAuth URL from backend
-      const response = await fetch(`${AUTH_URL}/login`);
+      console.log('🔌 Fetching from:', `${AUTH_URL}/login`);
+      const response = await fetch(`${AUTH_URL}/login`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Debug-Info': 'portfolio-agent-login'
+        },
+        credentials: 'include'
+      });
+      
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries([...response.headers.entries()]));
+      
       const data = await response.json();
       
+      console.log('🔗 Received OAuth data:', data);
       console.log('🔗 Received OAuth URL:', data.oauth_url);
       
       if (data.oauth_url) {
         // Redirect to Google OAuth
+        console.log('🔄 Redirecting to OAuth URL...');
         window.location.href = data.oauth_url;
       } else {
-        console.error('Failed to get OAuth URL');
+        console.error('❌ Failed to get OAuth URL:', data);
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
+      console.error('❌ Login error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       setIsLoading(false);
     }
   };
