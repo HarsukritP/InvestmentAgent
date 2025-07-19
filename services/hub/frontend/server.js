@@ -166,18 +166,26 @@ app.use('/portfolio-agent', portfolioProxy);
 
 // Portfolio backend API proxy - for OAuth and other API requests
 const portfolioApiProxy = createProxyMiddleware({
-  target: process.env.PORTFOLIO_BACKEND_URL || 'https://investmentaiagentservice.up.railway.app',
+  target: process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app',
   changeOrigin: true,
   secure: true,
   pathRewrite: {
-    '^/portfolio-agent/api': '', // Remove /portfolio-agent/api prefix when forwarding
+    '^/portfolio-agent/api': '/', // Rewrite /portfolio-agent/api to / (root path)
   },
   onError: (err, req, res) => {
     console.error('🚨 Portfolio API proxy error:', err.message);
+    console.error('Target URL:', process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app');
+    console.error('Request URL:', req.url);
+    console.error('Error details:', err);
     res.status(502).json({ error: 'Portfolio API temporarily unavailable' });
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`🔌 Proxying portfolio API: ${req.method} ${req.url} -> ${proxyReq.path}`);
+    console.log(`🎯 API Target: ${process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app'}`);
+    
+    // Add headers to help with proxy
+    proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
+    proxyReq.setHeader('X-Forwarded-Proto', 'https');
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`📡 Portfolio API response: ${proxyRes.statusCode} for ${req.url}`);
