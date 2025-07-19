@@ -164,7 +164,43 @@ app.get('/debug/portfolio-test', (req, res) => {
 // CRITICAL: Apply proxy middleware BEFORE any other middleware
 app.use('/portfolio-agent', portfolioProxy);
 
-// Portfolio backend API proxy - for OAuth and other API requests
+// Portfolio auth proxy - specifically for auth endpoints
+const portfolioAuthProxy = createProxyMiddleware({
+  target: process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app',
+  changeOrigin: true,
+  secure: true,
+  pathRewrite: {
+    '^/portfolio-agent/auth': '/auth' // Rewrite /portfolio-agent/auth to /auth
+  },
+  onError: (err, req, res) => {
+    console.error('🚨 Portfolio Auth proxy error:', err.message);
+    console.error('Target URL:', process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app');
+    console.error('Request URL:', req.url);
+    res.status(502).json({ error: 'Portfolio Auth temporarily unavailable' });
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    console.log(`🔑 Proxying portfolio auth: ${req.method} ${req.url} -> ${proxyReq.path}`);
+    console.log(`🎯 Auth Target: ${process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app'}`);
+    
+    // Add headers to help with proxy
+    proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
+    proxyReq.setHeader('X-Forwarded-Proto', 'https');
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    console.log(`📡 Portfolio Auth response: ${proxyRes.statusCode} for ${req.url}`);
+    
+    // Add CORS headers for OAuth
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+  }
+});
+
+// Apply portfolio auth proxy for /portfolio-agent/auth routes
+app.use('/portfolio-agent/auth', portfolioAuthProxy);
+
+// Portfolio backend API proxy - for other API requests
 const portfolioApiProxy = createProxyMiddleware({
   target: process.env.PORTFOLIO_BACKEND_URL || 'https://procogia-portfolioagent-service.up.railway.app',
   changeOrigin: true,
