@@ -201,6 +201,24 @@ function App() {
     );
   }
 
+  // Element for protected routes with navigation
+  const ProtectedLayout = ({ children }) => (
+    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
+      <Navigation 
+        user={user} 
+        onLogout={handleLogout}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={setSidebarCollapsed}
+        isMobile={isMobile}
+        mobileNavOpen={mobileNavOpen}
+        toggleMobileNav={toggleMobileNav}
+      />
+      <main className="main-content">
+        {children}
+      </main>
+    </div>
+  );
+
   return (
     <Router>
       <div className={`App ${isMobile ? 'mobile' : ''}`}>
@@ -222,79 +240,60 @@ function App() {
           />
           
           {/* Protected routes */}
-          {isAuthenticated ? (
-            <>
-              <Route 
-                path="/portfolio" 
-                element={
-                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
-                    <Navigation 
-                      user={user} 
-                      onLogout={handleLogout}
-                      isCollapsed={sidebarCollapsed}
-                      onToggleCollapse={setSidebarCollapsed}
-                      isMobile={isMobile}
-                      mobileNavOpen={mobileNavOpen}
-                      toggleMobileNav={toggleMobileNav}
-                    />
-                    <main className="main-content">
-                      <PortfolioPage 
-                        portfolio={portfolio}
-                        healthStatus={healthStatus}
-                        isRefreshing={isRefreshingPortfolio}
-                        onRefresh={fetchPortfolio}
-                        onBuyStock={() => setShowBuyStock(true)}
-                        onAdjustHolding={handleAdjustHolding}
-                        isMobile={isMobile}
-                        toggleMobileNav={toggleMobileNav}
-                      />
-                    </main>
-                  </div>
-                } 
-              />
-              <Route 
-                path="/chat" 
-                element={
-                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
-                    <Navigation 
-                      user={user} 
-                      onLogout={handleLogout}
-                      isCollapsed={sidebarCollapsed}
-                      onToggleCollapse={setSidebarCollapsed}
-                      isMobile={isMobile}
-                      mobileNavOpen={mobileNavOpen}
-                      toggleMobileNav={toggleMobileNav}
-                    />
-                    <main className="main-content">
-                      <ChatPage portfolio={portfolio} user={user} isMobile={isMobile} toggleMobileNav={toggleMobileNav} />
-                    </main>
-                  </div>
-                } 
-              />
-              <Route 
-                path="/actions-log" 
-                element={
-                  <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'mobile' : ''} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
-                    <Navigation 
-                      user={user} 
-                      onLogout={handleLogout}
-                      isCollapsed={sidebarCollapsed}
-                      onToggleCollapse={setSidebarCollapsed}
-                      isMobile={isMobile}
-                      mobileNavOpen={mobileNavOpen}
-                      toggleMobileNav={toggleMobileNav}
-                    />
-                    <main className="main-content">
-                      <ActionsLogPage isMobile={isMobile} toggleMobileNav={toggleMobileNav} />
-                    </main>
-                  </div>
-                } 
-              />
-              <Route path="*" element={<Navigate to="/portfolio" replace />} />
-            </>
-          ) : (
-            <Route path="*" element={<Navigate to="/" replace />} />
-          )}
+          <Route 
+            path="/portfolio" 
+            element={
+              isAuthenticated ? (
+                <ProtectedLayout>
+                  <PortfolioPage 
+                    portfolio={portfolio}
+                    healthStatus={healthStatus}
+                    isRefreshing={isRefreshingPortfolio}
+                    onRefresh={fetchPortfolio}
+                    onBuyStock={() => setShowBuyStock(true)}
+                    onAdjustHolding={handleAdjustHolding}
+                    isMobile={isMobile}
+                    toggleMobileNav={toggleMobileNav}
+                  />
+                </ProtectedLayout>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/chat" 
+            element={
+              isAuthenticated ? (
+                <ProtectedLayout>
+                  <ChatPage 
+                    portfolio={portfolio} 
+                    user={user} 
+                    isMobile={isMobile} 
+                    toggleMobileNav={toggleMobileNav} 
+                  />
+                </ProtectedLayout>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/actions-log" 
+            element={
+              isAuthenticated ? (
+                <ProtectedLayout>
+                  <ActionsLogPage 
+                    isMobile={isMobile} 
+                    toggleMobileNav={toggleMobileNav} 
+                  />
+                </ProtectedLayout>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/portfolio" : "/"} replace />} />
         </Routes>
 
         {/* Global Modals */}
