@@ -38,6 +38,7 @@ app.add_middleware(
         "http://localhost:3000",  # Local React app URL
         "https://procogia-investment-aiagent.up.railway.app",  # Frontend Railway URL
         "https://investmentaiagentservice.up.railway.app",  # Backend Railway URL
+        "https://portfolioagent.procogia.ai",  # Custom domain
     ],
     allow_credentials=True,
     allow_methods=["*"],

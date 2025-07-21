@@ -209,3 +209,29 @@ The interface follows ProCogia's professional design standards:
 This MVP demonstrates the core concept of AI-powered portfolio management. The application works in demo mode without API keys and provides full functionality when properly configured.
 
 For questions about extending this MVP or enterprise deployment, contact the ProCogia team. 
+
+## Railway Deployment
+
+For deploying this application to Railway with a custom domain, please refer to the following guides:
+
+- [Railway Deployment Guide](docs/railway-deployment-guide.md) - Step-by-step instructions for deploying to Railway
+- [Railway Environment Variables](docs/railway-env-variables.md) - List of required environment variables
+- [Railway README](docs/README.railway.md) - Additional Railway-specific information
+
+The application is designed to be deployed as two separate services on Railway:
+1. Backend service (FastAPI)
+2. Frontend service (React)
+
+Both services can be deployed from the same GitHub repository by specifying different root directories.
+
+### Custom Domain Setup
+
+This application can be configured to run on a custom domain. For detailed instructions on setting up the custom domain `portfolioagent.procogia.ai`, see the [Railway Deployment Guide](docs/railway-deployment-guide.md). 
+
+## Documentation
+
+All project documentation is available in the [docs](docs/) folder:
+
+- [Project Documentation](docs/README.md) - Index of all documentation
+- [MVP Specification](docs/mvp.md) - Details about the Minimum Viable Product
+- [Deployment Guides](docs/railway-deployment-guide.md) - Instructions for deploying to Railway 
