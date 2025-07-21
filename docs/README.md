@@ -4,7 +4,8 @@ This folder contains all documentation related to the Investment Agent project.
 
 ## Deployment Documentation
 
-- [Railway Deployment Guide](railway-deployment-guide.md) - Step-by-step instructions for deploying to Railway
+- [Deployment Summary](deployment-summary.md) - Summary of deployment preparation and next steps
+- [Simplified Deployment Guide](simplified-deployment-guide.md) - Streamlined instructions for Railway deployment
 - [Railway Environment Variables](railway-env-variables.md) - List of required environment variables for Railway deployment
 - [Railway Deployment Checklist](railway-deployment-checklist.md) - Pre-deployment, deployment, and post-deployment checklist
 - [Railway README](README.railway.md) - General information about deploying on Railway
