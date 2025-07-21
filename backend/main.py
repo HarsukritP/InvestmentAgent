@@ -36,9 +36,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local React app URL
-        "https://procogia-investment-aiagent.up.railway.app",  # Frontend Railway URL
-        "https://investmentaiagentservice.up.railway.app",  # Backend Railway URL
         "https://portfolioagent.procogia.ai",  # Custom domain
+        "https://portfolioagent-procogia-ai.up.railway.app",  # Railway frontend URL
+        "https://portfolioagent-procogia-ai-service.up.railway.app",  # Railway frontend service URL
+        "https://portfolioagent-backend-production.up.railway.app",  # Backend URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
