@@ -4,6 +4,7 @@ This script will run the SQL setup files to create the necessary tables
 """
 import os
 import logging
+import asyncio
 from supabase import create_client, Client
 
 # Configure logging
@@ -40,7 +41,7 @@ def read_sql_file(file_path):
         logger.error(f"Error reading SQL file {file_path}: {str(e)}")
         return None
 
-def main():
+async def initialize_database():
     """Initialize database tables"""
     try:
         # Get Supabase credentials
@@ -87,7 +88,7 @@ def main():
         
         # Execute market context table creation
         logger.info("Creating market context table...")
-        result = supabase.sql(market_context_sql).execute()
+        result = await supabase.rpc('execute_sql', {'sql_query': market_context_sql}).execute()
         logger.info("Market context table created")
         
         # Create transaction stats function
@@ -128,7 +129,7 @@ def main():
         
         # Execute transaction stats function creation
         logger.info("Creating transaction stats function...")
-        result = supabase.sql(transaction_stats_sql).execute()
+        result = await supabase.rpc('execute_sql', {'sql_query': transaction_stats_sql}).execute()
         logger.info("Transaction stats function created")
         
         # Create basic tables if they don't exist
@@ -274,7 +275,7 @@ def main():
         
         # Execute basic tables creation
         logger.info("Creating basic tables...")
-        result = supabase.sql(basic_tables_sql).execute()
+        result = await supabase.rpc('execute_sql', {'sql_query': basic_tables_sql}).execute()
         logger.info("Basic tables created")
         
         logger.info("Database initialization completed successfully")
@@ -283,6 +284,12 @@ def main():
     except Exception as e:
         logger.error(f"Database initialization failed: {str(e)}")
         return False
+
+def main():
+    """Run the async initialization function"""
+    loop = asyncio.get_event_loop()
+    success = loop.run_until_complete(initialize_database())
+    return success
 
 if __name__ == "__main__":
     main() 

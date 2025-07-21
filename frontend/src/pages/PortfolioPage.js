@@ -100,176 +100,111 @@ const PortfolioPage = ({
     handleRefresh();
   };
 
-  const marketStatus = getMarketStatus(healthStatus);
-
-  if (loading) {
+  // If portfolio is not loaded yet
+  if (!portfolio) {
     return (
       <div className="portfolio-page">
-        <div className="portfolio-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading your portfolio...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="portfolio-page">
-        <div className="portfolio-error">
-          <h2>Unable to load portfolio</h2>
-          <p>{error}</p>
-          <button onClick={handleRefresh} className="retry-button">
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!portfolio || !portfolio.portfolio) {
-    return (
-      <div className="portfolio-page">
-        <div className="portfolio-empty">
-          <h2>No portfolio data available</h2>
-          <p>Your portfolio information will appear here once loaded.</p>
-          <button onClick={handleRefresh} className="refresh-button">
-            Refresh Portfolio
-          </button>
+        <div className="loading-indicator">
+          <div className="spinner"></div>
+          <p>Loading portfolio data...</p>
         </div>
       </div>
     );
   }
 
   // Extract portfolio data
-  const portfolioData = portfolio.portfolio;
-  const holdings = portfolio.holdings || [];
+  const { cash_balance = 0, holdings = [] } = portfolio;
   
-  // Calculate summary values
-  const portfolioValue = portfolioData.total_market_value || 0;
-  const cashBalance = portfolioData.cash_balance || 0;
-  const totalAccountValue = portfolioValue + cashBalance;
-  
-  // Calculate total P&L
-  const totalCost = holdings.reduce((sum, holding) => {
-    return sum + (holding.shares || holding.quantity || 0) * (holding.average_cost || holding.purchase_price || 0);
+  // Calculate total portfolio value
+  const totalHoldingsValue = holdings.reduce((sum, holding) => {
+    const shares = holding.shares || holding.quantity || 0;
+    const price = holding.current_price || 0;
+    return sum + (shares * price);
   }, 0);
-  const totalPnl = portfolioValue - totalCost;
-  const totalPnlPercent = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+  
+  const totalPortfolioValue = totalHoldingsValue + cash_balance;
+  
+  // Calculate total profit/loss
+  const totalCostBasis = holdings.reduce((sum, holding) => {
+    const shares = holding.shares || holding.quantity || 0;
+    const avgCost = holding.average_cost || holding.purchase_price || 0;
+    return sum + (shares * avgCost);
+  }, 0);
+  
+  const totalInitialValue = totalCostBasis + cash_balance;
+  const totalPnL = totalPortfolioValue - totalInitialValue;
+  const totalPnLPercent = totalInitialValue > 0 ? (totalPnL / totalInitialValue) * 100 : 0;
 
-  const statusDisplay = getStatusDisplay();
+  // Get market status
+  const marketStatus = getMarketStatus();
 
   return (
     <div className="portfolio-page">
-      {/* Mobile Header - Using text instead of MdMenu icon */}
+      {/* Mobile header */}
       {isMobile && (
         <div className="mobile-header">
-          <button 
-            className="mobile-menu-toggle" 
-            onClick={toggleMobileNav}
-            aria-label="Open menu"
-          >
-            ☰
+          <button className="menu-toggle" onClick={toggleMobileNav}>
+            <span className="menu-icon">☰</span>
           </button>
-          <h1 className="mobile-title">Portfolio</h1>
+          <h1 className="page-title">Portfolio</h1>
         </div>
       )}
       
-      {/* Page Header */}
-      {!isMobile && <h1 className="page-title">Portfolio</h1>}
-      
-      <div className="header-actions">
-        <div className={`status-badge ${marketStatus.class}`}>
-          <div className="status-dot"></div>
-          <span>{marketStatus.text}</span>
-          {marketStatus.nextUpdate && (
-            <span className="next-update-time">{marketStatus.nextUpdate}</span>
-          )}
-        </div>
-        <button 
-          className="buy-stock-btn"
-          onClick={handleBuyStock}
-        >
-          <span className="btn-icon">💰</span>
-          Buy Stock
-        </button>
-        <button 
-          className="refresh-btn"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-        >
-          <span className={`btn-icon ${isRefreshing ? 'spinning' : ''}`}>🔄</span>
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-      
-      {lastUpdated && (
-        <p className="last-updated">
-          Updated {lastUpdated}
-          {marketStatus.refreshInterval && (
-            <span className="auto-refresh-info">
-              • Auto-refreshes every {marketStatus.refreshInterval} min during market {marketStatus.class === 'success' ? 'hours' : 'closure'}
-            </span>
-          )}
-        </p>
-      )}
-
-      {/* Configuration Notice */}
-      {healthStatus && healthStatus.configuration && (
-        !healthStatus.configuration.twelvedata_key_configured || 
-        !healthStatus.configuration.openai_key_configured
-      ) && (
-        <div className="config-notice">
-          <div className="notice-content">
-            <span className="notice-icon">⚠️</span>
-            <div className="notice-text">
-              <strong>Configuration Notice:</strong>
-              {!healthStatus.configuration.twelvedata_key_configured && (
-                <span> Market data is using mock values. </span>
-              )}
-              {!healthStatus.configuration.openai_key_configured && (
-                <span> AI assistant features are unavailable. </span>
-              )}
-              Configure API keys for full functionality.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Portfolio Summary Cards */}
+      {/* Portfolio Summary */}
       <div className="portfolio-summary">
-        <div className="summary-card">
-          <div className="summary-label">Total Portfolio Value</div>
-          <div className="summary-value primary">
-            {formatCurrency(portfolioValue)}
+        <div className="summary-header">
+          <h1>Portfolio</h1>
+          <div className="market-status">
+            <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
+            <span className="status-text">
+              Market {marketStatus.isOpen ? 'Open' : 'Closed'}
+            </span>
+            <span className="update-time">
+              Next update in {marketStatus.nextUpdateMinutes} min
+            </span>
           </div>
         </div>
         
-        <div className="summary-card">
-          <div className="summary-label">Cash Balance</div>
-          <div className="summary-value">
-            {formatCurrency(cashBalance)}
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-label">Total Account Value</div>
-          <div className="summary-value">
-            {formatCurrency(totalAccountValue)}
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-label">Total Return</div>
-          <div className={`summary-value ${getPerformanceClass(totalPnl)}`}>
-            {formatCurrency(totalPnl)}
-            <div className={`summary-percent ${getPerformanceClass(totalPnlPercent)}`}>
-              {formatPercent(totalPnlPercent)}
+        <div className="summary-cards">
+          <div className="summary-card total-value">
+            <div className="card-label">Total Value</div>
+            <div className="card-value">{formatCurrency(totalPortfolioValue)}</div>
+            <div className={`card-change ${getPerformanceClass(totalPnL)}`}>
+              {formatCurrency(totalPnL)} ({formatPercent(totalPnLPercent)})
             </div>
           </div>
+          
+          <div className="summary-card holdings-value">
+            <div className="card-label">Holdings Value</div>
+            <div className="card-value">{formatCurrency(totalHoldingsValue)}</div>
+            <div className="card-percent">{((totalHoldingsValue / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
+          </div>
+          
+          <div className="summary-card cash-balance">
+            <div className="card-label">Cash Balance</div>
+            <div className="card-value">{formatCurrency(cash_balance)}</div>
+            <div className="card-percent">{((cash_balance / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
+          </div>
+        </div>
+        
+        <div className="action-buttons">
+          <button 
+            className="action-button buy-button"
+            onClick={handleBuyStock}
+          >
+            <span className="button-icon">$</span> Buy Stock
+          </button>
+          
+          <button 
+            className="action-button refresh-button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <span className="button-icon">⟳</span> Refresh
+          </button>
         </div>
       </div>
-
+      
       {/* Holdings Section */}
       <div className="holdings-section">
         <div className="section-header">
@@ -353,18 +288,20 @@ const PortfolioPage = ({
       {/* Modals */}
       {showBuyModal && (
         <BuyStock 
-          show={showBuyModal} 
+          isOpen={showBuyModal} 
           onClose={() => setShowBuyModal(false)} 
           onSuccess={handleTransactionSuccess}
+          isMobile={isMobile}
         />
       )}
       
       {showAdjustModal && selectedHolding && (
         <AdjustHolding 
-          show={showAdjustModal} 
+          isOpen={showAdjustModal} 
           holding={selectedHolding}
           onClose={() => setShowAdjustModal(false)} 
           onSuccess={handleTransactionSuccess}
+          isMobile={isMobile}
         />
       )}
     </div>
