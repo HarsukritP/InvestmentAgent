@@ -3,7 +3,7 @@
  */
 
 // API URL - defaults to localhost:8000 in development
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.REACT_APP_API_URL || 'https://portfolioagent-procogia-ai-service.up.railway.app';
 
 // Google OAuth Client ID
 export const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
