@@ -14,6 +14,31 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     nextUpdateMinutes: 5
   });
 
+  // Check if market is open based on current time (Eastern Time)
+  const checkMarketStatus = useCallback(() => {
+    const now = new Date();
+    
+    // Convert to Eastern Time
+    const options = { timeZone: 'America/New_York', hour12: false };
+    const etTimeStr = now.toLocaleString('en-US', options);
+    const etTime = new Date(etTimeStr);
+    
+    const hours = etTime.getHours();
+    const minutes = etTime.getMinutes();
+    const dayOfWeek = etTime.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Check if weekend
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return false;
+    }
+    
+    // Check if within market hours (9:30 AM - 4:00 PM ET)
+    const marketOpen = hours > 9 || (hours === 9 && minutes >= 30);
+    const marketClosed = hours >= 16; // 4:00 PM or later
+    
+    return marketOpen && !marketClosed;
+  }, []);
+
   const fetchPortfolio = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -22,7 +47,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       console.log('Fetching portfolio data...');
       const response = await axios.get('/portfolio');
       console.log('Portfolio data received:', response.data);
-      setPortfolio(response.data);
       
       // Extract portfolio data from response structure
       const portfolioData = response.data.portfolio || {};
@@ -40,25 +64,26 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         holdings_value: holdingsValue
       });
       
-      // Try to get market status
-      try {
-        const statusResponse = await axios.get('/health');
-        const isMarketOpen = statusResponse.data?.services?.market_data?.status === 'healthy';
-        setMarketStatus({
-          isOpen: isMarketOpen,
-          nextUpdateMinutes: 5
-        });
-      } catch (statusError) {
-        console.error('Error fetching market status:', statusError);
-        // Don't set an error, just keep default market status
-      }
+      // Check if market is open
+      const isMarketOpen = checkMarketStatus();
+      
+      // Calculate next update time
+      const nextUpdate = new Date();
+      nextUpdate.setMinutes(nextUpdate.getMinutes() + 5);
+      const minutesUntilUpdate = 5;
+      
+      setMarketStatus({
+        isOpen: isMarketOpen,
+        nextUpdateMinutes: minutesUntilUpdate
+      });
+      
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       setError('Failed to load portfolio data. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [checkMarketStatus]);
 
   useEffect(() => {
     fetchPortfolio();
