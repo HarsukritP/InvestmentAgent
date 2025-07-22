@@ -112,7 +112,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         setSelectedStock(null);
         setCurrentShares(0);
         setQuantity(1);
-        setTargetShares(0);
+        setTargetShares(1); // Start with 1 for new purchases
       }
       setMaxAffordableShares(1);
       setAffordability(null);
@@ -137,6 +137,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   useEffect(() => {
     if (affordability && affordability.max_affordable_shares) {
       setMaxAffordableShares(Math.max(1, affordability.max_affordable_shares));
+      
       // Ensure quantity doesn't exceed max affordable
       if (quantity > affordability.max_affordable_shares) {
         setQuantity(affordability.max_affordable_shares);
@@ -157,8 +158,12 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       const difference = targetShares - currentShares;
       setSharesDifference(difference);
       setQuantity(difference);
+    } else if (selectedStock) {
+      // For new purchases, target shares equals quantity
+      setSharesDifference(targetShares);
+      setQuantity(targetShares);
     }
-  }, [targetShares, currentShares, existingHolding]);
+  }, [targetShares, currentShares, existingHolding, selectedStock]);
 
   const handleBuyStock = async () => {
     if (!selectedStock || quantity <= 0) return;
@@ -216,6 +221,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     setSearchResults([]);
     setSearchQuery('');
     setQuantity(1); // Reset to 1 when selecting new stock
+    setCurrentShares(0); // No current shares for new stock
+    setTargetShares(1); // Start with 1 share
   };
 
   const handleKeyPress = (e) => {
@@ -230,6 +237,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     
     if (existingHolding) {
       setTargetShares(currentShares + validQuantity);
+    } else if (selectedStock) {
+      setTargetShares(validQuantity);
     }
   };
 
@@ -242,9 +251,9 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
 
   return (
     <div className={`buy-stock-overlay ${isMobile ? 'mobile' : ''}`}>
-      <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''} ${existingHolding ? 'adjust-modal' : ''}`}>
+      <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''} ${selectedStock ? 'adjust-modal' : ''}`}>
         <div className="modal-header">
-          <h2>{existingHolding ? `Buy More ${existingHolding.symbol}` : 'Buy Stock'}</h2>
+          <h2>{existingHolding ? `Buy More ${existingHolding.symbol}` : selectedStock ? `Buy ${selectedStock.symbol}` : 'Buy Stock'}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         
@@ -297,8 +306,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 </div>
               )}
             </div>
-          ) : existingHolding ? (
-            // Adjust Position View with Slider (for existing holdings)
+          ) : (
+            // Stock Purchase View with Slider (for both new and existing)
             <div className="stock-purchase adjust-position">
               {/* Current Position Info */}
               <div className="selected-stock">
@@ -321,15 +330,15 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
 
               {/* Position Slider */}
               <div className="slider-section">
-                <label>Adjust Position:</label>
+                <label>{existingHolding ? 'Adjust Position:' : 'Shares to Buy:'}</label>
                 <div className="slider-container">
                   <div className="slider-labels">
-                    <span className="slider-label current">Current ({currentShares})</span>
+                    <span className="slider-label current">{existingHolding ? `Current (${currentShares})` : 'Min (1)'}</span>
                     <span className="slider-label buy">Max ({maxAffordableShares})</span>
                   </div>
                   <input
                     type="range"
-                    min={currentShares}
+                    min={existingHolding ? currentShares : 1}
                     max={maxAffordableShares}
                     value={targetShares}
                     onChange={(e) => handleSliderChange(e.target.value)}
@@ -353,7 +362,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   <span className="target-label">Target Shares:</span>
                   <input
                     type="number"
-                    min={currentShares}
+                    min={existingHolding ? currentShares : 1}
                     max={maxAffordableShares}
                     value={targetShares}
                     onChange={(e) => handleSliderChange(e.target.value)}
@@ -367,7 +376,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 <div className="stats-section">
                   <div className="stats-header">
                     <h4 className="buying">
-                      📈 Buying {sharesDifference} Shares
+                      {existingHolding ? `📈 Buying ${sharesDifference} More Shares` : `📈 Buying ${targetShares} Shares`}
                     </h4>
                   </div>
                   
@@ -410,90 +419,6 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   )}
                 </div>
               )}
-            </div>
-          ) : (
-            // Stock Purchase View (for new stocks)
-            <div className="stock-purchase">
-              <div className="selected-stock">
-                <div className="stock-header">
-                  <div className="stock-symbol">{selectedStock.symbol}</div>
-                  <div className="stock-name">{selectedStock.name}</div>
-                </div>
-                
-                {currentShares > 0 && (
-                  <div className="current-position">
-                    <div className="position-label">Current Position</div>
-                    <div className="position-value">{currentShares} shares</div>
-                  </div>
-                )}
-                
-                {affordability && (
-                  <div className="stock-price-info">
-                    <div className="price-label">Current Price</div>
-                    <div className="price-value">${affordability.current_price.toFixed(2)}</div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="purchase-form">
-                <div className="quantity-selector">
-                  <label htmlFor="quantity">Quantity to Buy</label>
-                  <div className="quantity-controls">
-                    <button 
-                      className="quantity-btn"
-                      onClick={() => handleQuantityChange(quantity - 1)}
-                      disabled={quantity <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      max={maxAffordableShares}
-                      value={quantity}
-                      onChange={(e) => handleQuantityChange(e.target.value)}
-                    />
-                    <button 
-                      className="quantity-btn"
-                      onClick={() => handleQuantityChange(quantity + 1)}
-                      disabled={quantity >= maxAffordableShares}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                
-                {affordability && (
-                  <div className="purchase-summary">
-                    <div className="summary-row">
-                      <div className="summary-label">Total Cost</div>
-                      <div className="summary-value">${affordability.total_cost.toFixed(2)}</div>
-                    </div>
-                    <div className="summary-row">
-                      <div className="summary-label">Available Cash</div>
-                      <div className="summary-value">${affordability.available_cash.toFixed(2)}</div>
-                    </div>
-                    {!affordability.can_afford && (
-                      <div className="summary-row error">
-                        <div className="summary-label">Shortfall</div>
-                        <div className="summary-value">${affordability.shortfall.toFixed(2)}</div>
-                      </div>
-                    )}
-                    <div className="summary-row">
-                      <div className="summary-label">Max Shares</div>
-                      <div className="summary-value">{affordability.max_affordable_shares}</div>
-                    </div>
-                    
-                    {currentShares > 0 && (
-                      <div className="summary-row total">
-                        <div className="summary-label">New Position Total</div>
-                        <div className="summary-value">{currentShares + quantity} shares</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           )}
           
