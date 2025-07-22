@@ -146,8 +146,8 @@ async def login(request: Request):
     if not auth_service.google_client_id:
         raise HTTPException(status_code=500, detail="OAuth not configured")
     
-    # Always use the Railway backend URL for OAuth callbacks
-    base_url = "https://portfolioagent-backend-production.up.railway.app"
+    # Use the correct authorized redirect URI from Google Cloud Console
+    base_url = "https://portfolioagent-procogia-ai-service.up.railway.app"
     
     # Use localhost for local development
     if "localhost" in request.headers.get("origin", ""):
@@ -164,8 +164,8 @@ async def auth_callback(code: str, state: Optional[str] = None, request: Request
     if not code:
         raise HTTPException(status_code=400, detail="Authorization code required")
     
-    # Always use the Railway backend URL for OAuth callbacks
-    base_url = "https://portfolioagent-backend-production.up.railway.app"
+    # Use the correct authorized redirect URI from Google Cloud Console
+    base_url = "https://portfolioagent-procogia-ai-service.up.railway.app"
     
     # Use localhost for local development
     if request and "localhost" in request.headers.get("origin", ""):
