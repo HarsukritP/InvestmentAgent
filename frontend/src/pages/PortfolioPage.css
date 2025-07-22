@@ -43,8 +43,11 @@
 .market-status {
   display: flex;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: #666;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status-indicator {
@@ -76,6 +79,18 @@
   flex-direction: row;
   align-items: stretch;
   gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.summary-header {
+  flex: 0 0 auto;
+  min-width: 220px;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-right: 1.5rem;
+  white-space: nowrap;
 }
 
 .summary-cards {
@@ -83,7 +98,8 @@
   flex-direction: row;
   gap: 1rem;
   margin-bottom: 0;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .summary-card {
@@ -121,6 +137,7 @@
   justify-content: flex-start;
   align-items: flex-end;
   min-width: 180px;
+  flex: 0 0 auto;
 }
 
 .action-button {
@@ -302,10 +319,15 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .summary-row {
     flex-direction: column;
     gap: 1.5rem;
+  }
+  .summary-header {
+    margin-right: 0;
+    margin-bottom: 1rem;
+    max-width: 100%;
   }
   .summary-cards {
     flex-direction: column;

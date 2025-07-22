@@ -151,20 +151,19 @@ const PortfolioPage = ({
       
       {/* Portfolio Summary */}
       <div className="portfolio-summary">
-        <div className="summary-header">
-          <h1>Portfolio</h1>
-          <div className="market-status">
-            <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
-            <span className="status-text">
-              Market {marketStatus.isOpen ? 'Open' : 'Closed'}
-            </span>
-            <span className="update-time">
-              Next update in {marketStatus.nextUpdateMinutes} min
-            </span>
-          </div>
-        </div>
-        
         <div className="summary-row">
+          <div className="summary-header">
+            <h1>Portfolio</h1>
+            <div className="market-status">
+              <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
+              <span className="status-text">
+                Market {marketStatus.isOpen ? 'Open' : 'Closed'}
+              </span>
+              <span className="update-time">
+                Next update in {marketStatus.nextUpdateMinutes} min
+              </span>
+            </div>
+          </div>
           <div className="summary-cards">
             <div className="summary-card total-value">
               <div className="card-label">Total Value</div>
@@ -173,20 +172,17 @@ const PortfolioPage = ({
                 {formatCurrency(totalPnL)} ({formatPercent(totalPnLPercent)})
               </div>
             </div>
-            
             <div className="summary-card holdings-value">
               <div className="card-label">Holdings Value</div>
               <div className="card-value">{formatCurrency(totalHoldingsValue)}</div>
               <div className="card-percent">{((totalHoldingsValue / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
             </div>
-            
             <div className="summary-card cash-balance">
               <div className="card-label">Cash Balance</div>
               <div className="card-value">{formatCurrency(cash_balance)}</div>
               <div className="card-percent">{((cash_balance / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
             </div>
           </div>
-          
           <div className="action-buttons">
             <button 
               className="action-button buy-button"
@@ -194,7 +190,6 @@ const PortfolioPage = ({
             >
               <span className="button-icon">$</span> Buy Stock
             </button>
-            
             <button 
               className="action-button refresh-button"
               onClick={handleRefresh}
