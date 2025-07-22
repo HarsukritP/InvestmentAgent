@@ -217,7 +217,13 @@
   height: 6px;
   -webkit-appearance: none;
   appearance: none;
-  background: linear-gradient(to right, #e53935, #1a73e8, #4caf50);
+  background: linear-gradient(to right, 
+    #e53935 0%, 
+    #e53935 30%, 
+    #1a73e8 30%, 
+    #1a73e8 70%, 
+    #4caf50 70%, 
+    #4caf50 100%);
   outline: none;
   border-radius: 3px;
   margin: 1rem 0;

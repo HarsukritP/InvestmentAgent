@@ -16,6 +16,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const [targetShares, setTargetShares] = useState(0);
   const [sharesDifference, setSharesDifference] = useState(0);
   const [action, setAction] = useState('buy'); // 'buy' or 'sell'
+  const [sliderMax, setSliderMax] = useState(1);
 
   const searchStocks = async () => {
     if (!searchQuery.trim()) return;
@@ -40,24 +41,19 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   };
 
   const checkAffordabilityWithPrice = useCallback(async (currentPrice) => {
-    if (!selectedStock || quantity <= 0 || !currentPrice) return;
+    if (!selectedStock || !currentPrice) return;
     
     try {
-      // Create affordability object using cached price
-      const totalCost = currentPrice * quantity;
-      
       // Get user's cash balance using the optimized endpoint
       const response = await axios.get('/cash-balance');
       const cashBalance = response.data.cash_balance;
-      
-      const canAfford = cashBalance >= totalCost;
       const maxAffordableShares = Math.floor(cashBalance / currentPrice);
       
       setAffordability({
-        can_afford: canAfford,
-        total_cost: totalCost,
+        can_afford: true, // We'll check this based on target shares later
+        total_cost: 0, // Will be calculated based on target shares
         available_cash: cashBalance,
-        shortfall: canAfford ? 0 : totalCost - cashBalance,
+        shortfall: 0, // Will be calculated based on target shares
         max_affordable_shares: maxAffordableShares,
         current_price: currentPrice,
         cached: true
@@ -67,29 +63,29 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     } catch (error) {
       console.error('Cached affordability check error:', error);
       // Fallback to regular affordability check
-      if (selectedStock && quantity > 0) {
+      if (selectedStock) {
         try {
-          const response = await axios.get(`/check-affordability/${selectedStock.symbol}?quantity=${quantity}`);
+          const response = await axios.get(`/check-affordability/${selectedStock.symbol}?quantity=1`);
           setAffordability(response.data);
         } catch (fallbackError) {
           console.error('Fallback affordability check error:', fallbackError);
           setAffordability(null);
-    }
+        }
       }
     }
-  }, [selectedStock, quantity]);
+  }, [selectedStock]);
 
   const checkAffordability = useCallback(async () => {
-    if (!selectedStock || quantity <= 0) return;
+    if (!selectedStock) return;
     
     try {
-      const response = await axios.get(`/check-affordability/${selectedStock.symbol}?quantity=${quantity}`);
+      const response = await axios.get(`/check-affordability/${selectedStock.symbol}?quantity=1`);
       setAffordability(response.data);
     } catch (error) {
       console.error('Affordability check error:', error);
       setAffordability(null);
     }
-  }, [selectedStock, quantity]);
+  }, [selectedStock]);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -101,9 +97,9 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
           name: existingHolding.name || existingHolding.symbol,
           current_price: existingHolding.current_price
         });
-        setCurrentShares(existingHolding.shares || existingHolding.quantity || 0);
-        setQuantity(1); // Default to adding 1 more share
-        setTargetShares(existingHolding.shares || existingHolding.quantity || 0);
+        const shares = existingHolding.shares || existingHolding.quantity || 0;
+        setCurrentShares(shares);
+        setTargetShares(shares); // Start at current position
         setSearchQuery('');
         setSearchResults([]);
       } else {
@@ -112,19 +108,19 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         setSearchResults([]);
         setSelectedStock(null);
         setCurrentShares(0);
-        setQuantity(1);
         setTargetShares(1); // Start with 1 for new purchases
       }
       setMaxAffordableShares(1);
       setAffordability(null);
       setError('');
       setAction('buy');
+      setSliderMax(1);
     }
   }, [isOpen, existingHolding]);
 
-  // Check affordability when stock or quantity changes
+  // Check affordability when stock changes
   useEffect(() => {
-    if (selectedStock && quantity > 0) {
+    if (selectedStock) {
       // If we have cached price data, use it directly
       if (selectedStock.current_price && selectedStock.cached) {
         // We'll need to get cash balance, but we can skip the price lookup
@@ -133,26 +129,23 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         checkAffordability();
       }
     }
-  }, [selectedStock, quantity, checkAffordability, checkAffordabilityWithPrice]);
+  }, [selectedStock, checkAffordability, checkAffordabilityWithPrice]);
 
   // Update max affordable shares when affordability data changes
   useEffect(() => {
     if (affordability && affordability.max_affordable_shares) {
-      setMaxAffordableShares(Math.max(1, affordability.max_affordable_shares));
+      const maxBuyable = Math.max(1, affordability.max_affordable_shares);
+      setMaxAffordableShares(maxBuyable);
       
-      // Ensure quantity doesn't exceed max affordable
-      if (quantity > affordability.max_affordable_shares) {
-        setQuantity(affordability.max_affordable_shares);
-      }
-      
-      // If we have an existing holding, update the max target shares
+      // Set the slider max to current + max affordable
       if (existingHolding) {
-        const current = currentShares;
-        const max = current + affordability.max_affordable_shares;
-        setMaxAffordableShares(max);
+        const newSliderMax = currentShares + maxBuyable;
+        setSliderMax(newSliderMax);
+      } else {
+        setSliderMax(maxBuyable);
       }
     }
-  }, [affordability, quantity, existingHolding, currentShares]);
+  }, [affordability, existingHolding, currentShares]);
 
   // Update shares difference when target shares change
   useEffect(() => {
@@ -161,12 +154,40 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       setSharesDifference(difference);
       setQuantity(Math.abs(difference));
       setAction(difference >= 0 ? 'buy' : 'sell');
+      
+      // Update affordability check based on target
+      if (affordability && affordability.current_price) {
+        const price = affordability.current_price;
+        const cost = difference * price;
+        const canAfford = difference <= 0 || (affordability.available_cash >= cost);
+        
+        setAffordability(prev => ({
+          ...prev,
+          can_afford: canAfford,
+          total_cost: Math.abs(cost),
+          shortfall: canAfford ? 0 : cost - affordability.available_cash
+        }));
+      }
     } else if (selectedStock) {
       // For new purchases, target shares equals quantity
       setSharesDifference(targetShares);
       setQuantity(targetShares);
+      
+      // Update affordability check based on target
+      if (affordability && affordability.current_price) {
+        const price = affordability.current_price;
+        const cost = targetShares * price;
+        const canAfford = affordability.available_cash >= cost;
+        
+        setAffordability(prev => ({
+          ...prev,
+          can_afford: canAfford,
+          total_cost: cost,
+          shortfall: canAfford ? 0 : cost - affordability.available_cash
+        }));
+      }
     }
-  }, [targetShares, currentShares, existingHolding, selectedStock]);
+  }, [targetShares, currentShares, existingHolding, selectedStock, affordability]);
 
   const handleTransaction = async () => {
     if (!selectedStock || (action === 'buy' && quantity <= 0)) return;
@@ -245,12 +266,15 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   };
 
   const handleQuantityChange = (newQuantity) => {
-    const validQuantity = Math.max(1, Math.min(maxAffordableShares, parseInt(newQuantity) || 1));
-    setQuantity(validQuantity);
+    const parsedQuantity = parseInt(newQuantity) || 0;
     
     if (existingHolding) {
-      setTargetShares(currentShares + validQuantity);
+      // For existing holdings, ensure we don't exceed slider bounds
+      const validTarget = Math.max(0, Math.min(sliderMax, parsedQuantity));
+      setTargetShares(validTarget);
     } else if (selectedStock) {
+      // For new purchases, ensure we don't exceed max affordable
+      const validQuantity = Math.max(1, Math.min(maxAffordableShares, parsedQuantity));
       setTargetShares(validQuantity);
     }
   };
@@ -258,6 +282,14 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const handleSliderChange = (newValue) => {
     const newTargetShares = parseInt(newValue);
     setTargetShares(newTargetShares);
+  };
+
+  // Calculate slider position percentages for markers
+  const getSliderPosition = (value) => {
+    if (!existingHolding) return 0;
+    const min = 0;
+    const max = sliderMax;
+    return ((value - min) / (max - min)) * 100;
   };
 
   if (!isOpen) return null;
@@ -354,30 +386,28 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 <label>{existingHolding ? 'Adjust Position:' : 'Shares to Buy:'}</label>
                 <div className="slider-container">
                   <div className="slider-labels">
-                    <span className="slider-label sell">{existingHolding ? 'Sell All (0)' : 'Min (1)'}</span>
+                    <span className="slider-label sell">Sell All (0)</span>
                     {existingHolding && <span className="slider-label current">Current ({currentShares})</span>}
-                    <span className="slider-label buy">Max ({maxAffordableShares})</span>
+                    <span className="slider-label buy">Max ({sliderMax})</span>
                   </div>
                   <input
                     type="range"
-                    min={existingHolding ? 0 : 1}
-                    max={maxAffordableShares}
+                    min="0"
+                    max={sliderMax}
                     value={targetShares}
                     onChange={(e) => handleSliderChange(e.target.value)}
                     className="position-slider"
                     step="1"
                   />
                   <div className="slider-markers">
-                    {existingHolding && (
-                      <div 
-                        className="marker sell-all" 
-                        style={{ left: '0%' }}
-                      />
-                    )}
+                    <div 
+                      className="marker sell-all" 
+                      style={{ left: '0%' }}
+                    />
                     {existingHolding && (
                       <div 
                         className="marker current-position" 
-                        style={{ left: `${(currentShares / maxAffordableShares) * 100}%` }}
+                        style={{ left: `${getSliderPosition(currentShares)}%` }}
                       />
                     )}
                     <div 
@@ -392,10 +422,10 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   <span className="target-label">Target Shares:</span>
                   <input
                     type="number"
-                    min={existingHolding ? 0 : 1}
-                    max={maxAffordableShares}
+                    min="0"
+                    max={sliderMax}
                     value={targetShares}
-                    onChange={(e) => handleSliderChange(e.target.value)}
+                    onChange={(e) => handleQuantityChange(e.target.value)}
                     className="target-input"
                   />
                 </div>
