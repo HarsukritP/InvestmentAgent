@@ -13,6 +13,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const [affordability, setAffordability] = useState(null);
   const [error, setError] = useState('');
   const [currentShares, setCurrentShares] = useState(0);
+  const [targetShares, setTargetShares] = useState(0);
+  const [sharesDifference, setSharesDifference] = useState(0);
 
   const searchStocks = async () => {
     if (!searchQuery.trim()) return;
@@ -100,6 +102,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         });
         setCurrentShares(existingHolding.shares || existingHolding.quantity || 0);
         setQuantity(1); // Default to adding 1 more share
+        setTargetShares(existingHolding.shares || existingHolding.quantity || 0);
         setSearchQuery('');
         setSearchResults([]);
       } else {
@@ -109,6 +112,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         setSelectedStock(null);
         setCurrentShares(0);
         setQuantity(1);
+        setTargetShares(0);
       }
       setMaxAffordableShares(1);
       setAffordability(null);
@@ -137,8 +141,24 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       if (quantity > affordability.max_affordable_shares) {
         setQuantity(affordability.max_affordable_shares);
       }
+      
+      // If we have an existing holding, update the max target shares
+      if (existingHolding) {
+        const current = currentShares;
+        const max = current + affordability.max_affordable_shares;
+        setMaxAffordableShares(max);
+      }
     }
-  }, [affordability, quantity]);
+  }, [affordability, quantity, existingHolding, currentShares]);
+
+  // Update shares difference when target shares change
+  useEffect(() => {
+    if (existingHolding) {
+      const difference = targetShares - currentShares;
+      setSharesDifference(difference);
+      setQuantity(difference);
+    }
+  }, [targetShares, currentShares, existingHolding]);
 
   const handleBuyStock = async () => {
     if (!selectedStock || quantity <= 0) return;
@@ -207,13 +227,22 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const handleQuantityChange = (newQuantity) => {
     const validQuantity = Math.max(1, Math.min(maxAffordableShares, parseInt(newQuantity) || 1));
     setQuantity(validQuantity);
+    
+    if (existingHolding) {
+      setTargetShares(currentShares + validQuantity);
+    }
+  };
+
+  const handleSliderChange = (newValue) => {
+    const newTargetShares = parseInt(newValue);
+    setTargetShares(newTargetShares);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className={`buy-stock-overlay ${isMobile ? 'mobile' : ''}`}>
-      <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''}`}>
+      <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''} ${existingHolding ? 'adjust-modal' : ''}`}>
         <div className="modal-header">
           <h2>{existingHolding ? `Buy More ${existingHolding.symbol}` : 'Buy Stock'}</h2>
           <button className="close-button" onClick={onClose}>×</button>
@@ -268,8 +297,122 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 </div>
               )}
             </div>
+          ) : existingHolding ? (
+            // Adjust Position View with Slider (for existing holdings)
+            <div className="stock-purchase adjust-position">
+              {/* Current Position Info */}
+              <div className="selected-stock">
+                <h3>Current Position:</h3>
+                <div className="stock-card">
+                  <div className="stock-header">
+                    <span className="symbol">{selectedStock.symbol}</span>
+                    <span className="name">Current: {currentShares} shares</span>
+                  </div>
+                  <div className="price-info">
+                    <span className="current-price">
+                      Current Price: ${affordability?.current_price?.toFixed(2) || '0.00'}
+                    </span>
+                    <span className="position-value">
+                      Position Value: ${((currentShares * (affordability?.current_price || 0))).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Position Slider */}
+              <div className="slider-section">
+                <label>Adjust Position:</label>
+                <div className="slider-container">
+                  <div className="slider-labels">
+                    <span className="slider-label current">Current ({currentShares})</span>
+                    <span className="slider-label buy">Max ({maxAffordableShares})</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={currentShares}
+                    max={maxAffordableShares}
+                    value={targetShares}
+                    onChange={(e) => handleSliderChange(e.target.value)}
+                    className="position-slider"
+                    step="1"
+                  />
+                  <div className="slider-markers">
+                    <div 
+                      className="marker current-position" 
+                      style={{ left: '0%' }}
+                    />
+                    <div 
+                      className="marker max-position" 
+                      style={{ left: '100%' }}
+                    />
+                  </div>
+                </div>
+                
+                {/* Target Shares Display */}
+                <div className="target-display">
+                  <span className="target-label">Target Shares:</span>
+                  <input
+                    type="number"
+                    min={currentShares}
+                    max={maxAffordableShares}
+                    value={targetShares}
+                    onChange={(e) => handleSliderChange(e.target.value)}
+                    className="target-input"
+                  />
+                </div>
+              </div>
+
+              {/* Real-time Stats */}
+              {affordability && (
+                <div className="stats-section">
+                  <div className="stats-header">
+                    <h4 className="buying">
+                      📈 Buying {sharesDifference} Shares
+                    </h4>
+                  </div>
+                  
+                  <div className="stats-grid">
+                    <div className="stat-item">
+                      <span className="stat-label">Position Change:</span>
+                      <span className="stat-value positive">
+                        +{sharesDifference} shares
+                      </span>
+                    </div>
+                    
+                    <div className="stat-item">
+                      <span className="stat-label">Cost:</span>
+                      <span className="stat-value">
+                        ${(sharesDifference * (affordability.current_price || 0)).toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    <div className="stat-item">
+                      <span className="stat-label">New Position Value:</span>
+                      <span className="stat-value">
+                        ${(targetShares * (affordability.current_price || 0)).toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    <div className="stat-item">
+                      <span className="stat-label">Remaining Cash:</span>
+                      <span className={`stat-value ${affordability.can_afford ? 'positive' : 'negative'}`}>
+                        ${(affordability.available_cash - (sharesDifference * (affordability.current_price || 0))).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Affordability Warning */}
+                  {!affordability.can_afford && (
+                    <div className="affordability-warning">
+                      <span className="warning-icon">⚠️</span>
+                      <span>Insufficient funds! Shortfall: ${affordability.shortfall.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           ) : (
-            // Stock Purchase View
+            // Stock Purchase View (for new stocks)
             <div className="stock-purchase">
               <div className="selected-stock">
                 <div className="stock-header">
@@ -350,32 +493,27 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     )}
                   </div>
                 )}
-                
-                {error && <div className="error-message">{error}</div>}
-                
-                <div className="action-buttons">
-                  <button 
-                    className="cancel-button"
-                    onClick={() => existingHolding ? onClose() : setSelectedStock(null)}
-                  >
-                    {existingHolding ? 'Cancel' : 'Back'}
-                  </button>
-                  <button 
-                    className="buy-button"
-                    onClick={handleBuyStock}
-                    disabled={
-                      isBuying || 
-                      !affordability || 
-                      !affordability.can_afford || 
-                      quantity <= 0
-                    }
-                  >
-                    {isBuying ? 'Processing...' : currentShares > 0 ? 'Buy More' : 'Buy Now'}
-                  </button>
-                </div>
               </div>
             </div>
           )}
+          
+          {error && <div className="error-message">{error}</div>}
+          
+          <div className="action-buttons">
+            <button 
+              className="cancel-button"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button 
+              className="buy-button"
+              onClick={handleBuyStock}
+              disabled={isBuying || !affordability || !affordability.can_afford || quantity <= 0}
+            >
+              {isBuying ? 'Processing...' : existingHolding ? `Buy ${sharesDifference} More Shares` : `Buy ${quantity} Shares`}
+            </button>
+          </div>
         </div>
       </div>
     </div>

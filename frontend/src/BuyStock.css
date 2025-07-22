@@ -1271,3 +1271,222 @@
   width: 100%;
   margin: 0.5rem 0;
 } 
+
+/* Add styles for the slider interface */
+.adjust-position {
+  padding: 1rem;
+}
+
+.stock-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stock-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.symbol {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #1a73e8;
+}
+
+.price-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.slider-section {
+  margin: 1.5rem 0;
+}
+
+.slider-container {
+  position: relative;
+  margin: 1.5rem 0 1rem;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.position-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, #e0e0e0, #1a73e8);
+  outline: none;
+  border-radius: 3px;
+  margin: 1rem 0;
+}
+
+.position-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1a73e8;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.position-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1a73e8;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-markers {
+  position: relative;
+  height: 0;
+}
+
+.marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #1a73e8;
+  transform: translate(-50%, -14px);
+}
+
+.marker.sell-all {
+  background: #e53935;
+  border-color: #e53935;
+}
+
+.marker.current-position {
+  background: #1a73e8;
+}
+
+.marker.max-position {
+  background: #4caf50;
+  border-color: #4caf50;
+}
+
+.target-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.target-label {
+  margin-right: 1rem;
+  font-weight: 500;
+}
+
+.target-input {
+  width: 80px;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.stats-section {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.stats-header {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.stats-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.stats-header h4.buying {
+  color: #4caf50;
+}
+
+.stats-header h4.selling {
+  color: #e53935;
+}
+
+.stats-header h4.no-change {
+  color: #757575;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-weight: 500;
+}
+
+.stat-value.positive {
+  color: #4caf50;
+}
+
+.stat-value.negative {
+  color: #e53935;
+}
+
+.affordability-warning {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #ffebee;
+  border-radius: 4px;
+  color: #e53935;
+  display: flex;
+  align-items: center;
+}
+
+.warning-icon {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+/* Adjust modal styles for the slider view */
+.buy-stock-modal.adjust-modal {
+  max-width: 500px;
+}
+
+.buy-stock-modal.adjust-modal .modal-content {
+  padding: 0;
+}
+
+.buy-stock-modal.adjust-modal .action-buttons {
+  padding: 1rem;
+  border-top: 1px solid #eee;
+  margin-top: 0;
+} 
