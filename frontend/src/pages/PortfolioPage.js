@@ -164,43 +164,45 @@ const PortfolioPage = ({
           </div>
         </div>
         
-        <div className="summary-cards">
-          <div className="summary-card total-value">
-            <div className="card-label">Total Value</div>
-            <div className="card-value">{formatCurrency(totalPortfolioValue)}</div>
-            <div className={`card-change ${getPerformanceClass(totalPnL)}`}>
-              {formatCurrency(totalPnL)} ({formatPercent(totalPnLPercent)})
+        <div className="summary-row">
+          <div className="summary-cards">
+            <div className="summary-card total-value">
+              <div className="card-label">Total Value</div>
+              <div className="card-value">{formatCurrency(totalPortfolioValue)}</div>
+              <div className={`card-change ${getPerformanceClass(totalPnL)}`}>
+                {formatCurrency(totalPnL)} ({formatPercent(totalPnLPercent)})
+              </div>
+            </div>
+            
+            <div className="summary-card holdings-value">
+              <div className="card-label">Holdings Value</div>
+              <div className="card-value">{formatCurrency(totalHoldingsValue)}</div>
+              <div className="card-percent">{((totalHoldingsValue / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
+            </div>
+            
+            <div className="summary-card cash-balance">
+              <div className="card-label">Cash Balance</div>
+              <div className="card-value">{formatCurrency(cash_balance)}</div>
+              <div className="card-percent">{((cash_balance / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
             </div>
           </div>
           
-          <div className="summary-card holdings-value">
-            <div className="card-label">Holdings Value</div>
-            <div className="card-value">{formatCurrency(totalHoldingsValue)}</div>
-            <div className="card-percent">{((totalHoldingsValue / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
+          <div className="action-buttons">
+            <button 
+              className="action-button buy-button"
+              onClick={handleBuyStock}
+            >
+              <span className="button-icon">$</span> Buy Stock
+            </button>
+            
+            <button 
+              className="action-button refresh-button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <span className="button-icon">⟳</span> Refresh
+            </button>
           </div>
-          
-          <div className="summary-card cash-balance">
-            <div className="card-label">Cash Balance</div>
-            <div className="card-value">{formatCurrency(cash_balance)}</div>
-            <div className="card-percent">{((cash_balance / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
-          </div>
-        </div>
-        
-        <div className="action-buttons">
-          <button 
-            className="action-button buy-button"
-            onClick={handleBuyStock}
-          >
-            <span className="button-icon">$</span> Buy Stock
-          </button>
-          
-          <button 
-            className="action-button refresh-button"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <span className="button-icon">⟳</span> Refresh
-          </button>
         </div>
       </div>
       
