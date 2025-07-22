@@ -43,7 +43,6 @@ app.add_middleware(
         "https://portfolioagent-procogia-ai.up.railway.app",  # Railway frontend URL
         "https://portfolioagent-procogia-ai-service.up.railway.app",  # Railway frontend service URL
         "https://portfolioagent-backend-production.up.railway.app",  # Backend URL
-        "https://portfolioagent-backend.procogia.ai",  # Custom backend domain
         "https://procogia-aihub.up.railway.app",  # AIHub URL
     ],
     allow_credentials=True,
@@ -147,14 +146,12 @@ async def login(request: Request):
     if not auth_service.google_client_id:
         raise HTTPException(status_code=500, detail="OAuth not configured")
     
-    # Get the origin header to determine the frontend URL
-    base_url = os.environ.get("BASE_URL", "http://localhost:8000")
+    # Always use the Railway backend URL for OAuth callbacks
+    base_url = "https://portfolioagent-backend-production.up.railway.app"
     
-    # Check if we're using a custom domain
-    if "portfolioagent.procogia.ai" in request.headers.get("origin", ""):
-        base_url = "https://portfolioagent-backend.procogia.ai"
-    elif "railway.app" in request.headers.get("origin", ""):
-        base_url = "https://portfolioagent-backend-production.up.railway.app"
+    # Use localhost for local development
+    if "localhost" in request.headers.get("origin", ""):
+        base_url = "http://localhost:8000"
     
     redirect_uri = f"{base_url}/auth/callback"
     oauth_url = auth_service.get_google_oauth_url(redirect_uri)
@@ -167,14 +164,12 @@ async def auth_callback(code: str, state: Optional[str] = None, request: Request
     if not code:
         raise HTTPException(status_code=400, detail="Authorization code required")
     
-    # Get the origin header to determine the frontend URL
-    base_url = os.environ.get("BASE_URL", "http://localhost:8000")
+    # Always use the Railway backend URL for OAuth callbacks
+    base_url = "https://portfolioagent-backend-production.up.railway.app"
     
-    # Check if we're using a custom domain
-    if request and "portfolioagent.procogia.ai" in request.headers.get("origin", ""):
-        base_url = "https://portfolioagent-backend.procogia.ai"
-    elif request and "railway.app" in request.headers.get("origin", ""):
-        base_url = "https://portfolioagent-backend-production.up.railway.app"
+    # Use localhost for local development
+    if request and "localhost" in request.headers.get("origin", ""):
+        base_url = "http://localhost:8000"
     
     redirect_uri = f"{base_url}/auth/callback"
     
@@ -207,13 +202,14 @@ async def auth_callback(code: str, state: Optional[str] = None, request: Request
     jwt_token = auth_service.create_jwt_token(user_info)
     
     # Determine frontend URL based on request origin
-    frontend_base_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+    frontend_base_url = "https://portfolioagent-procogia-ai.up.railway.app"
     
-    # Check if we're using a custom domain
+    # Use custom domain if that's where the request came from
     if request and "portfolioagent.procogia.ai" in request.headers.get("origin", ""):
         frontend_base_url = "https://portfolioagent.procogia.ai"
-    elif request and "railway.app" in request.headers.get("origin", ""):
-        frontend_base_url = "https://portfolioagent-procogia-ai.up.railway.app"
+    # Use localhost for local development
+    elif request and "localhost" in request.headers.get("origin", ""):
+        frontend_base_url = "http://localhost:3000"
     
     frontend_url = f"{frontend_base_url}/auth/success?token={jwt_token}"
     return RedirectResponse(url=frontend_url)

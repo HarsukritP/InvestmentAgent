@@ -6,14 +6,10 @@
 const determineApiUrl = () => {
   const hostname = window.location.hostname;
   
-  if (hostname === 'portfolioagent.procogia.ai') {
-    return 'https://portfolioagent-backend.procogia.ai';
-  } else if (hostname === 'portfolioagent-procogia-ai.up.railway.app') {
-    return 'https://portfolioagent-backend-production.up.railway.app';
-  } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
     return 'http://localhost:8000';
   } else {
-    // Default fallback
+    // For all production environments, use the Railway backend
     return 'https://portfolioagent-backend-production.up.railway.app';
   }
 };
