@@ -253,6 +253,177 @@ class AIPortfolioAgent:
             }
         ]
 
+    # Function implementations
+    async def _get_portfolio_summary(self, user_id: str) -> Dict[str, Any]:
+        """Get portfolio summary for user"""
+        try:
+            # This would typically get data from the database
+            # For now, return a placeholder
+            return {
+                "user_id": user_id,
+                "total_value": 10000.0,
+                "cash_balance": 5000.0,
+                "holdings_count": 0,
+                "message": "Portfolio data would be retrieved from database"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_stock_price(self, symbol: str) -> Dict[str, Any]:
+        """Get current stock price"""
+        try:
+            price_data = await self.market_service.get_stock_price(symbol)
+            return price_data
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _search_stocks(self, query: str) -> Dict[str, Any]:
+        """Search for stocks"""
+        try:
+            results = await self.market_service.search_stocks(query)
+            return {"results": results}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_market_news(self, category: str = "general") -> Dict[str, Any]:
+        """Get market news"""
+        try:
+            # This would get news from the market context service
+            return {
+                "category": category,
+                "news": [],
+                "message": "News data would be retrieved from market context service"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_portfolio_performance(self, user_id: str, period: str = "30d") -> Dict[str, Any]:
+        """Get portfolio performance metrics"""
+        try:
+            return {
+                "user_id": user_id,
+                "period": period,
+                "performance": "Performance data would be calculated",
+                "message": "Portfolio performance would be retrieved from database"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_stock_analysis(self, symbol: str) -> Dict[str, Any]:
+        """Get stock analysis"""
+        try:
+            return {
+                "symbol": symbol,
+                "analysis": "Stock analysis would be performed",
+                "message": "Stock analysis data would be retrieved"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_market_indicators(self, indicators: List[str] = None) -> Dict[str, Any]:
+        """Get market indicators"""
+        try:
+            return {
+                "indicators": indicators or [],
+                "data": {},
+                "message": "Market indicators would be retrieved"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _buy_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
+        """Execute buy order"""
+        try:
+            return {
+                "user_id": user_id,
+                "symbol": symbol,
+                "quantity": quantity,
+                "message": "Buy order would be executed",
+                "success": True
+            }
+        except Exception as e:
+            return {"error": str(e), "success": False}
+
+    async def _sell_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
+        """Execute sell order"""
+        try:
+            return {
+                "user_id": user_id,
+                "symbol": symbol,
+                "quantity": quantity,
+                "message": "Sell order would be executed",
+                "success": True
+            }
+        except Exception as e:
+            return {"error": str(e), "success": False}
+
+    async def _get_cash_balance(self, user_id: str) -> Dict[str, Any]:
+        """Get user's cash balance"""
+        try:
+            return {
+                "user_id": user_id,
+                "cash_balance": 5000.0,
+                "message": "Cash balance would be retrieved from database"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_holdings(self, user_id: str) -> Dict[str, Any]:
+        """Get user's holdings"""
+        try:
+            return {
+                "user_id": user_id,
+                "holdings": [],
+                "message": "Holdings would be retrieved from database"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _get_transaction_history(self, user_id: str, limit: int = 10) -> Dict[str, Any]:
+        """Get transaction history"""
+        try:
+            return {
+                "user_id": user_id,
+                "limit": limit,
+                "transactions": [],
+                "message": "Transaction history would be retrieved from database"
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _build_market_context(self) -> str:
+        """Build market context for AI"""
+        try:
+            if self.market_context_service:
+                context = await self.market_context_service.get_market_context([])
+                return f"Market Context: {json.dumps(context, default=str)}"
+            return "Market context unavailable"
+        except Exception as e:
+            return f"Market context error: {str(e)}"
+
+    async def _prepare_conversation_history(self, conversation_history: Optional[List[Dict]], context: str, user_id: str) -> List[Dict]:
+        """Prepare conversation history for AI"""
+        messages = [
+            {
+                "role": "system",
+                "content": f"""You are a professional AI investment assistant for ProCogia's Portfolio Management platform.
+                
+User ID: {user_id}
+{context}
+
+You help users understand their investment portfolio performance using real-time market data and intelligent analysis.
+Be helpful, accurate, and provide actionable insights."""
+            }
+        ]
+        
+        if conversation_history:
+            # Add recent conversation history
+            for msg in conversation_history[-10:]:  # Keep last 10 messages
+                if msg.get('role') in ['user', 'assistant'] and msg.get('content'):
+                    messages.append(msg)
+        
+        return messages
+
     async def chat(self, message: str, user_id: str, conversation_history: Optional[List[Dict]] = None) -> Dict[str, Any]:
         """
         Enhanced chat function with intelligent routing and context awareness
