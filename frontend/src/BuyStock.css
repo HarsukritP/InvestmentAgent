@@ -219,10 +219,10 @@
   appearance: none;
   background: linear-gradient(to right, 
     #e53935 0%, 
-    #e53935 30%, 
-    #1a73e8 30%, 
-    #1a73e8 70%, 
-    #4caf50 70%, 
+    #e53935 var(--current-position, 30%), 
+    #1a73e8 var(--current-position, 30%), 
+    #1a73e8 calc(var(--current-position, 30%) + 5%), 
+    #4caf50 calc(var(--current-position, 30%) + 5%), 
     #4caf50 100%);
   outline: none;
   border-radius: 3px;

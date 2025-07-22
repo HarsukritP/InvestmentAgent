@@ -17,6 +17,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const [sharesDifference, setSharesDifference] = useState(0);
   const [action, setAction] = useState('buy'); // 'buy' or 'sell'
   const [sliderMax, setSliderMax] = useState(1);
+  const [maxBuyableShares, setMaxBuyableShares] = useState(0);
 
   const searchStocks = async () => {
     if (!searchQuery.trim()) return;
@@ -49,6 +50,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       const cashBalance = response.data.cash_balance;
       const maxAffordableShares = Math.floor(cashBalance / currentPrice);
       
+      setMaxBuyableShares(maxAffordableShares);
       setAffordability({
         can_afford: true, // We'll check this based on target shares later
         total_cost: 0, // Will be calculated based on target shares
@@ -66,6 +68,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       if (selectedStock) {
         try {
           const response = await axios.get(`/check-affordability/${selectedStock.symbol}?quantity=1`);
+          setMaxBuyableShares(response.data.max_affordable_shares || 0);
           setAffordability(response.data);
         } catch (fallbackError) {
           console.error('Fallback affordability check error:', fallbackError);
@@ -80,6 +83,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     
     try {
       const response = await axios.get(`/check-affordability/${selectedStock.symbol}?quantity=1`);
+      setMaxBuyableShares(response.data.max_affordable_shares || 0);
       setAffordability(response.data);
     } catch (error) {
       console.error('Affordability check error:', error);
@@ -115,6 +119,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       setError('');
       setAction('buy');
       setSliderMax(1);
+      setMaxBuyableShares(0);
     }
   }, [isOpen, existingHolding]);
 
@@ -133,19 +138,21 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
 
   // Update max affordable shares when affordability data changes
   useEffect(() => {
-    if (affordability && affordability.max_affordable_shares) {
-      const maxBuyable = Math.max(1, affordability.max_affordable_shares);
+    if (affordability) {
+      const maxBuyable = Math.max(0, maxBuyableShares);
       setMaxAffordableShares(maxBuyable);
       
       // Set the slider max to current + max affordable
       if (existingHolding) {
-        const newSliderMax = currentShares + maxBuyable;
+        // IMPORTANT: Make sure max is at least the current shares
+        // This ensures you can always sell down to 0, even with no cash
+        const newSliderMax = Math.max(currentShares, currentShares + maxBuyable);
         setSliderMax(newSliderMax);
       } else {
-        setSliderMax(maxBuyable);
+        setSliderMax(Math.max(1, maxBuyable));
       }
     }
-  }, [affordability, existingHolding, currentShares]);
+  }, [affordability, existingHolding, currentShares, maxBuyableShares]);
 
   // Update shares difference when target shares change
   useEffect(() => {
@@ -292,6 +299,30 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     return ((value - min) / (max - min)) * 100;
   };
 
+  // Set the CSS variable for the slider gradient
+  useEffect(() => {
+    if (existingHolding) {
+      const currentPosition = getSliderPosition(currentShares);
+      document.documentElement.style.setProperty('--current-position', `${currentPosition}%`);
+    } else {
+      document.documentElement.style.setProperty('--current-position', '30%');
+    }
+    
+    // Clean up on unmount
+    return () => {
+      document.documentElement.style.removeProperty('--current-position');
+    };
+  }, [existingHolding, currentShares, sliderMax]);
+
+  // Get the max display value
+  const getMaxDisplay = () => {
+    if (!existingHolding) return maxAffordableShares;
+    
+    // For existing holdings, show how many additional shares can be bought
+    const additionalShares = sliderMax - currentShares;
+    return `+${additionalShares}`;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -388,7 +419,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   <div className="slider-labels">
                     <span className="slider-label sell">Sell All (0)</span>
                     {existingHolding && <span className="slider-label current">Current ({currentShares})</span>}
-                    <span className="slider-label buy">Max ({sliderMax})</span>
+                    <span className="slider-label buy">Max ({getMaxDisplay()})</span>
                   </div>
                   <input
                     type="range"
