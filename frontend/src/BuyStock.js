@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './BuyStock.css';
 
-const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
+const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedStock, setSelectedStock] = useState(null);
@@ -12,6 +12,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
   const [isBuying, setIsBuying] = useState(false);
   const [affordability, setAffordability] = useState(null);
   const [error, setError] = useState('');
+  const [currentShares, setCurrentShares] = useState(0);
 
   const searchStocks = async () => {
     if (!searchQuery.trim()) return;
@@ -90,15 +91,30 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setSearchQuery('');
-      setSearchResults([]);
-      setSelectedStock(null);
-      setQuantity(1);
+      if (existingHolding) {
+        // If editing an existing holding, pre-select it
+        setSelectedStock({
+          symbol: existingHolding.symbol,
+          name: existingHolding.name || existingHolding.symbol,
+          current_price: existingHolding.current_price
+        });
+        setCurrentShares(existingHolding.shares || existingHolding.quantity || 0);
+        setQuantity(1); // Default to adding 1 more share
+        setSearchQuery('');
+        setSearchResults([]);
+      } else {
+        // New stock purchase
+        setSearchQuery('');
+        setSearchResults([]);
+        setSelectedStock(null);
+        setCurrentShares(0);
+        setQuantity(1);
+      }
       setMaxAffordableShares(1);
       setAffordability(null);
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, existingHolding]);
 
   // Check affordability when stock or quantity changes
   useEffect(() => {
@@ -199,7 +215,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
     <div className={`buy-stock-overlay ${isMobile ? 'mobile' : ''}`}>
       <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''}`}>
         <div className="modal-header">
-          <h2>Buy Stock</h2>
+          <h2>{existingHolding ? `Buy More ${existingHolding.symbol}` : 'Buy Stock'}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         
@@ -261,6 +277,13 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
                   <div className="stock-name">{selectedStock.name}</div>
                 </div>
                 
+                {currentShares > 0 && (
+                  <div className="current-position">
+                    <div className="position-label">Current Position</div>
+                    <div className="position-value">{currentShares} shares</div>
+                  </div>
+                )}
+                
                 {affordability && (
                   <div className="stock-price-info">
                     <div className="price-label">Current Price</div>
@@ -271,7 +294,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
               
               <div className="purchase-form">
                 <div className="quantity-selector">
-                  <label htmlFor="quantity">Quantity</label>
+                  <label htmlFor="quantity">Quantity to Buy</label>
                   <div className="quantity-controls">
                     <button 
                       className="quantity-btn"
@@ -318,6 +341,13 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
                       <div className="summary-label">Max Shares</div>
                       <div className="summary-value">{affordability.max_affordable_shares}</div>
                     </div>
+                    
+                    {currentShares > 0 && (
+                      <div className="summary-row total">
+                        <div className="summary-label">New Position Total</div>
+                        <div className="summary-value">{currentShares + quantity} shares</div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -326,9 +356,9 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
                 <div className="action-buttons">
                   <button 
                     className="cancel-button"
-                    onClick={() => setSelectedStock(null)}
+                    onClick={() => existingHolding ? onClose() : setSelectedStock(null)}
                   >
-                    Back
+                    {existingHolding ? 'Cancel' : 'Back'}
                   </button>
                   <button 
                     className="buy-button"
@@ -340,7 +370,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile }) => {
                       quantity <= 0
                     }
                   >
-                    {isBuying ? 'Processing...' : 'Buy Now'}
+                    {isBuying ? 'Processing...' : currentShares > 0 ? 'Buy More' : 'Buy Now'}
                   </button>
                 </div>
               </div>

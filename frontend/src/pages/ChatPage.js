@@ -11,7 +11,6 @@ const ChatPage = ({ portfolio, user }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [expandedFunctions, setExpandedFunctions] = useState({});
   const [activeFunctions, setActiveFunctions] = useState([]);
   
@@ -101,7 +100,6 @@ const ChatPage = ({ portfolio, user }) => {
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsLoading(true);
-    setError(null);
     // Clear active functions when sending a new message
     setActiveFunctions([]);
 
@@ -188,7 +186,7 @@ const ChatPage = ({ portfolio, user }) => {
       };
 
       setMessages(prev => [...prev, errorResponse]);
-      setError(errorMessage);
+      // setError(errorMessage); // This line was removed as per the edit hint
     } finally {
       setIsLoading(false);
     }
@@ -466,7 +464,7 @@ ${sectorInfo}
   const clearChat = () => {
     // Clear messages state
     setMessages([]);
-    setError(null);
+    // setError(null); // This line was removed as per the edit hint
     
     // Clear localStorage
     localStorage.removeItem(STORAGE_KEY);
