@@ -19,6 +19,11 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const [sliderMax, setSliderMax] = useState(1);
   const [maxBuyableShares, setMaxBuyableShares] = useState(0);
 
+  // Helper function to round to 2 decimal places
+  const roundToTwoDecimals = (num) => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
+
   const searchStocks = async () => {
     if (!searchQuery.trim()) return;
     
@@ -101,7 +106,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
           name: existingHolding.name || existingHolding.symbol,
           current_price: existingHolding.current_price
         });
-        const shares = existingHolding.shares || existingHolding.quantity || 0;
+        const shares = roundToTwoDecimals(existingHolding.shares || existingHolding.quantity || 0);
         setCurrentShares(shares);
         setTargetShares(shares); // Start at current position
         setSearchQuery('');
@@ -147,7 +152,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         // IMPORTANT: Make sure max is at least the current shares
         // This ensures you can always sell down to 0, even with no cash
         const newSliderMax = Math.max(currentShares, currentShares + maxBuyable);
-        setSliderMax(newSliderMax);
+        setSliderMax(roundToTwoDecimals(newSliderMax));
       } else {
         setSliderMax(Math.max(1, maxBuyable));
       }
@@ -157,9 +162,9 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   // Update shares difference when target shares change
   useEffect(() => {
     if (existingHolding) {
-      const difference = targetShares - currentShares;
+      const difference = roundToTwoDecimals(targetShares - currentShares);
       setSharesDifference(difference);
-      setQuantity(Math.abs(difference));
+      setQuantity(roundToTwoDecimals(Math.abs(difference)));
       setAction(difference >= 0 ? 'buy' : 'sell');
       
       // Update affordability check based on target
@@ -177,8 +182,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       }
     } else if (selectedStock) {
       // For new purchases, target shares equals quantity
-      setSharesDifference(targetShares);
-      setQuantity(targetShares);
+      setSharesDifference(roundToTwoDecimals(targetShares));
+      setQuantity(roundToTwoDecimals(targetShares));
       
       // Update affordability check based on target
       if (affordability && affordability.current_price) {
@@ -204,17 +209,18 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     
     try {
       let response;
+      const roundedQuantity = roundToTwoDecimals(quantity);
       
       if (action === 'buy') {
         response = await axios.post('/buy-stock', {
           symbol: selectedStock.symbol,
-          quantity: quantity
+          quantity: roundedQuantity
         });
       } else {
         // Handle sell action
         response = await axios.post('/sell-stock', {
           symbol: selectedStock.symbol,
-          quantity: quantity
+          quantity: roundedQuantity
         });
       }
       
@@ -273,21 +279,22 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   };
 
   const handleQuantityChange = (newQuantity) => {
-    const parsedQuantity = parseInt(newQuantity) || 0;
+    const parsedQuantity = parseFloat(newQuantity) || 0;
+    const roundedQuantity = roundToTwoDecimals(parsedQuantity);
     
     if (existingHolding) {
       // For existing holdings, ensure we don't exceed slider bounds
-      const validTarget = Math.max(0, Math.min(sliderMax, parsedQuantity));
+      const validTarget = Math.max(0, Math.min(sliderMax, roundedQuantity));
       setTargetShares(validTarget);
     } else if (selectedStock) {
       // For new purchases, ensure we don't exceed max affordable
-      const validQuantity = Math.max(1, Math.min(maxAffordableShares, parsedQuantity));
+      const validQuantity = Math.max(1, Math.min(maxAffordableShares, roundedQuantity));
       setTargetShares(validQuantity);
     }
   };
 
   const handleSliderChange = (newValue) => {
-    const newTargetShares = parseInt(newValue);
+    const newTargetShares = roundToTwoDecimals(parseFloat(newValue));
     setTargetShares(newTargetShares);
   };
 
@@ -316,10 +323,10 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
 
   // Get the max display value
   const getMaxDisplay = () => {
-    if (!existingHolding) return maxAffordableShares;
+    if (!existingHolding) return roundToTwoDecimals(maxAffordableShares);
     
     // For existing holdings, show the total max shares (current + additional)
-    return sliderMax;
+    return roundToTwoDecimals(sliderMax);
   };
 
   if (!isOpen) return null;
@@ -398,7 +405,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 <div className="stock-card">
                   <div className="stock-header">
                     <span className="symbol">{selectedStock.symbol}</span>
-                    <span className="name">Current: {currentShares} shares</span>
+                    <span className="name">Current: {currentShares.toFixed(2)} shares</span>
                   </div>
                   <div className="price-info">
                     <span className="current-price">
@@ -417,8 +424,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 <div className="slider-container">
                   <div className="slider-labels">
                     <span className="slider-label sell">Sell All (0)</span>
-                    {existingHolding && <span className="slider-label current">Current ({currentShares})</span>}
-                    <span className="slider-label buy">Max ({getMaxDisplay()})</span>
+                    {existingHolding && <span className="slider-label current">Current ({currentShares.toFixed(2)})</span>}
+                    <span className="slider-label buy">Max ({getMaxDisplay().toFixed(2)})</span>
                   </div>
                   <input
                     type="range"
@@ -427,7 +434,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     value={targetShares}
                     onChange={(e) => handleSliderChange(e.target.value)}
                     className="position-slider"
-                    step="1"
+                    step="0.01"
                   />
                   <div className="slider-markers">
                     <div 
@@ -454,6 +461,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     type="number"
                     min="0"
                     max={sliderMax}
+                    step="0.01"
                     value={targetShares}
                     onChange={(e) => handleQuantityChange(e.target.value)}
                     className="target-input"
@@ -467,9 +475,9 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   <div className="stats-header">
                     <h4 className={sharesDifference > 0 ? "buying" : sharesDifference < 0 ? "selling" : "no-change"}>
                       {sharesDifference > 0 ? 
-                        `📈 Buying ${sharesDifference} More Shares` : 
+                        `📈 Buying ${sharesDifference.toFixed(2)} More Shares` : 
                         sharesDifference < 0 ? 
-                          `📉 Selling ${Math.abs(sharesDifference)} Shares` : 
+                          `📉 Selling ${Math.abs(sharesDifference).toFixed(2)} Shares` : 
                           `No Change in Position`}
                     </h4>
                   </div>
@@ -478,7 +486,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     <div className="stat-item">
                       <span className="stat-label">Position Change:</span>
                       <span className={`stat-value ${sharesDifference > 0 ? 'positive' : sharesDifference < 0 ? 'negative' : ''}`}>
-                        {sharesDifference > 0 ? `+${sharesDifference}` : sharesDifference} shares
+                        {sharesDifference > 0 ? `+${sharesDifference.toFixed(2)}` : sharesDifference.toFixed(2)} shares
                       </span>
                     </div>
                     
@@ -537,9 +545,9 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
             >
               {isBuying ? 'Processing...' : 
                 sharesDifference > 0 ? 
-                  `Buy ${sharesDifference} More Shares` : 
+                  `Buy ${sharesDifference.toFixed(2)} More Shares` : 
                   sharesDifference < 0 ? 
-                    `Sell ${Math.abs(sharesDifference)} Shares` : 
+                    `Sell ${Math.abs(sharesDifference).toFixed(2)} Shares` : 
                     'No Change'}
             </button>
           </div>

@@ -191,7 +191,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
                 {holdings.map((holding) => (
                   <tr key={holding.symbol}>
                     <td className="symbol-cell">{holding.symbol}</td>
-                    <td>{holding.shares.toFixed(2)}</td>
+                    <td>{parseFloat(holding.shares).toFixed(2)}</td>
                     <td>${holding.average_cost ? holding.average_cost.toFixed(2) : holding.avg_cost.toFixed(2)}</td>
                     <td>${holding.current_price.toFixed(2)}</td>
                     <td>${holding.market_value.toFixed(2)}</td>
