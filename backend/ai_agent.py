@@ -57,11 +57,11 @@ class AIPortfolioAgent:
         
         # Function definitions for OpenAI
         self.function_definitions = [
-    {
-        "name": "get_portfolio_summary",
+            {
+                "name": "get_portfolio_summary",
                 "description": "Get a complete overview of the user's portfolio including total value, holdings, and performance",
-        "parameters": {
-            "type": "object",
+                "parameters": {
+                    "type": "object",
                     "properties": {
                         "user_id": {
                             "type": "string",
@@ -74,39 +74,39 @@ class AIPortfolioAgent:
             {
                 "name": "get_stock_price",
                 "description": "Get current price and details for a specific stock symbol",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "symbol": {
-                    "type": "string",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {
+                            "type": "string",
                             "description": "Stock symbol (e.g., AAPL, GOOGL)"
+                        }
+                    },
+                    "required": ["symbol"]
                 }
             },
-            "required": ["symbol"]
-        }
-    },
-    {
+            {
                 "name": "search_stocks",
                 "description": "Search for stocks by company name or symbol",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
                             "description": "Search term (company name or stock symbol)"
+                        }
+                    },
+                    "required": ["query"]
                 }
             },
-            "required": ["query"]
-        }
-    },
-    {
+            {
                 "name": "get_market_news",
                 "description": "Get latest market news and analysis",
-        "parameters": {
-            "type": "object",
-            "properties": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
                         "category": {
-                    "type": "string",
+                            "type": "string",
                             "description": "News category (general, technology, finance, etc.)",
                             "default": "general"
                         }
@@ -135,11 +135,11 @@ class AIPortfolioAgent:
             {
                 "name": "get_stock_analysis",
                 "description": "Get detailed analysis and recommendations for a specific stock",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "symbol": {
-                    "type": "string",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {
+                            "type": "string",
                             "description": "Stock symbol to analyze"
                         }
                     },
@@ -149,7 +149,7 @@ class AIPortfolioAgent:
             {
                 "name": "get_market_indicators",
                 "description": "Get current market indicators and economic data",
-        "parameters": {
+                "parameters": {
                     "type": "object",
                     "properties": {
                         "indicators": {
@@ -163,9 +163,9 @@ class AIPortfolioAgent:
             {
                 "name": "buy_stock",
                 "description": "Execute a buy order for a stock",
-        "parameters": {
-            "type": "object",
-            "properties": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
                         "user_id": {
                             "type": "string",
                             "description": "User ID placing the order"
@@ -185,15 +185,15 @@ class AIPortfolioAgent:
             {
                 "name": "sell_stock",
                 "description": "Execute a sell order for a stock",
-        "parameters": {
-            "type": "object",
-            "properties": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
                         "user_id": {
                             "type": "string",
                             "description": "User ID placing the order"
                         },
-                "symbol": {
-                    "type": "string",
+                        "symbol": {
+                            "type": "string",
                             "description": "Stock symbol to sell"
                         },
                         "quantity": {
@@ -207,8 +207,8 @@ class AIPortfolioAgent:
             {
                 "name": "get_cash_balance",
                 "description": "Get the user's current cash balance",
-        "parameters": {
-            "type": "object",
+                "parameters": {
+                    "type": "object",
                     "properties": {
                         "user_id": {
                             "type": "string",
@@ -221,9 +221,9 @@ class AIPortfolioAgent:
             {
                 "name": "get_holdings",
                 "description": "Get all current stock holdings for the user",
-        "parameters": {
-            "type": "object",
-            "properties": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
                         "user_id": {
                             "type": "string",
                             "description": "User ID to get holdings for"
@@ -317,9 +317,9 @@ class AIPortfolioAgent:
                 "analysis": "Stock analysis would be performed",
                 "message": "Stock analysis data would be retrieved"
             }
-            except Exception as e:
-                return {"error": str(e)}
-        
+        except Exception as e:
+            return {"error": str(e)}
+
     async def _get_market_indicators(self, indicators: List[str] = None) -> Dict[str, Any]:
         """Get market indicators"""
         try:
@@ -328,15 +328,15 @@ class AIPortfolioAgent:
                 "data": {},
                 "message": "Market indicators would be retrieved"
             }
-            except Exception as e:
-                return {"error": str(e)}
-        
+        except Exception as e:
+            return {"error": str(e)}
+
     async def _buy_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
         """Execute buy order"""
         try:
-                    return {
+            return {
                 "user_id": user_id,
-                        "symbol": symbol,
+                "symbol": symbol,
                 "quantity": quantity,
                 "message": "Buy order would be executed",
                 "success": True
@@ -347,50 +347,50 @@ class AIPortfolioAgent:
     async def _sell_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
         """Execute sell order"""
         try:
-                return {
+            return {
                 "user_id": user_id,
-                    "symbol": symbol,
+                "symbol": symbol,
                 "quantity": quantity,
                 "message": "Sell order would be executed",
                 "success": True
-                }
-            except Exception as e:
+            }
+        except Exception as e:
             return {"error": str(e), "success": False}
 
     async def _get_cash_balance(self, user_id: str) -> Dict[str, Any]:
         """Get user's cash balance"""
         try:
-                    return {
+            return {
                 "user_id": user_id,
                 "cash_balance": 5000.0,
                 "message": "Cash balance would be retrieved from database"
             }
-            except Exception as e:
-                return {"error": str(e)}
-        
+        except Exception as e:
+            return {"error": str(e)}
+
     async def _get_holdings(self, user_id: str) -> Dict[str, Any]:
         """Get user's holdings"""
         try:
-                    return {
+            return {
                 "user_id": user_id,
                 "holdings": [],
                 "message": "Holdings would be retrieved from database"
             }
-            except Exception as e:
-                return {"error": str(e)}
-        
+        except Exception as e:
+            return {"error": str(e)}
+
     async def _get_transaction_history(self, user_id: str, limit: int = 10) -> Dict[str, Any]:
         """Get transaction history"""
         try:
-                return {
+            return {
                 "user_id": user_id,
                 "limit": limit,
                 "transactions": [],
                 "message": "Transaction history would be retrieved from database"
             }
-            except Exception as e:
-                return {"error": str(e)}
-        
+        except Exception as e:
+            return {"error": str(e)}
+
     async def _build_market_context(self) -> str:
         """Build market context for AI"""
         try:
@@ -398,7 +398,7 @@ class AIPortfolioAgent:
                 context = await self.market_context_service.get_market_context([])
                 return f"Market Context: {json.dumps(context, default=str)}"
             return "Market context unavailable"
-            except Exception as e:
+        except Exception as e:
             return f"Market context error: {str(e)}"
 
     async def _prepare_conversation_history(self, conversation_history: Optional[List[Dict]], context: str, user_id: str) -> List[Dict]:
@@ -453,7 +453,7 @@ Be helpful, accurate, and provide actionable insights."""
             # Make the API call with function calling
             response = await self.client.chat.completions.create(
                 model="gpt-4o",
-                    messages=messages,
+                messages=messages,
                 functions=self.function_definitions,
                 function_call="auto",
                 temperature=0.7,
@@ -495,7 +495,7 @@ Be helpful, accurate, and provide actionable insights."""
                             "role": "assistant",
                             "content": None,
                             "function_call": {
-                            "name": function_name,
+                                "name": function_name,
                                 "arguments": function_call.arguments
                             }
                         })
@@ -509,14 +509,14 @@ Be helpful, accurate, and provide actionable insights."""
                         # Get the final response
                         final_response = await self.client.chat.completions.create(
                             model="gpt-4o",
-                        messages=messages,
+                            messages=messages,
                             temperature=0.7,
                             max_tokens=1500
                         )
                         
                         final_content = final_response.choices[0].message.content
-                    
-            except Exception as e:
+                        
+                    except Exception as e:
                         logger.error(f"Function execution error: {e}")
                         final_content = f"I encountered an error while executing {function_name}. Please try again or rephrase your request."
                         function_result = {"error": str(e)}
