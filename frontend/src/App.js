@@ -15,8 +15,37 @@ import Navigation from './components/Navigation';
 import BuyStock from './BuyStock';
 
 // Configure axios with base URL
+console.log('Configuring axios with API_URL:', API_URL);
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true; // Enable sending cookies with cross-origin requests
+
+// Add request interceptor for debugging
+axios.interceptors.request.use(
+  config => {
+    console.log(`🚀 Request: ${config.method.toUpperCase()} ${config.url}`);
+    return config;
+  },
+  error => {
+    console.error('❌ Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+axios.interceptors.response.use(
+  response => {
+    console.log(`✅ Response: ${response.status} from ${response.config.url}`);
+    return response;
+  },
+  error => {
+    if (error.response) {
+      console.error(`❌ Response error: ${error.response.status} from ${error.config?.url}`, error.response.data);
+    } else {
+      console.error('❌ Response error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 function App() {
   const [user, setUser] = useState(null);
@@ -33,8 +62,10 @@ function App() {
 
   // For debugging
   useEffect(() => {
-    console.log('API URL:', API_URL);
-    console.log('Axios baseURL:', axios.defaults.baseURL);
+    console.log('App initialized with:');
+    console.log('- API_URL:', API_URL);
+    console.log('- Axios baseURL:', axios.defaults.baseURL);
+    console.log('- withCredentials:', axios.defaults.withCredentials);
   }, []);
 
   // Check screen size on mount and resize
@@ -67,6 +98,7 @@ function App() {
       
       if (token) {
         try {
+          console.log('Found token in localStorage, verifying...');
           // Set authorization header
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
@@ -74,6 +106,7 @@ function App() {
           const response = await axios.get('/auth/me');
           
           if (response.data.user) {
+            console.log('Token verified, user authenticated:', response.data.user);
             setUser(response.data.user);
             setIsAuthenticated(true);
           }
@@ -84,6 +117,8 @@ function App() {
           localStorage.removeItem('auth_header');
           delete axios.defaults.headers.common['Authorization'];
         }
+      } else {
+        console.log('No authentication token found');
       }
       
       setIsLoading(false);
@@ -102,7 +137,9 @@ function App() {
 
   const fetchHealthStatus = async () => {
     try {
+      console.log('Fetching health status...');
       const response = await axios.get('/health');
+      console.log('Health status received:', response.data);
       setHealthStatus(response.data);
     } catch (error) {
       console.error('Failed to fetch health status:', error);
@@ -114,6 +151,8 @@ function App() {
       setIsRefreshingPortfolio(true);
       console.log('🔄 Fetching portfolio data...');
       const response = await axios.get('/portfolio');
+      console.log('Portfolio API response:', response);
+      
       // Create a new object with timestamp to ensure React detects the change
       const portfolioWithTimestamp = {
         ...response.data,
@@ -129,12 +168,14 @@ function App() {
   };
 
   const handleAuthenticated = (token) => {
+    console.log('User authenticated with token');
     // Set axios authorization header
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
     // Verify and get user info
     axios.get('/auth/me')
       .then(response => {
+        console.log('User info retrieved:', response.data);
         setUser(response.data.user);
         setIsAuthenticated(true);
       })
@@ -145,6 +186,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    console.log('Logging out user');
     // Clear local storage
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_header');
@@ -237,17 +279,7 @@ function App() {
               isAuthenticated ? (
                 <ProtectedLayout>
                   <PortfolioPage 
-                    portfolio={portfolio}
-                    healthStatus={healthStatus}
-                    isRefreshing={isRefreshingPortfolio}
-                    onRefresh={fetchPortfolio}
-                    onBuyStock={() => {
-                      setSelectedHolding(null);
-                      setShowBuyStock(true);
-                    }}
-                    onAdjustHolding={handleAdjustHolding}
-                    isMobile={isMobile}
-                    toggleMobileNav={toggleMobileNav}
+                    onTransactionSuccess={handleBuySuccess}
                   />
                 </ProtectedLayout>
               ) : (

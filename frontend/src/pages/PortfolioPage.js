@@ -11,7 +11,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
   const [selectedHolding, setSelectedHolding] = useState(null);
   const [marketStatus, setMarketStatus] = useState({
     isOpen: false,
-    nextUpdateMinutes: 0
+    nextUpdateMinutes: 5
   });
 
   const fetchPortfolio = useCallback(async () => {
@@ -19,15 +19,39 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     setError(null);
     
     try {
+      console.log('Fetching portfolio data...');
       const response = await axios.get('/portfolio');
+      console.log('Portfolio data received:', response.data);
       setPortfolio(response.data);
       
-      // Check market status
-      const statusResponse = await axios.get('/market-status');
-      setMarketStatus({
-        isOpen: statusResponse.data.is_open,
-        nextUpdateMinutes: statusResponse.data.next_update_minutes || 5
+      // Extract portfolio data from response structure
+      const portfolioData = response.data.portfolio || {};
+      const holdingsData = response.data.holdings || [];
+      
+      // Calculate total value and holdings value
+      const cashBalance = portfolioData.cash_balance || 0;
+      const holdingsValue = holdingsData.reduce((total, holding) => total + (holding.market_value || 0), 0);
+      const totalValue = cashBalance + holdingsValue;
+      
+      setPortfolio({
+        cash_balance: cashBalance,
+        holdings: holdingsData,
+        total_value: totalValue,
+        holdings_value: holdingsValue
       });
+      
+      // Try to get market status
+      try {
+        const statusResponse = await axios.get('/health');
+        const isMarketOpen = statusResponse.data?.services?.market_data?.status === 'healthy';
+        setMarketStatus({
+          isOpen: isMarketOpen,
+          nextUpdateMinutes: 5
+        });
+      } catch (statusError) {
+        console.error('Error fetching market status:', statusError);
+        // Don't set an error, just keep default market status
+      }
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       setError('Failed to load portfolio data. Please try again.');
@@ -168,7 +192,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
                   <tr key={holding.symbol}>
                     <td className="symbol-cell">{holding.symbol}</td>
                     <td>{holding.shares.toFixed(2)}</td>
-                    <td>${holding.avg_cost.toFixed(2)}</td>
+                    <td>${holding.average_cost ? holding.average_cost.toFixed(2) : holding.avg_cost.toFixed(2)}</td>
                     <td>${holding.current_price.toFixed(2)}</td>
                     <td>${holding.market_value.toFixed(2)}</td>
                     <td className={`profit-cell ${holding.profit_loss >= 0 ? 'positive' : 'negative'}`}>
