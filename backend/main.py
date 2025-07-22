@@ -201,14 +201,11 @@ async def auth_callback(code: str, state: Optional[str] = None, request: Request
     # Create JWT token
     jwt_token = auth_service.create_jwt_token(user_info)
     
-    # Determine frontend URL based on request origin
-    frontend_base_url = "https://portfolioagent-procogia-ai.up.railway.app"
+    # Always redirect to the custom domain if available, otherwise fallback to Railway
+    frontend_base_url = "https://portfolioagent.procogia.ai"
     
-    # Use custom domain if that's where the request came from
-    if request and "portfolioagent.procogia.ai" in request.headers.get("origin", ""):
-        frontend_base_url = "https://portfolioagent.procogia.ai"
     # Use localhost for local development
-    elif request and "localhost" in request.headers.get("origin", ""):
+    if request and "localhost" in request.headers.get("origin", ""):
         frontend_base_url = "http://localhost:3000"
     
     frontend_url = f"{frontend_base_url}/auth/success?token={jwt_token}"

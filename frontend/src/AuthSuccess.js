@@ -19,8 +19,15 @@ const AuthSuccess = ({ onAuthenticated }) => {
         onAuthenticated(token);
       }
       
-      // Clear URL parameters and redirect to main app
-      window.history.replaceState({}, document.title, "/");
+      // Redirect to the custom domain if we're on Railway
+      const currentHost = window.location.hostname;
+      if (currentHost.includes('railway.app')) {
+        window.location.href = 'https://portfolioagent.procogia.ai/portfolio';
+        return;
+      }
+      
+      // Otherwise, just clear URL parameters and let the app handle routing
+      window.history.replaceState({}, document.title, "/portfolio");
     } else {
       console.error('No token received from OAuth callback');
       // Redirect to landing page
