@@ -15,6 +15,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const [currentShares, setCurrentShares] = useState(0);
   const [targetShares, setTargetShares] = useState(0);
   const [sharesDifference, setSharesDifference] = useState(0);
+  const [action, setAction] = useState('buy'); // 'buy' or 'sell'
 
   const searchStocks = async () => {
     if (!searchQuery.trim()) return;
@@ -117,6 +118,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
       setMaxAffordableShares(1);
       setAffordability(null);
       setError('');
+      setAction('buy');
     }
   }, [isOpen, existingHolding]);
 
@@ -157,7 +159,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     if (existingHolding) {
       const difference = targetShares - currentShares;
       setSharesDifference(difference);
-      setQuantity(difference);
+      setQuantity(Math.abs(difference));
+      setAction(difference >= 0 ? 'buy' : 'sell');
     } else if (selectedStock) {
       // For new purchases, target shares equals quantity
       setSharesDifference(targetShares);
@@ -165,29 +168,39 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     }
   }, [targetShares, currentShares, existingHolding, selectedStock]);
 
-  const handleBuyStock = async () => {
-    if (!selectedStock || quantity <= 0) return;
+  const handleTransaction = async () => {
+    if (!selectedStock || (action === 'buy' && quantity <= 0)) return;
     
     setIsBuying(true);
     setError('');
     
     try {
-      const response = await axios.post('/buy-stock', {
-        symbol: selectedStock.symbol,
-        quantity: quantity
-      });
+      let response;
+      
+      if (action === 'buy') {
+        response = await axios.post('/buy-stock', {
+          symbol: selectedStock.symbol,
+          quantity: quantity
+        });
+      } else {
+        // Handle sell action
+        response = await axios.post('/sell-stock', {
+          symbol: selectedStock.symbol,
+          quantity: quantity
+        });
+      }
       
       if (response.data.success) {
         onSuccess && onSuccess(response.data);
         onClose();
       } else {
-        setError(response.data.error || 'Failed to buy stock');
+        setError(response.data.error || `Failed to ${action} stock`);
       }
     } catch (error) {
-      console.error('Buy error:', error);
+      console.error(`${action} error:`, error);
       
       // Handle different types of errors
-      let errorMessage = 'Failed to buy stock. Please try again.';
+      let errorMessage = `Failed to ${action} stock. Please try again.`;
       
       if (error.response) {
         // Server responded with error status
@@ -253,7 +266,15 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     <div className={`buy-stock-overlay ${isMobile ? 'mobile' : ''}`}>
       <div className={`buy-stock-modal ${isMobile ? 'mobile' : ''} ${selectedStock ? 'adjust-modal' : ''}`}>
         <div className="modal-header">
-          <h2>{existingHolding ? `Buy More ${existingHolding.symbol}` : selectedStock ? `Buy ${selectedStock.symbol}` : 'Buy Stock'}</h2>
+          <h2>
+            {existingHolding ? 
+              sharesDifference > 0 ? 
+                `Buy More ${existingHolding.symbol}` : 
+                sharesDifference < 0 ? 
+                  `Sell ${existingHolding.symbol}` : 
+                  `Adjust ${existingHolding.symbol}` 
+              : selectedStock ? `Buy ${selectedStock.symbol}` : 'Buy Stock'}
+          </h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         
@@ -333,12 +354,13 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 <label>{existingHolding ? 'Adjust Position:' : 'Shares to Buy:'}</label>
                 <div className="slider-container">
                   <div className="slider-labels">
-                    <span className="slider-label current">{existingHolding ? `Current (${currentShares})` : 'Min (1)'}</span>
+                    <span className="slider-label sell">{existingHolding ? 'Sell All (0)' : 'Min (1)'}</span>
+                    {existingHolding && <span className="slider-label current">Current ({currentShares})</span>}
                     <span className="slider-label buy">Max ({maxAffordableShares})</span>
                   </div>
                   <input
                     type="range"
-                    min={existingHolding ? currentShares : 1}
+                    min={existingHolding ? 0 : 1}
                     max={maxAffordableShares}
                     value={targetShares}
                     onChange={(e) => handleSliderChange(e.target.value)}
@@ -346,10 +368,18 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     step="1"
                   />
                   <div className="slider-markers">
-                    <div 
-                      className="marker current-position" 
-                      style={{ left: '0%' }}
-                    />
+                    {existingHolding && (
+                      <div 
+                        className="marker sell-all" 
+                        style={{ left: '0%' }}
+                      />
+                    )}
+                    {existingHolding && (
+                      <div 
+                        className="marker current-position" 
+                        style={{ left: `${(currentShares / maxAffordableShares) * 100}%` }}
+                      />
+                    )}
                     <div 
                       className="marker max-position" 
                       style={{ left: '100%' }}
@@ -362,7 +392,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   <span className="target-label">Target Shares:</span>
                   <input
                     type="number"
-                    min={existingHolding ? currentShares : 1}
+                    min={existingHolding ? 0 : 1}
                     max={maxAffordableShares}
                     value={targetShares}
                     onChange={(e) => handleSliderChange(e.target.value)}
@@ -375,23 +405,27 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
               {affordability && (
                 <div className="stats-section">
                   <div className="stats-header">
-                    <h4 className="buying">
-                      {existingHolding ? `📈 Buying ${sharesDifference} More Shares` : `📈 Buying ${targetShares} Shares`}
+                    <h4 className={sharesDifference > 0 ? "buying" : sharesDifference < 0 ? "selling" : "no-change"}>
+                      {sharesDifference > 0 ? 
+                        `📈 Buying ${sharesDifference} More Shares` : 
+                        sharesDifference < 0 ? 
+                          `📉 Selling ${Math.abs(sharesDifference)} Shares` : 
+                          `No Change in Position`}
                     </h4>
                   </div>
                   
                   <div className="stats-grid">
                     <div className="stat-item">
                       <span className="stat-label">Position Change:</span>
-                      <span className="stat-value positive">
-                        +{sharesDifference} shares
+                      <span className={`stat-value ${sharesDifference > 0 ? 'positive' : sharesDifference < 0 ? 'negative' : ''}`}>
+                        {sharesDifference > 0 ? `+${sharesDifference}` : sharesDifference} shares
                       </span>
                     </div>
                     
                     <div className="stat-item">
-                      <span className="stat-label">Cost:</span>
-                      <span className="stat-value">
-                        ${(sharesDifference * (affordability.current_price || 0)).toFixed(2)}
+                      <span className="stat-label">{sharesDifference >= 0 ? 'Cost:' : 'Proceeds:'}</span>
+                      <span className={`stat-value ${sharesDifference < 0 ? 'positive' : ''}`}>
+                        ${Math.abs(sharesDifference * (affordability.current_price || 0)).toFixed(2)}
                       </span>
                     </div>
                     
@@ -404,14 +438,16 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     
                     <div className="stat-item">
                       <span className="stat-label">Remaining Cash:</span>
-                      <span className={`stat-value ${affordability.can_afford ? 'positive' : 'negative'}`}>
-                        ${(affordability.available_cash - (sharesDifference * (affordability.current_price || 0))).toFixed(2)}
+                      <span className={`stat-value ${sharesDifference >= 0 ? (affordability.can_afford ? 'positive' : 'negative') : 'positive'}`}>
+                        ${(sharesDifference >= 0 ? 
+                          (affordability.available_cash - (sharesDifference * (affordability.current_price || 0))) : 
+                          (affordability.available_cash + Math.abs(sharesDifference * (affordability.current_price || 0)))).toFixed(2)}
                       </span>
                     </div>
                   </div>
 
                   {/* Affordability Warning */}
-                  {!affordability.can_afford && (
+                  {sharesDifference > 0 && !affordability.can_afford && (
                     <div className="affordability-warning">
                       <span className="warning-icon">⚠️</span>
                       <span>Insufficient funds! Shortfall: ${affordability.shortfall.toFixed(2)}</span>
@@ -432,11 +468,19 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
               Cancel
             </button>
             <button 
-              className="buy-button"
-              onClick={handleBuyStock}
-              disabled={isBuying || !affordability || !affordability.can_afford || quantity <= 0}
+              className={`${action}-button`}
+              onClick={handleTransaction}
+              disabled={isBuying || 
+                !affordability || 
+                (action === 'buy' && (!affordability.can_afford || sharesDifference <= 0)) ||
+                (sharesDifference === 0)}
             >
-              {isBuying ? 'Processing...' : existingHolding ? `Buy ${sharesDifference} More Shares` : `Buy ${quantity} Shares`}
+              {isBuying ? 'Processing...' : 
+                sharesDifference > 0 ? 
+                  `Buy ${sharesDifference} More Shares` : 
+                  sharesDifference < 0 ? 
+                    `Sell ${Math.abs(sharesDifference)} Shares` : 
+                    'No Change'}
             </button>
           </div>
         </div>
