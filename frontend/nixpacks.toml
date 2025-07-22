@@ -1,5 +1,6 @@
 [phases.setup]
 nixPkgsCommit = "nixos-23.11"
+aptPkgs = ["nodejs", "npm"]
 
 [phases.install]
 cmds = ["npm ci"]
@@ -8,4 +9,4 @@ cmds = ["npm ci"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npm run start" 
+cmd = "npm start" 
