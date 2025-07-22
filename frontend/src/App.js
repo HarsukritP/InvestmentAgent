@@ -13,7 +13,6 @@ import ChatPage from './pages/ChatPage';
 import ActionsLogPage from './pages/ActionsLogPage';
 import Navigation from './components/Navigation';
 import BuyStock from './BuyStock';
-import AdjustHolding from './AdjustHolding';
 
 // Configure axios with base URL
 axios.defaults.baseURL = API_URL;
@@ -24,7 +23,6 @@ function App() {
   const [healthStatus, setHealthStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showBuyStock, setShowBuyStock] = useState(false);
-  const [showAdjustHolding, setShowAdjustHolding] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRefreshingPortfolio, setIsRefreshingPortfolio] = useState(false);
@@ -177,15 +175,7 @@ function App() {
   const handleAdjustHolding = (holding) => {
     console.log('🔧 Adjusting holding:', holding);
     setSelectedHolding(holding);
-    setShowAdjustHolding(true);
-  };
-
-  const handleAdjustSuccess = async (adjustResult) => {
-    console.log('🎉 Adjust operation successful:', adjustResult);
-    
-    // Refresh portfolio
-    await new Promise(resolve => setTimeout(resolve, 500));
-    await fetchPortfolio();
+    setShowBuyStock(true);
   };
 
   const toggleMobileNav = () => {
@@ -250,7 +240,10 @@ function App() {
                     healthStatus={healthStatus}
                     isRefreshing={isRefreshingPortfolio}
                     onRefresh={fetchPortfolio}
-                    onBuyStock={() => setShowBuyStock(true)}
+                    onBuyStock={() => {
+                      setSelectedHolding(null);
+                      setShowBuyStock(true);
+                    }}
                     onAdjustHolding={handleAdjustHolding}
                     isMobile={isMobile}
                     toggleMobileNav={toggleMobileNav}
@@ -300,22 +293,13 @@ function App() {
         {showBuyStock && (
           <BuyStock
             isOpen={showBuyStock}
-            onClose={() => setShowBuyStock(false)}
-            onSuccess={handleBuySuccess}
-            isMobile={isMobile}
-          />
-        )}
-
-        {showAdjustHolding && selectedHolding && (
-          <AdjustHolding
-            isOpen={showAdjustHolding}
-            holding={selectedHolding}
             onClose={() => {
-              setShowAdjustHolding(false);
+              setShowBuyStock(false);
               setSelectedHolding(null);
             }}
-            onSuccess={handleAdjustSuccess}
+            onSuccess={handleBuySuccess}
             isMobile={isMobile}
+            existingHolding={selectedHolding}
           />
         )}
       </div>

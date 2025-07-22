@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../config';
 import BuyStock from '../BuyStock';
-import AdjustHolding from '../AdjustHolding';
 import { formatCurrency, formatPercentage, getValueClass, getMarketStatus } from '../utils/formatters';
 import './PortfolioPage.css';
 
@@ -20,7 +19,6 @@ const PortfolioPage = ({
   const [error] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
-  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState(null);
 
   useEffect(() => {
@@ -86,17 +84,18 @@ const PortfolioPage = ({
   };
 
   const handleBuyStock = () => {
+    setSelectedHolding(null); // New stock purchase
     setShowBuyModal(true);
   };
 
   const handleAdjustHolding = (holding) => {
-    setSelectedHolding(holding);
-    setShowAdjustModal(true);
+    setSelectedHolding(holding); // Existing stock adjustment
+    setShowBuyModal(true);
   };
 
   const handleTransactionSuccess = () => {
     setShowBuyModal(false);
-    setShowAdjustModal(false);
+    setSelectedHolding(null);
     handleRefresh();
   };
 
@@ -273,7 +272,7 @@ const PortfolioPage = ({
                           className="adjust-btn"
                           onClick={() => handleAdjustHolding(holding)}
                         >
-                          Adjust
+                          Buy More
                         </button>
                       </td>
                     </tr>
@@ -285,23 +284,17 @@ const PortfolioPage = ({
         )}
       </div>
 
-      {/* Modals */}
+      {/* Unified Buy Stock Modal */}
       {showBuyModal && (
         <BuyStock 
           isOpen={showBuyModal} 
-          onClose={() => setShowBuyModal(false)} 
+          onClose={() => {
+            setShowBuyModal(false);
+            setSelectedHolding(null);
+          }} 
           onSuccess={handleTransactionSuccess}
           isMobile={isMobile}
-        />
-      )}
-      
-      {showAdjustModal && selectedHolding && (
-        <AdjustHolding 
-          isOpen={showAdjustModal} 
-          holding={selectedHolding}
-          onClose={() => setShowAdjustModal(false)} 
-          onSuccess={handleTransactionSuccess}
-          isMobile={isMobile}
+          existingHolding={selectedHolding}
         />
       )}
     </div>
