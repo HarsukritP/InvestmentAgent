@@ -84,7 +84,7 @@ class TradeResponse(BaseModel):
 
 class BuyStockRequest(BaseModel):
     symbol: str
-    quantity: int
+    quantity: float
 
 class TransactionUpdateRequest(BaseModel):
     notes: Optional[str] = None
@@ -533,6 +533,73 @@ async def buy_stock(
             "purchase_price": current_price
         }
     }
+
+@app.post("/sell-stock")
+async def sell_stock(
+    request: BuyStockRequest,
+    user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Sell stock - remove from portfolio"""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required for selling stocks")
+        
+    if not request.symbol or request.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Invalid symbol or quantity")
+    
+    symbol = request.symbol.upper()
+    quantity = request.quantity
+    
+    # Get or create user in database
+    user_id = user.get('db_user_id')
+    if not user_id:
+        db_user = await db_service.create_or_get_user(
+            google_id=user.get('sub'),
+            email=user.get('email'),
+            name=user.get('name'),
+            picture_url=user.get('picture')
+        )
+        user_id = db_user['id']
+    
+    # Get user's portfolio
+    portfolios = await db_service.get_user_portfolios(user_id)
+    if not portfolios:
+        raise HTTPException(status_code=404, detail="No portfolio found")
+    
+    portfolio = portfolios[0]  # Use first portfolio
+    
+    # Check if user has the stock and enough shares
+    holdings = await db_service.get_portfolio_holdings(portfolio['id'])
+    holding = next((h for h in holdings if h['symbol'].upper() == symbol), None)
+    
+    if not holding:
+        raise HTTPException(status_code=404, detail=f"You don't own any shares of {symbol}")
+    
+    if holding['shares'] < quantity:
+        raise HTTPException(status_code=400, detail=f"You only have {holding['shares']} shares of {symbol}, but you're trying to sell {quantity}")
+    
+    # Get current price
+    quote_data = await market_service.get_stock_quote(symbol)
+    current_price = quote_data.get("price")
+    
+    if not current_price or current_price <= 0:
+        raise HTTPException(status_code=400, detail=f"Unable to get current price for {symbol}")
+    
+    # Execute the sell using database service
+    try:
+        result = await db_service.execute_sell_order(
+            portfolio['id'], user_id, symbol, quantity, current_price
+        )
+        
+        return {
+            "success": True,
+            "message": f"Successfully sold {quantity} shares of {symbol}",
+            "transaction": result['transaction'],
+            "remaining_cash": result['new_cash_balance']
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error executing sell order: {str(e)}")
 
 @app.get("/cash-balance")
 async def get_cash_balance(user: Dict[str, Any] = Depends(get_current_user)):
