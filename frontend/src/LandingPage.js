@@ -1,31 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './LandingPage.css';
 import { API_URL } from './config';
 import axios from 'axios';
-import { checkBackendConnection, getEnvironmentInfo } from './debug';
 
 const LandingPage = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('checking');
-
-  // Check backend connection on mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      const envInfo = getEnvironmentInfo();
-      const connectionResult = await checkBackendConnection();
-      
-      setDebugInfo({
-        environment: envInfo,
-        connection: connectionResult,
-        apiUrl: API_URL
-      });
-      
-      setConnectionStatus(connectionResult.success ? 'connected' : 'failed');
-    };
-    
-    checkConnection();
-  }, []);
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -65,27 +44,6 @@ const LandingPage = ({ onLogin }) => {
           </div>
         </div>
       </header>
-
-      {/* Debug Info */}
-      {debugInfo && (
-        <div className="debug-info" style={{
-          padding: '10px',
-          margin: '10px',
-          border: '1px solid #ccc',
-          borderRadius: '5px',
-          backgroundColor: '#f9f9f9',
-          fontSize: '12px',
-          fontFamily: 'monospace'
-        }}>
-          <h3>Debug Information</h3>
-          <p>API URL: {debugInfo.apiUrl}</p>
-          <p>Connection Status: {connectionStatus}</p>
-          <p>Environment: {JSON.stringify(debugInfo.environment, null, 2)}</p>
-          {debugInfo.connection && !debugInfo.connection.success && (
-            <p style={{color: 'red'}}>Connection Error: {debugInfo.connection.error || debugInfo.connection.message}</p>
-          )}
-        </div>
-      )}
 
       {/* Hero Section */}
       <section className="hero-section">
