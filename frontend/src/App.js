@@ -16,6 +16,7 @@ import BuyStock from './BuyStock';
 
 // Configure axios with base URL
 axios.defaults.baseURL = API_URL;
+axios.defaults.withCredentials = true; // Enable sending cookies with cross-origin requests
 
 function App() {
   const [user, setUser] = useState(null);

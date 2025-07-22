@@ -41,11 +41,11 @@ app.add_middleware(
         "https://portfolioagent-procogia-ai-service.up.railway.app",  # Railway frontend service URL
         "https://portfolioagent-backend-production.up.railway.app",  # Backend URL
         "https://procogia-aihub.up.railway.app",  # AIHub URL
-        "*",  # Allow all origins temporarily for debugging
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Type", "Authorization"],
 )
 
 # Initialize services
