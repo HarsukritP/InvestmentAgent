@@ -318,9 +318,8 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const getMaxDisplay = () => {
     if (!existingHolding) return maxAffordableShares;
     
-    // For existing holdings, show how many additional shares can be bought
-    const additionalShares = sliderMax - currentShares;
-    return `+${additionalShares}`;
+    // For existing holdings, show the total max shares (current + additional)
+    return sliderMax;
   };
 
   if (!isOpen) return null;

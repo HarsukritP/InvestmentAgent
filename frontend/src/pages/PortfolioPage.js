@@ -1,109 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { API_URL } from '../config';
 import BuyStock from '../BuyStock';
-import { formatCurrency, formatPercentage, getValueClass, getMarketStatus } from '../utils/formatters';
 import './PortfolioPage.css';
 
-const PortfolioPage = ({ 
-  portfolio, 
-  healthStatus, 
-  isRefreshing, 
-  onRefresh, 
-  onBuyStock, 
-  onAdjustHolding,
-  isMobile,
-  toggleMobileNav
-}) => {
-  const [loading] = useState(false);
-  const [error] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+const PortfolioPage = ({ onBuyStock, onAdjustHolding, onTransactionSuccess }) => {
+  const [portfolio, setPortfolio] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState(null);
+  const [marketStatus, setMarketStatus] = useState({
+    isOpen: false,
+    nextUpdateMinutes: 0
+  });
+
+  const fetchPortfolio = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await axios.get('/portfolio');
+      setPortfolio(response.data);
+      
+      // Check market status
+      const statusResponse = await axios.get('/market-status');
+      setMarketStatus({
+        isOpen: statusResponse.data.is_open,
+        nextUpdateMinutes: statusResponse.data.next_update_minutes || 5
+      });
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
+      setError('Failed to load portfolio data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (portfolio) {
-      setLastUpdated(new Date().toLocaleTimeString());
-    }
-  }, [portfolio]);
-
-  const formatCurrency = (amount) => {
-    if (amount === undefined || amount === null || isNaN(amount)) {
-      return '$0.00';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-
-  const formatPercent = (percent) => {
-    if (percent === undefined || percent === null || isNaN(percent)) {
-      return '0.00%';
-    }
-    const formatted = percent.toFixed(2);
-    return percent >= 0 ? `+${formatted}%` : `${formatted}%`;
-  };
-
-  const getPerformanceClass = (value) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return 'neutral';
-    }
-    return value >= 0 ? 'positive' : 'negative';
-  };
-
-  const getStatusDisplay = () => {
-    if (!healthStatus) return { text: 'Loading...', class: 'loading' };
+    fetchPortfolio();
     
-    const { configuration } = healthStatus;
+    // Set up auto-refresh every 5 minutes
+    const refreshInterval = setInterval(() => {
+      fetchPortfolio();
+    }, 5 * 60 * 1000);
     
-    if (!configuration) return { text: 'Loading...', class: 'loading' };
-    
-    if (!configuration.twelvedata_key_configured && !configuration.openai_key_configured && !configuration.oauth_configured) {
-      return { text: 'Demo Mode (No API Keys)', class: 'warning' };
-    }
-    
-    if (!configuration.twelvedata_key_configured) {
-      return { text: 'Using Mock Market Data', class: 'warning' };
-    }
-    
-    if (!configuration.openai_key_configured) {
-      return { text: 'AI Assistant Unavailable', class: 'warning' };
-    }
-    
-    if (healthStatus.status === 'healthy') {
-      return { text: 'All Systems Operational', class: 'success' };
-    }
-    
-    return { text: 'Some Services Degraded', class: 'warning' };
-  };
-
-  const handleRefresh = () => {
-    onRefresh();
-  };
+    return () => clearInterval(refreshInterval);
+  }, [fetchPortfolio]);
 
   const handleBuyStock = () => {
-    setSelectedHolding(null); // New stock purchase
-    setShowBuyModal(true);
-  };
-
-  const handleAdjustHolding = (holding) => {
-    setSelectedHolding(holding); // Existing stock adjustment
-    setShowBuyModal(true);
-  };
-
-  const handleTransactionSuccess = () => {
-    setShowBuyModal(false);
     setSelectedHolding(null);
-    handleRefresh();
+    setShowBuyModal(true);
+  };
+  
+  const handleAdjustHolding = (holding) => {
+    setSelectedHolding(holding);
+    setShowBuyModal(true);
+  };
+  
+  const handleTransactionSuccess = (data) => {
+    fetchPortfolio();
+    setSelectedHolding(null);
+    if (onTransactionSuccess) {
+      onTransactionSuccess(data);
+    }
   };
 
-  // If portfolio is not loaded yet
-  if (!portfolio) {
+  if (isLoading) {
     return (
       <div className="portfolio-page">
-        <div className="loading-indicator">
+        <div className="portfolio-page-header">
+          <h1>Portfolio</h1>
+        </div>
+        <div className="loading">
           <div className="spinner"></div>
           <p>Loading portfolio data...</p>
         </div>
@@ -111,49 +79,32 @@ const PortfolioPage = ({
     );
   }
 
-  // Extract portfolio data
-  const { cash_balance = 0, holdings = [] } = portfolio;
-  
-  // Calculate total portfolio value
-  const totalHoldingsValue = holdings.reduce((sum, holding) => {
-    const shares = holding.shares || holding.quantity || 0;
-    const price = holding.current_price || 0;
-    return sum + (shares * price);
-  }, 0);
-  
-  const totalPortfolioValue = totalHoldingsValue + cash_balance;
-  
-  // Calculate total profit/loss
-  const totalCostBasis = holdings.reduce((sum, holding) => {
-    const shares = holding.shares || holding.quantity || 0;
-    const avgCost = holding.average_cost || holding.purchase_price || 0;
-    return sum + (shares * avgCost);
-  }, 0);
-  
-  const totalInitialValue = totalCostBasis + cash_balance;
-  const totalPnL = totalPortfolioValue - totalInitialValue;
-  const totalPnLPercent = totalInitialValue > 0 ? (totalPnL / totalInitialValue) * 100 : 0;
+  if (error) {
+    return (
+      <div className="portfolio-page">
+        <div className="portfolio-page-header">
+          <h1>Portfolio</h1>
+        </div>
+        <div className="error">
+          <p>{error}</p>
+          <button onClick={fetchPortfolio}>Try Again</button>
+        </div>
+      </div>
+    );
+  }
 
-  // Get market status
-  const marketStatus = getMarketStatus();
+  const { cash_balance, holdings, total_value, holdings_value } = portfolio || {};
+  const holdingsCount = holdings ? holdings.length : 0;
 
   return (
     <div className="portfolio-page">
-      {/* Mobile header */}
-      {isMobile && (
-        <div className="mobile-header">
-          <button className="menu-toggle" onClick={toggleMobileNav}>
-            <span className="menu-icon">☰</span>
-          </button>
-          <h1 className="page-title">Portfolio</h1>
-        </div>
-      )}
+      <div className="portfolio-page-header">
+        <h1>Portfolio</h1>
+      </div>
       
-      {/* Portfolio Summary */}
       <div className="portfolio-summary">
         <div className="summary-row">
           <div className="summary-header">
-            <h1>Portfolio</h1>
             <div className="market-status">
               <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
               <span className="status-text">
@@ -164,136 +115,101 @@ const PortfolioPage = ({
               </span>
             </div>
           </div>
+          
           <div className="summary-cards">
-            <div className="summary-card total-value">
+            <div className="summary-card">
               <div className="card-label">Total Value</div>
-              <div className="card-value">{formatCurrency(totalPortfolioValue)}</div>
-              <div className={`card-change ${getPerformanceClass(totalPnL)}`}>
-                {formatCurrency(totalPnL)} ({formatPercent(totalPnLPercent)})
+              <div className="card-value">${total_value ? total_value.toFixed(2) : '0.00'}</div>
+              {portfolio && portfolio.total_change && (
+                <div className={`card-percentage ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
+                  {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
+                </div>
+              )}
+            </div>
+            
+            <div className="summary-card">
+              <div className="card-label">Holdings Value</div>
+              <div className="card-value">${holdings_value ? holdings_value.toFixed(2) : '0.00'}</div>
+              <div className="card-secondary">
+                {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
               </div>
             </div>
-            <div className="summary-card holdings-value">
-              <div className="card-label">Holdings Value</div>
-              <div className="card-value">{formatCurrency(totalHoldingsValue)}</div>
-              <div className="card-percent">{((totalHoldingsValue / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
-            </div>
-            <div className="summary-card cash-balance">
+            
+            <div className="summary-card">
               <div className="card-label">Cash Balance</div>
-              <div className="card-value">{formatCurrency(cash_balance)}</div>
-              <div className="card-percent">{((cash_balance / totalPortfolioValue) * 100).toFixed(1)}% of portfolio</div>
+              <div className="card-value">${cash_balance ? cash_balance.toFixed(2) : '0.00'}</div>
+              <div className="card-secondary">
+                {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
+              </div>
             </div>
           </div>
+          
           <div className="action-buttons">
-            <button 
-              className="action-button buy-button"
-              onClick={handleBuyStock}
-            >
-              <span className="button-icon">$</span> Buy Stock
+            <button className="action-button buy-button" onClick={handleBuyStock}>
+              Buy Stock
             </button>
-            <button 
-              className="action-button refresh-button"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <span className="button-icon">⟳</span> Refresh
+            <button className="action-button refresh-button" onClick={fetchPortfolio}>
+              Refresh
             </button>
           </div>
         </div>
       </div>
       
-      {/* Holdings Section */}
-      <div className="holdings-section">
-        <div className="section-header">
-          <h2 className="section-title">Current Holdings</h2>
-          <div className="section-subtitle">
-            {holdings.length} {holdings.length === 1 ? 'position' : 'positions'}
-          </div>
-        </div>
-
-        {holdings.length === 0 ? (
-          <div className="empty-holdings">
-            <div className="empty-icon">📈</div>
-            <h3>No holdings yet</h3>
-            <p>Start building your portfolio by buying your first stock.</p>
-            <button className="buy-first-stock-btn" onClick={handleBuyStock}>
-              Buy Your First Stock
-            </button>
-          </div>
-        ) : (
-          <div className="holdings-table-wrapper">
-            <table className="holdings-table">
-              <thead>
-                <tr className="table-header">
-                  <th>Symbol</th>
-                  <th>Shares</th>
-                  <th>Avg. Cost</th>
-                  <th>Current Price</th>
-                  <th>Market Value</th>
-                  <th>Profit/Loss</th>
-                  <th></th>
+      {holdingsCount > 0 ? (
+        <>
+          <div className="positions-count">{holdingsCount} positions</div>
+          <table className="holdings-table">
+            <thead>
+              <tr>
+                <th>SYMBOL</th>
+                <th>SHARES</th>
+                <th>AVG. COST</th>
+                <th>CURRENT PRICE</th>
+                <th>MARKET VALUE</th>
+                <th>PROFIT/LOSS</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {holdings.map((holding) => (
+                <tr key={holding.symbol}>
+                  <td className="symbol-cell">{holding.symbol}</td>
+                  <td>{holding.shares.toFixed(2)}</td>
+                  <td>${holding.avg_cost.toFixed(2)}</td>
+                  <td>${holding.current_price.toFixed(2)}</td>
+                  <td>${holding.market_value.toFixed(2)}</td>
+                  <td className={`profit-cell ${holding.profit_loss >= 0 ? 'positive' : 'negative'}`}>
+                    ${holding.profit_loss.toFixed(2)}
+                    <br />
+                    {holding.profit_loss_percent >= 0 ? '+' : ''}{holding.profit_loss_percent.toFixed(2)}%
+                  </td>
+                  <td className="action-cell">
+                    <button 
+                      className="buy-more-button" 
+                      onClick={() => handleAdjustHolding(holding)}
+                    >
+                      Adjust
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {holdings.map((holding, index) => {
-                  const shares = holding.shares || holding.quantity || 0;
-                  const avgCost = holding.average_cost || holding.purchase_price || 0;
-                  const currentPrice = holding.current_price || 0;
-                  const marketValue = shares * currentPrice;
-                  const costBasis = shares * avgCost;
-                  const pnl = marketValue - costBasis;
-                  const pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
-                  
-                  return (
-                    <tr key={index} className="table-row">
-                      <td className="table-cell">
-                        <div className="symbol-info">
-                          <div className="symbol-text">
-                            <strong>{holding.symbol}</strong>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="table-cell">{shares.toFixed(2)}</td>
-                      <td className="table-cell">{formatCurrency(avgCost)}</td>
-                      <td className="table-cell">{formatCurrency(currentPrice)}</td>
-                      <td className="table-cell">{formatCurrency(marketValue)}</td>
-                      <td className="table-cell">
-                        <div className={`pnl-value ${getPerformanceClass(pnl)}`}>
-                          {formatCurrency(pnl)}
-                          <div className={`pnl-percent ${getPerformanceClass(pnlPercent)}`}>
-                            {formatPercent(pnlPercent)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="table-cell">
-                        <button 
-                          className="adjust-btn"
-                          onClick={() => handleAdjustHolding(holding)}
-                        >
-                          Buy More
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Unified Buy Stock Modal */}
-      {showBuyModal && (
-        <BuyStock 
-          isOpen={showBuyModal} 
-          onClose={() => {
-            setShowBuyModal(false);
-            setSelectedHolding(null);
-          }} 
-          onSuccess={handleTransactionSuccess}
-          isMobile={isMobile}
-          existingHolding={selectedHolding}
-        />
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <div className="no-holdings">
+          <h3>No holdings yet</h3>
+          <p>Start building your portfolio by buying your first stock.</p>
+          <button onClick={handleBuyStock}>Buy Stock</button>
+        </div>
       )}
+      
+      <BuyStock 
+        isOpen={showBuyModal} 
+        onClose={() => setShowBuyModal(false)}
+        onSuccess={handleTransactionSuccess}
+        existingHolding={selectedHolding}
+      />
     </div>
   );
 };
