@@ -2,7 +2,7 @@
   width: 280px;
   height: 100vh;
   background: #ffffff;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid rgba(139, 195, 74, 0.1);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -10,6 +10,7 @@
   top: 0;
   z-index: 100;
   transition: width 0.3s ease;
+  box-shadow: 4px 0 15px rgba(139, 195, 74, 0.05);
 }
 
 .navigation.collapsed {
@@ -18,7 +19,7 @@
 
 .nav-header {
   padding: 2rem 1.5rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid rgba(139, 195, 74, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -53,7 +54,7 @@
 
 .brand-subtitle {
   display: block;
-  color: #6b7280;
+  color: #5A6C7D;
   font-size: 0.875rem;
   font-weight: 500;
   margin-top: 0.25rem;
@@ -74,9 +75,9 @@
 }
 
 .collapse-toggle {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  background: rgba(139, 195, 74, 0.1);
+  border: 1px solid rgba(139, 195, 74, 0.2);
+  border-radius: 8px;
   width: 28px;
   height: 28px;
   display: flex;
@@ -84,14 +85,14 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: #8BC34A;
   font-size: 0.875rem;
   font-weight: bold;
 }
 
 .collapse-toggle:hover {
-  background: #e5e7eb;
-  color: #374151;
+  background: rgba(139, 195, 74, 0.2);
+  color: #7CB342;
 }
 
 .toggle-icon {
@@ -121,7 +122,7 @@
   margin: 0.25rem 1rem;
   border-radius: 12px;
   text-decoration: none;
-  color: #6b7280;
+  color: #5A6C7D;
   transition: all 0.2s ease;
   position: relative;
 }
@@ -134,8 +135,8 @@
 }
 
 .nav-item:hover {
-  background: #f9fafb;
-  color: #374151;
+  background: rgba(139, 195, 74, 0.05);
+  color: #2C3E50;
   transform: translateX(2px);
 }
 
@@ -144,9 +145,9 @@
 }
 
 .nav-item-active {
-  background: #f0f9ff;
-  color: #0369a1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: rgba(139, 195, 74, 0.1);
+  color: #8BC34A;
+  box-shadow: 0 4px 15px rgba(139, 195, 74, 0.2);
 }
 
 .nav-item-active::before {
@@ -157,7 +158,7 @@
   transform: translateY(-50%);
   width: 3px;
   height: 24px;
-  background: #0369a1;
+  background: #8BC34A;
   border-radius: 0 2px 2px 0;
 }
 
@@ -232,8 +233,8 @@
 
 .nav-footer {
   padding: 1.5rem;
-  border-top: 1px solid #f3f4f6;
-  background: #fafbfc;
+  border-top: 1px solid rgba(139, 195, 74, 0.1);
+  background: rgba(139, 195, 74, 0.02);
 }
 
 .navigation.collapsed .nav-footer {
@@ -247,7 +248,8 @@
   padding: 0.75rem;
   background: #ffffff;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(139, 195, 74, 0.1);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.05);
 }
 
 .user-avatar {
@@ -255,7 +257,7 @@
   height: 40px;
   border-radius: 50%;
   margin-right: 0.75rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid rgba(139, 195, 74, 0.2);
 }
 
 .user-info {
@@ -266,7 +268,7 @@
 .user-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #2C3E50;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
@@ -275,7 +277,7 @@
 
 .user-email {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #5A6C7D;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
@@ -290,9 +292,9 @@
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(139, 195, 74, 0.2);
   border-radius: 8px;
-  color: #6b7280;
+  color: #5A6C7D;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -300,9 +302,9 @@
 }
 
 .logout-button:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-  color: #374151;
+  background: rgba(139, 195, 74, 0.05);
+  border-color: rgba(139, 195, 74, 0.3);
+  color: #2C3E50;
 }
 
 .logout-icon {
