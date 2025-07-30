@@ -291,6 +291,7 @@
   padding: 6px 12px;
   position: absolute;
   right: 0;
+  transform: translateX(calc(-100% + 32px));
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
