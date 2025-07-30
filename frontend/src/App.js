@@ -51,12 +51,12 @@ axios.interceptors.response.use(
 function App() {
   const [user, setUser] = useState(null);
   const [portfolio, setPortfolio] = useState(null);
-  const [healthStatus, setHealthStatus] = useState(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [showBuyStock, setShowBuyStock] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isRefreshingPortfolio, setIsRefreshingPortfolio] = useState(false);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -216,11 +216,7 @@ function App() {
     await fetchPortfolio();
   };
 
-  const handleAdjustHolding = (holding) => {
-    console.log('🔧 Adjusting holding:', holding);
-    setSelectedHolding(holding);
-    setShowBuyStock(true);
-  };
+
 
   const toggleMobileNav = () => {
     setMobileNavOpen(!mobileNavOpen);

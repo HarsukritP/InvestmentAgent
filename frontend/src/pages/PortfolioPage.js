@@ -194,7 +194,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
 
     // Set a delay before showing the chart (1 second)
     hoverTimeoutRef.current = setTimeout(() => {
-      const rect = event.currentTarget.getBoundingClientRect();
       setHoverChart({
         visible: true,
         symbol: symbol,

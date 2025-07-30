@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StockChart from '../components/StockChart';
 import './StockDetailPage.css';
@@ -15,9 +15,9 @@ const StockDetailPage = () => {
     if (symbol) {
       fetchStockDetails();
     }
-  }, [symbol]);
+  }, [symbol, fetchStockDetails]);
 
-  const fetchStockDetails = async () => {
+  const fetchStockDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -40,7 +40,7 @@ const StockDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [symbol]);
 
   const formatCurrency = (value) => {
     if (value === null || value === undefined) return 'N/A';
@@ -249,11 +249,7 @@ const IntradayChart = ({ symbol }) => {
   const [loading, setLoading] = useState(true);
   const [interval, setInterval] = useState('1h');
 
-  useEffect(() => {
-    fetchIntradayData();
-  }, [symbol, interval]);
-
-  const fetchIntradayData = async () => {
+  const fetchIntradayData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -275,7 +271,11 @@ const IntradayChart = ({ symbol }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [symbol, interval]);
+
+  useEffect(() => {
+    fetchIntradayData();
+  }, [fetchIntradayData]);
 
   if (loading) {
     return (
@@ -294,76 +294,9 @@ const IntradayChart = ({ symbol }) => {
     );
   }
 
-  // Format data for Chart.js
+  // Format data for display
   const chartData = intradayData.data.reverse(); // Chronological order
-  const labels = chartData.map(point => {
-    const time = point.time || point.datetime.split(' ')[1] || '';
-    return time.slice(0, 5); // HH:MM format
-  });
   const prices = chartData.map(point => point.close);
-
-  const chartConfig = {
-    labels,
-    datasets: [
-      {
-        label: `${symbol} Intraday Price`,
-        data: prices,
-        borderColor: '#8BC34A',
-        backgroundColor: 'rgba(139, 195, 74, 0.1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.2,
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        pointBackgroundColor: '#8BC34A',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-      }
-    ]
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      title: {
-        display: true,
-        text: `${symbol} - Intraday (${interval} intervals)`,
-        font: { size: 16, weight: 'bold' },
-        color: '#2C3E50'
-      },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        titleColor: '#2C3E50',
-        bodyColor: '#2C3E50',
-        borderColor: '#8BC34A',
-        borderWidth: 1,
-        callbacks: {
-          label: function(context) {
-            return `Price: $${context.parsed.y.toFixed(2)}`;
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: '#7A8A9A', maxTicksLimit: 8 }
-      },
-      y: {
-        grid: { color: 'rgba(139, 195, 74, 0.1)' },
-        ticks: {
-          color: '#7A8A9A',
-          callback: function(value) {
-            return '$' + value.toFixed(2);
-          }
-        }
-      }
-    }
-  };
 
   return (
     <div className="intraday-chart-container">

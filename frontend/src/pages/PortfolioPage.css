@@ -259,28 +259,7 @@
   opacity: 1;
 }
 
-/* Hover hint for interactive rows */
-.interactive-row::before {
-  content: "Hover for chart • Click for details";
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  z-index: 100;
-}
-
-.interactive-row:hover::before {
-  opacity: 1;
-}
+/* Removed problematic tooltip that was causing layout issues */
 
 .holdings-table tr:last-child td {
   border-bottom: none;

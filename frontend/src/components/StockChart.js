@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './StockChart.css';
 
 // For this implementation, we'll use Chart.js with react-chartjs-2
@@ -48,9 +48,9 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
     if (symbol) {
       fetchChartData();
     }
-  }, [symbol, selectedPeriod]);
+  }, [symbol, selectedPeriod, fetchChartData]);
 
-  const fetchChartData = async () => {
+  const fetchChartData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -108,7 +108,7 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
     } finally {
       setLoading(false);
     }
-  };
+  }, [symbol, selectedPeriod]);
 
   const chartOptions = {
     responsive: true,

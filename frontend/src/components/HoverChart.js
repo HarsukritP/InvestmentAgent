@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './HoverChart.css';
 
 // Mini chart using Chart.js
@@ -35,13 +35,12 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
     if (isVisible && symbol) {
       fetchIntradayData();
     }
-  }, [isVisible, symbol]);
+  }, [isVisible, symbol, fetchIntradayData]);
 
   // Position the tooltip to avoid screen edges
   useEffect(() => {
     if (containerRef.current && position) {
       const container = containerRef.current;
-      const rect = container.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       
@@ -61,7 +60,7 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
     }
   }, [position]);
 
-  const fetchIntradayData = async () => {
+  const fetchIntradayData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -121,7 +120,7 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [symbol]);
 
   const chartOptions = {
     responsive: true,
