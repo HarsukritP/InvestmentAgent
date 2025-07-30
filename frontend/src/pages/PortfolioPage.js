@@ -300,7 +300,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
                         title="Adjust Position"
                       >
                         <span className="icon">⚙</span>
-                        <span className="button-text">Adjust</span>
                       </button>
                     </td>
                   </tr>

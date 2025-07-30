@@ -254,20 +254,16 @@
 .table-icon-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   background: none;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 6px 8px;
+  padding: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: #5A6C7D;
-  font-size: 14px;
   width: 32px;
   height: 32px;
-  justify-content: center;
-  overflow: visible;
-  white-space: nowrap;
-  position: relative;
 }
 
 .table-icon-button .icon {
@@ -275,31 +271,10 @@
   transition: all 0.2s ease;
 }
 
-.table-icon-button .button-text {
-  max-width: 0;
-  opacity: 0;
-  margin-left: 0;
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
 .table-icon-button:hover {
   background-color: rgba(139, 195, 74, 0.1);
   border: 1px solid rgba(139, 195, 74, 0.5);
   color: #8BC34A;
-  width: auto;
-  padding: 6px 12px;
-  position: absolute;
-  right: 0;
-  transform: translateX(calc(-100% + 32px));
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.table-icon-button:hover .button-text {
-  max-width: 60px;
-  opacity: 1;
-  margin-left: 6px;
 }
 
 .table-icon-button:hover .icon {
