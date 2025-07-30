@@ -135,10 +135,10 @@
   margin-bottom: 30px;
 }
 
-/* Stats Grid - matches ActionsLogPage */
+/* Stats Grid - responsive layout */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   flex: 1;
 }
@@ -361,7 +361,38 @@
 
 }
 
-@media (max-width: 768px) {
+/* Medium screens: 2 columns when 3 don't fit comfortably */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+/* Small tablets: 2 columns or 1 if too narrow */
+@media (max-width: 768px) and (min-width: 481px) {
+  .portfolio-page {
+    padding: 1.5rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+  }
+  
+  .market-status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .status-actions {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+}
+
+/* Mobile phones: single column */
+@media (max-width: 480px) {
   .portfolio-page {
     padding: 1rem;
   }
