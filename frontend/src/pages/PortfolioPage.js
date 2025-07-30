@@ -11,33 +11,80 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
   const [selectedHolding, setSelectedHolding] = useState(null);
   const [marketStatus, setMarketStatus] = useState({
     isOpen: false,
-    nextUpdateMinutes: 5
+    nextUpdateMinutes: 5,
+    nextUpdateSeconds: 0
   });
+  const [healthStatus, setHealthStatus] = useState(null);
+  const refreshIntervalRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
+  const nextUpdateTimeRef = useRef(null);
 
-  // Check if market is open based on current time (Eastern Time)
-  const checkMarketStatus = useCallback(() => {
-    const now = new Date();
+  // Get market update interval based on market status
+  const getUpdateInterval = useCallback((isMarketOpen) => {
+    // 3 minutes when market is open, 20 minutes when closed
+    return isMarketOpen ? 3 * 60 * 1000 : 20 * 60 * 1000;
+  }, []);
+
+  // Update countdown timer
+  const updateCountdown = useCallback(() => {
+    if (!nextUpdateTimeRef.current) return;
     
-    // Convert to Eastern Time
-    const options = { timeZone: 'America/New_York', hour12: false };
-    const etTimeStr = now.toLocaleString('en-US', options);
-    const etTime = new Date(etTimeStr);
+    const now = Date.now();
+    const timeUntilUpdate = nextUpdateTimeRef.current - now;
     
-    const hours = etTime.getHours();
-    const minutes = etTime.getMinutes();
-    const dayOfWeek = etTime.getDay(); // 0 = Sunday, 6 = Saturday
-    
-    // Check if weekend
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      return false;
+    if (timeUntilUpdate <= 0) {
+      setMarketStatus(prev => ({ ...prev, nextUpdateMinutes: 0, nextUpdateSeconds: 0 }));
+      return;
     }
     
-    // Check if within market hours (9:30 AM - 4:00 PM ET)
-    const marketOpen = hours > 9 || (hours === 9 && minutes >= 30);
-    const marketClosed = hours >= 16; // 4:00 PM or later
+    const totalSeconds = Math.ceil(timeUntilUpdate / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
     
-    return marketOpen && !marketClosed;
+    setMarketStatus(prev => ({ 
+      ...prev, 
+      nextUpdateMinutes: minutes,
+      nextUpdateSeconds: seconds
+    }));
   }, []);
+
+  // Fetch health status
+  const fetchHealthStatus = useCallback(async () => {
+    try {
+      const response = await axios.get('/health');
+      setHealthStatus(response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching health status:', error);
+      return null;
+    }
+  }, []);
+
+  // Schedule next update
+  const scheduleNextUpdate = useCallback((currentMarketOpen) => {
+    const interval = getUpdateInterval(currentMarketOpen);
+    nextUpdateTimeRef.current = Date.now() + interval;
+    
+    // Clear existing intervals
+    if (refreshIntervalRef.current) {
+      clearTimeout(refreshIntervalRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    
+    // Set up new refresh interval
+    refreshIntervalRef.current = setTimeout(async () => {
+      const marketOpen = await fetchPortfolio();
+      scheduleNextUpdate(marketOpen);
+    }, interval);
+    
+    // Set up countdown timer (updates every second)
+    countdownIntervalRef.current = setInterval(updateCountdown, 1000);
+    
+    // Initial countdown update
+    updateCountdown();
+  }, [getUpdateInterval, updateCountdown, fetchPortfolio]);
 
   const fetchPortfolio = useCallback(async () => {
     setIsLoading(true);
@@ -45,12 +92,18 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     
     try {
       console.log('Fetching portfolio data...');
-      const response = await axios.get('/portfolio');
-      console.log('Portfolio data received:', response.data);
+      
+      // Fetch both portfolio and health status
+      const [portfolioResponse, healthData] = await Promise.all([
+        axios.get('/portfolio'),
+        fetchHealthStatus()
+      ]);
+      
+      console.log('Portfolio data received:', portfolioResponse.data);
       
       // Extract portfolio data from response structure
-      const portfolioData = response.data.portfolio || {};
-      const holdingsData = response.data.holdings || [];
+      const portfolioData = portfolioResponse.data.portfolio || {};
+      const holdingsData = portfolioResponse.data.holdings || [];
       
       // Calculate total value and holdings value
       const cashBalance = portfolioData.cash_balance || 0;
@@ -64,37 +117,52 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         holdings_value: holdingsValue
       });
       
-      // Check if market is open
-      const isMarketOpen = checkMarketStatus();
+      // Determine market status - prefer health status data, fallback to local check
+      let currentMarketOpen;
+      if (healthData && healthData.services && healthData.services.market_data && healthData.services.market_data.auto_refresh) {
+        currentMarketOpen = healthData.services.market_data.auto_refresh.market_status === 'open';
+      } else {
+        currentMarketOpen = isMarketOpen();
+      }
       
-      // Calculate next update time
-      const nextUpdate = new Date();
-      nextUpdate.setMinutes(nextUpdate.getMinutes() + 5);
-      const minutesUntilUpdate = 5;
+      setMarketStatus(prev => ({
+        ...prev,
+        isOpen: currentMarketOpen
+      }));
       
-      setMarketStatus({
-        isOpen: isMarketOpen,
-        nextUpdateMinutes: minutesUntilUpdate
-      });
+      return currentMarketOpen;
       
     } catch (error) {
       console.error('Error fetching portfolio:', error);
       setError('Failed to load portfolio data. Please try again.');
+      
+      // Fallback market status
+      const fallbackMarketOpen = isMarketOpen();
+      setMarketStatus(prev => ({ ...prev, isOpen: fallbackMarketOpen }));
+      return fallbackMarketOpen;
     } finally {
       setIsLoading(false);
     }
-  }, [checkMarketStatus]);
+  }, [fetchHealthStatus]);
 
   useEffect(() => {
-    fetchPortfolio();
+    const initializePortfolio = async () => {
+      const marketOpen = await fetchPortfolio();
+      scheduleNextUpdate(marketOpen);
+    };
     
-    // Set up auto-refresh every 5 minutes
-    const refreshInterval = setInterval(() => {
-      fetchPortfolio();
-    }, 5 * 60 * 1000);
+    initializePortfolio();
     
-    return () => clearInterval(refreshInterval);
-  }, [fetchPortfolio]);
+    // Cleanup intervals on unmount
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearTimeout(refreshIntervalRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [fetchPortfolio, scheduleNextUpdate]);
 
   const handleBuyStock = () => {
     setSelectedHolding(null);
@@ -153,7 +221,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           </span>
         </div>
         <span className="update-time">
-          Next update in {marketStatus.nextUpdateMinutes} min
+          Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s
         </span>
       </div>
       
