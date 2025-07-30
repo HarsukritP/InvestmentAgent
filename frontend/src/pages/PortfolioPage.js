@@ -299,7 +299,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
                         onClick={() => handleAdjustHolding(holding)}
                         title="Adjust Position"
                       >
-                        <span className="icon">⚙️</span>
+                        <span className="icon">±</span>
                         <span className="button-text">Adjust</span>
                       </button>
                     </td>
