@@ -299,12 +299,12 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   };
 
   // Calculate slider position percentages for markers
-  const getSliderPosition = (value) => {
+  const getSliderPosition = useCallback((value) => {
     if (!existingHolding) return 0;
     const min = 0;
     const max = sliderMax;
     return ((value - min) / (max - min)) * 100;
-  };
+  }, [existingHolding, sliderMax]);
 
   // Set the CSS variable for the slider gradient
   useEffect(() => {
@@ -319,7 +319,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     return () => {
       document.documentElement.style.removeProperty('--current-position');
     };
-  }, [existingHolding, currentShares, sliderMax]);
+  }, [existingHolding, currentShares, sliderMax, getSliderPosition]);
 
   // Get the max display value
   const getMaxDisplay = () => {

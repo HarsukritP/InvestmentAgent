@@ -31,35 +31,6 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
   const chartRef = useRef(null);
   const containerRef = useRef(null);
 
-  useEffect(() => {
-    if (isVisible && symbol) {
-      fetchIntradayData();
-    }
-  }, [isVisible, symbol, fetchIntradayData]);
-
-  // Position the tooltip to avoid screen edges
-  useEffect(() => {
-    if (containerRef.current && position) {
-      const container = containerRef.current;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      let left = position.x + 15;
-      let top = position.y + 15;
-      
-      // Adjust if tooltip would go off screen
-      if (left + 320 > viewportWidth) {
-        left = position.x - 320 - 15;
-      }
-      if (top + 200 > viewportHeight) {
-        top = position.y - 200 - 15;
-      }
-      
-      container.style.left = `${left}px`;
-      container.style.top = `${top}px`;
-    }
-  }, [position]);
-
   const fetchIntradayData = useCallback(async () => {
     try {
       setLoading(true);
@@ -121,6 +92,35 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
       setLoading(false);
     }
   }, [symbol]);
+
+  useEffect(() => {
+    if (isVisible && symbol) {
+      fetchIntradayData();
+    }
+  }, [isVisible, symbol, fetchIntradayData]);
+
+  // Position the tooltip to avoid screen edges
+  useEffect(() => {
+    if (containerRef.current && position) {
+      const container = containerRef.current;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let left = position.x + 15;
+      let top = position.y + 15;
+      
+      // Adjust if tooltip would go off screen
+      if (left + 320 > viewportWidth) {
+        left = position.x - 320 - 15;
+      }
+      if (top + 200 > viewportHeight) {
+        top = position.y - 200 - 15;
+      }
+      
+      container.style.left = `${left}px`;
+      container.style.top = `${top}px`;
+    }
+  }, [position]);
 
   const chartOptions = {
     responsive: true,

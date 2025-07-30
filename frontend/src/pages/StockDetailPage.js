@@ -11,12 +11,6 @@ const StockDetailPage = () => {
   const [error, setError] = useState(null);
   const [selectedChart, setSelectedChart] = useState('price');
 
-  useEffect(() => {
-    if (symbol) {
-      fetchStockDetails();
-    }
-  }, [symbol, fetchStockDetails]);
-
   const fetchStockDetails = useCallback(async () => {
     try {
       setLoading(true);
@@ -41,6 +35,12 @@ const StockDetailPage = () => {
       setLoading(false);
     }
   }, [symbol]);
+
+  useEffect(() => {
+    if (symbol) {
+      fetchStockDetails();
+    }
+  }, [symbol, fetchStockDetails]);
 
   const formatCurrency = (value) => {
     if (value === null || value === undefined) return 'N/A';

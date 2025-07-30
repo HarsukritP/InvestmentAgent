@@ -141,7 +141,6 @@ function App() {
       console.log('Fetching health status...');
       const response = await axios.get('/health');
       console.log('Health status received:', response.data);
-      setHealthStatus(response.data);
     } catch (error) {
       console.error('Failed to fetch health status:', error);
     }
@@ -149,7 +148,6 @@ function App() {
 
   const fetchPortfolio = async () => {
     try {
-      setIsRefreshingPortfolio(true);
       console.log('🔄 Fetching portfolio data...');
       const response = await axios.get('/portfolio');
       console.log('Portfolio API response:', response);
@@ -163,8 +161,6 @@ function App() {
       console.log('✅ Portfolio data updated:', portfolioWithTimestamp);
     } catch (error) {
       console.error('Failed to fetch portfolio:', error);
-    } finally {
-      setIsRefreshingPortfolio(false);
     }
   };
 
@@ -198,7 +194,6 @@ function App() {
     // Reset state
     setUser(null);
     setIsAuthenticated(false);
-    setHealthStatus(null);
     setPortfolio(null);
     
     // Call logout endpoint

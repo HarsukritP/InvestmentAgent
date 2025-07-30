@@ -44,12 +44,6 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
     { value: "5years", label: "5Y" }
   ];
 
-  useEffect(() => {
-    if (symbol) {
-      fetchChartData();
-    }
-  }, [symbol, selectedPeriod, fetchChartData]);
-
   const fetchChartData = useCallback(async () => {
     try {
       setLoading(true);
@@ -109,6 +103,12 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
       setLoading(false);
     }
   }, [symbol, selectedPeriod]);
+
+  useEffect(() => {
+    if (symbol) {
+      fetchChartData();
+    }
+  }, [symbol, selectedPeriod, fetchChartData]);
 
   const chartOptions = {
     responsive: true,
