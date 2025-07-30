@@ -317,8 +317,8 @@ class AIPortfolioAgent:
                 "analysis": "Stock analysis would be performed",
                 "message": "Stock analysis data would be retrieved"
             }
-            except Exception as e:
-                return {"error": str(e)}
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _get_market_indicators(self, indicators: List[str] = None) -> Dict[str, Any]:
         """Get market indicators"""
@@ -328,15 +328,15 @@ class AIPortfolioAgent:
                 "data": {},
                 "message": "Market indicators would be retrieved"
             }
-            except Exception as e:
-                return {"error": str(e)}
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _buy_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
         """Execute buy order"""
         try:
-                    return {
+            return {
                 "user_id": user_id,
-                        "symbol": symbol,
+                "symbol": symbol,
                 "quantity": quantity,
                 "message": "Buy order would be executed",
                 "success": True
@@ -347,49 +347,49 @@ class AIPortfolioAgent:
     async def _sell_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
         """Execute sell order"""
         try:
-                return {
+            return {
                 "user_id": user_id,
-                    "symbol": symbol,
+                "symbol": symbol,
                 "quantity": quantity,
                 "message": "Sell order would be executed",
                 "success": True
-                }
-            except Exception as e:
+            }
+        except Exception as e:
             return {"error": str(e), "success": False}
 
     async def _get_cash_balance(self, user_id: str) -> Dict[str, Any]:
         """Get user's cash balance"""
         try:
-                    return {
+            return {
                 "user_id": user_id,
                 "cash_balance": 5000.0,
                 "message": "Cash balance would be retrieved from database"
             }
-            except Exception as e:
-                return {"error": str(e)}
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _get_holdings(self, user_id: str) -> Dict[str, Any]:
         """Get user's holdings"""
         try:
-                    return {
+            return {
                 "user_id": user_id,
                 "holdings": [],
                 "message": "Holdings would be retrieved from database"
             }
-            except Exception as e:
-                return {"error": str(e)}
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _get_transaction_history(self, user_id: str, limit: int = 10) -> Dict[str, Any]:
         """Get transaction history"""
         try:
-                return {
+            return {
                 "user_id": user_id,
                 "limit": limit,
                 "transactions": [],
                 "message": "Transaction history would be retrieved from database"
             }
-            except Exception as e:
-                return {"error": str(e)}
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _build_market_context(self) -> str:
         """Build market context for AI"""
@@ -398,7 +398,7 @@ class AIPortfolioAgent:
                 context = await self.market_context_service.get_market_context([])
                 return f"Market Context: {json.dumps(context, default=str)}"
             return "Market context unavailable"
-            except Exception as e:
+        except Exception as e:
             return f"Market context error: {str(e)}"
 
     async def _prepare_conversation_history(self, conversation_history: Optional[List[Dict]], context: str, user_id: str) -> List[Dict]:
@@ -518,7 +518,7 @@ Be helpful, accurate, and provide actionable insights."""
                         )
                         
                         final_content = final_response.choices[0].message.content
-            except Exception as e:
+                    except Exception as e:
                         logger.error(f"Function execution error: {e}")
                         final_content = f"I encountered an error while executing {function_name}. Please try again or rephrase your request."
                         function_result = {"error": str(e)}
@@ -544,7 +544,7 @@ Be helpful, accurate, and provide actionable insights."""
                 final_content = message_content.content
             
             # Return the structured response
-                    return {
+            return {
                 "response": final_content,
                 "timestamp": datetime.now().isoformat(),
                 "function_called": function_calls[0].name if function_calls else None,
@@ -557,7 +557,7 @@ Be helpful, accurate, and provide actionable insights."""
                         "timestamp": fc.timestamp
                     } for fc in function_calls
                 ]
-                    }
+            }
             
         except Exception as e:
             logger.error(f"Chat error: {e}")
@@ -571,8 +571,8 @@ Be helpful, accurate, and provide actionable insights."""
     
     def health_check(self) -> Dict[str, Any]:
         """Check health of AI agent"""
-                return {
+        return {
             "status": "healthy" if self.client else "error",
             "error": None if self.client else "OpenAI API key not configured",
             "model": "gpt-4o" if self.client else None
-            } 
+        } 
