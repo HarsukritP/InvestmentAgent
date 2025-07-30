@@ -253,7 +253,7 @@
   display: flex;
   align-items: center;
   background: none;
-  border: 1px solid rgba(139, 195, 74, 0.3);
+  border: 1px solid transparent;
   border-radius: 4px;
   padding: 6px 8px;
   cursor: pointer;
@@ -267,7 +267,7 @@
 }
 
 .table-icon-button .icon {
-  font-size: 14px;
+  font-size: 18px;
   transition: all 0.2s ease;
 }
 
@@ -281,7 +281,7 @@
 
 .table-icon-button:hover {
   background-color: rgba(139, 195, 74, 0.1);
-  border-color: rgba(139, 195, 74, 0.5);
+  border: 1px solid rgba(139, 195, 74, 0.5);
   color: #8BC34A;
   min-width: auto;
   padding: 6px 12px;
