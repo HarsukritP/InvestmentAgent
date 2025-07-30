@@ -248,18 +248,53 @@
   text-align: right;
 }
 
-.action-cell button {
-  padding: 8px 16px;
-  border: none;
+/* Table Icon Button */
+.table-icon-button {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 1px solid rgba(139, 195, 74, 0.3);
   border-radius: 4px;
+  padding: 6px 8px;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  color: #5A6C7D;
+  font-size: 14px;
+  min-width: 28px;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.buy-more-button {
-  background-color: #2196f3;
-  color: white;
+.table-icon-button .icon {
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.table-icon-button .button-text {
+  max-width: 0;
+  opacity: 0;
+  margin-left: 0;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.table-icon-button:hover {
+  background-color: rgba(139, 195, 74, 0.1);
+  border-color: rgba(139, 195, 74, 0.5);
+  color: #8BC34A;
+  min-width: auto;
+  padding: 6px 12px;
+}
+
+.table-icon-button:hover .button-text {
+  max-width: 60px;
+  opacity: 1;
+  margin-left: 6px;
+}
+
+.table-icon-button:hover .icon {
+  transform: scale(1.1);
 }
 
 /* Empty State */
@@ -419,8 +454,12 @@
     font-size: 0.9rem;
   }
   
-  .action-cell button {
-    padding: 6px 12px;
-    font-size: 0.8rem;
+  .table-icon-button {
+    min-width: 32px;
+    padding: 8px 10px;
+  }
+  
+  .table-icon-button:hover {
+    padding: 8px 14px;
   }
 }

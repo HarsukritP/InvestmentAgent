@@ -295,10 +295,12 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
                     </td>
                     <td className="action-cell">
                       <button 
-                        className="buy-more-button" 
+                        className="table-icon-button adjust-icon" 
                         onClick={() => handleAdjustHolding(holding)}
+                        title="Adjust Position"
                       >
-                        Adjust
+                        <span className="icon">⚙️</span>
+                        <span className="button-text">Adjust</span>
                       </button>
                     </td>
                   </tr>
