@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { isMarketOpen } from '../utils/formatters';
 import BuyStock from '../BuyStock';
+import HoverChart from '../components/HoverChart';
 import './PortfolioPage.css';
 
 const PortfolioPage = ({ onTransactionSuccess }) => {
+  const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,6 +18,14 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     nextUpdateMinutes: 5,
     nextUpdateSeconds: 0
   });
+
+  // Hover chart state
+  const [hoverChart, setHoverChart] = useState({
+    visible: false,
+    symbol: null,
+    position: { x: 0, y: 0 }
+  });
+  const hoverTimeoutRef = useRef(null);
 
   const refreshIntervalRef = useRef(null);
   const countdownIntervalRef = useRef(null);
@@ -173,6 +184,49 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     setSelectedHolding(holding);
     setShowBuyModal(true);
   };
+
+  // Hover chart handlers
+  const handleRowMouseEnter = (symbol, event) => {
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+
+    // Set a delay before showing the chart (1 second)
+    hoverTimeoutRef.current = setTimeout(() => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHoverChart({
+        visible: true,
+        symbol: symbol,
+        position: {
+          x: event.clientX,
+          y: event.clientY
+        }
+      });
+    }, 1000);
+  };
+
+  const handleRowMouseLeave = () => {
+    // Clear the timeout if user leaves before 1 second
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+
+    // Hide the chart
+    setHoverChart(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleRowClick = (symbol) => {
+    // Hide hover chart when clicking
+    setHoverChart(prev => ({ ...prev, visible: false }));
+    // Navigate to stock detail page
+    navigate(`/stock/${symbol}`);
+  };
+
+  const handleChartMouseLeave = () => {
+    setHoverChart(prev => ({ ...prev, visible: false }));
+  };
   
   const handleTransactionSuccess = (data) => {
     fetchPortfolio();
@@ -282,8 +336,15 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
               </thead>
               <tbody>
                 {holdings.map((holding) => (
-                  <tr key={holding.symbol}>
-                    <td className="symbol-cell">{holding.symbol}</td>
+                  <tr 
+                    key={holding.symbol}
+                    className="holdings-row interactive-row"
+                    onMouseEnter={(e) => handleRowMouseEnter(holding.symbol, e)}
+                    onMouseLeave={handleRowMouseLeave}
+                    onClick={() => handleRowClick(holding.symbol)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="symbol-cell clickable">{holding.symbol}</td>
                     <td>{parseFloat(holding.shares).toFixed(2)}</td>
                     <td>${holding.average_cost ? holding.average_cost.toFixed(2) : holding.avg_cost.toFixed(2)}</td>
                     <td>${holding.current_price.toFixed(2)}</td>
@@ -296,7 +357,10 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
                     <td className="action-cell">
                       <button 
                         className="table-icon-button adjust-icon" 
-                        onClick={() => handleAdjustHolding(holding)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent row click
+                          handleAdjustHolding(holding);
+                        }}
                         title="Adjust Position"
                       >
                         <span className="icon">⚙</span>
@@ -321,6 +385,14 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         onClose={() => setShowBuyModal(false)}
         onSuccess={handleTransactionSuccess}
         existingHolding={selectedHolding}
+      />
+
+      {/* Hover Chart */}
+      <HoverChart
+        symbol={hoverChart.symbol}
+        isVisible={hoverChart.visible}
+        position={hoverChart.position}
+        onMouseLeave={handleChartMouseLeave}
       />
     </div>
   );

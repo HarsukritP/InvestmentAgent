@@ -311,6 +311,191 @@ class MarketDataService:
             logger.error(f"Error getting historical data for {symbol}: {str(e)}")
             return []
     
+    async def backfill_historical_data(self, symbol: str, period: str = "1year", interval: str = "1day") -> Dict[str, Any]:
+        """Backfill historical data from Twelve Data API into our database"""
+        try:
+            if not self.twelvedata_api_key:
+                return {"error": "Twelve Data API key not configured"}
+            
+            # Convert period to outputsize for Twelve Data API
+            outputsize_map = {
+                "1week": 7,
+                "1month": 30,
+                "3months": 90,
+                "6months": 180,
+                "1year": 365,
+                "2years": 730,
+                "5years": 1825
+            }
+            
+            outputsize = outputsize_map.get(period, 365)
+            
+            # Fetch from Twelve Data API
+            url = f"{self.twelvedata_base_url}/time_series"
+            params = {
+                "symbol": symbol,
+                "interval": interval,
+                "outputsize": min(outputsize, 5000),  # API limit
+                "apikey": self.twelvedata_api_key,
+                "order": "ASC"  # Oldest first for chronological insertion
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    if response.status != 200:
+                        return {"error": f"API request failed: {response.status}"}
+                    
+                    data = await response.json()
+                    
+                    if data.get("status") == "error":
+                        return {"error": data.get("message", "API returned error")}
+                    
+                    values = data.get("values", [])
+                    if not values:
+                        return {"error": "No historical data received"}
+                    
+                    # Process and store historical data
+                    stored_count = 0
+                    for record in values:
+                        try:
+                            price_data = {
+                                "price": float(record["close"]),
+                                "volume": int(record.get("volume", 0)) if record.get("volume") else None,
+                                "open_price": float(record["open"]),
+                                "high_price": float(record["high"]),
+                                "low_price": float(record["low"]),
+                                "close_price": float(record["close"]),
+                                "source": "twelvedata",
+                                "data_type": "historical",
+                                "timestamp": record["datetime"]
+                            }
+                            
+                            # Check if this timestamp already exists to avoid duplicates
+                            existing = await self._check_existing_data(symbol, record["datetime"])
+                            if not existing:
+                                await self.db_service.store_market_data(symbol, price_data)
+                                stored_count += 1
+                        
+                        except (ValueError, KeyError) as e:
+                            logger.warning(f"Error processing record for {symbol}: {str(e)}")
+                            continue
+                    
+                    logger.info(f"📈 BACKFILL   | {symbol:6} | Stored {stored_count}/{len(values)} records ({period})")
+                    
+                    return {
+                        "symbol": symbol,
+                        "period": period,
+                        "interval": interval,
+                        "total_records": len(values),
+                        "stored_records": stored_count,
+                        "skipped_records": len(values) - stored_count
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error backfilling historical data for {symbol}: {str(e)}")
+            return {"error": str(e)}
+    
+    async def _check_existing_data(self, symbol: str, timestamp: str) -> bool:
+        """Check if historical data already exists for this symbol and timestamp"""
+        try:
+            result = self.db_service.supabase.table('market_data_history').select('id').eq('symbol', symbol.upper()).eq('timestamp', timestamp).limit(1).execute()
+            return len(result.data) > 0
+        except Exception:
+            return False
+    
+    async def ensure_historical_data(self, symbol: str, period: str = "6months") -> Dict[str, Any]:
+        """Ensure we have enough historical data, backfill if needed"""
+        try:
+            # Check how much data we currently have
+            period_days = {"1week": 7, "1month": 30, "3months": 90, "6months": 180, "1year": 365}
+            days = period_days.get(period, 180)
+            
+            existing_data = await self.get_historical_data(symbol, days)
+            
+            # If we have less than 80% of expected data points, backfill
+            expected_points = days if period != "1week" else 5  # Account for weekends
+            if len(existing_data) < (expected_points * 0.8):
+                logger.info(f"📊 DATA GAP   | {symbol:6} | Only {len(existing_data)}/{expected_points} records, backfilling...")
+                backfill_result = await self.backfill_historical_data(symbol, period)
+                return {
+                    "action": "backfilled",
+                    "existing_records": len(existing_data),
+                    "backfill_result": backfill_result
+                }
+            else:
+                return {
+                    "action": "sufficient",
+                    "existing_records": len(existing_data),
+                    "message": f"Sufficient data available ({len(existing_data)} records)"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error ensuring historical data for {symbol}: {str(e)}")
+            return {"error": str(e)}
+    
+    async def get_intraday_data(self, symbol: str, interval: str = "1h", outputsize: int = 24) -> Dict[str, Any]:
+        """Get intraday data for hover charts (hours/minutes)"""
+        try:
+            if not self.twelvedata_api_key:
+                return {"error": "Twelve Data API key not configured"}
+            
+            # Fetch intraday data from Twelve Data API
+            url = f"{self.twelvedata_base_url}/time_series"
+            params = {
+                "symbol": symbol,
+                "interval": interval,  # 1h, 30min, 15min, 5min, 1min
+                "outputsize": min(outputsize, 100),  # Limit for responsiveness
+                "apikey": self.twelvedata_api_key,
+                "order": "DESC"  # Newest first
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    if response.status != 200:
+                        return {"error": f"API request failed: {response.status}"}
+                    
+                    data = await response.json()
+                    
+                    if data.get("status") == "error":
+                        return {"error": data.get("message", "API returned error")}
+                    
+                    values = data.get("values", [])
+                    if not values:
+                        return {"error": "No intraday data received"}
+                    
+                    # Format data for charts
+                    chart_data = []
+                    for record in values:
+                        try:
+                            chart_data.append({
+                                "datetime": record["datetime"],
+                                "time": record["datetime"].split(' ')[1] if ' ' in record["datetime"] else record["datetime"][-8:],  # Extract time part
+                                "open": float(record["open"]),
+                                "high": float(record["high"]),
+                                "low": float(record["low"]),
+                                "close": float(record["close"]),
+                                "volume": int(record.get("volume", 0)) if record.get("volume") else None,
+                                "price": float(record["close"])  # For simple line charts
+                            })
+                        except (ValueError, KeyError) as e:
+                            logger.warning(f"Error processing intraday record for {symbol}: {str(e)}")
+                            continue
+                    
+                    logger.info(f"📈 INTRADAY  | {symbol:6} | Fetched {len(chart_data)} {interval} data points")
+                    
+                    return {
+                        "symbol": symbol,
+                        "interval": interval,
+                        "data_points": len(chart_data),
+                        "data": chart_data,
+                        "current_price": chart_data[0]["close"] if chart_data else None,
+                        "change": chart_data[0]["close"] - chart_data[-1]["close"] if len(chart_data) > 1 else 0
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error getting intraday data for {symbol}: {str(e)}")
+            return {"error": str(e)}
+    
     async def get_cache_stats(self) -> Dict[str, Any]:
         """Get statistics about our collaborative cache"""
         try:

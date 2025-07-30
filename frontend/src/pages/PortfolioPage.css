@@ -223,6 +223,65 @@
   background-color: #f8f9fa;
 }
 
+/* Interactive row styling */
+.interactive-row {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.interactive-row:hover {
+  background-color: rgba(139, 195, 74, 0.08) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.symbol-cell.clickable {
+  font-weight: 600;
+  color: #8BC34A;
+  position: relative;
+}
+
+.symbol-cell.clickable:hover {
+  color: #7CB342;
+  text-decoration: underline;
+}
+
+.symbol-cell.clickable::after {
+  content: "📊";
+  position: absolute;
+  right: -20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 12px;
+}
+
+.interactive-row:hover .symbol-cell.clickable::after {
+  opacity: 1;
+}
+
+/* Hover hint for interactive rows */
+.interactive-row::before {
+  content: "Hover for chart • Click for details";
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+}
+
+.interactive-row:hover::before {
+  opacity: 1;
+}
+
 .holdings-table tr:last-child td {
   border-bottom: none;
 }

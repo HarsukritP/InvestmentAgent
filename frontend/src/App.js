@@ -11,6 +11,7 @@ import AuthSuccess from './AuthSuccess';
 import PortfolioPage from './pages/PortfolioPage';
 import ChatPage from './pages/ChatPage';
 import ActionsLogPage from './pages/ActionsLogPage';
+import StockDetailPage from './pages/StockDetailPage';
 import Navigation from './components/Navigation';
 import BuyStock from './BuyStock';
 
@@ -314,6 +315,16 @@ function App() {
                     toggleMobileNav={toggleMobileNav} 
                   />
                 </ProtectedLayout>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/stock/:symbol" 
+            element={
+              isAuthenticated ? (
+                <StockDetailPage />
               ) : (
                 <Navigate to="/" replace />
               )

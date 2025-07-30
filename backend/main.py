@@ -739,6 +739,261 @@ async def get_stock_price(symbol: str, user: Dict[str, Any] = Depends(require_au
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching stock price: {str(e)}")
 
+# Chart and Historical Data Endpoints
+@app.get("/chart/{symbol}")
+async def get_chart_data(
+    symbol: str,
+    period: str = "6months",
+    interval: str = "1day",
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get historical chart data for a stock symbol"""
+    try:
+        symbol = symbol.upper()
+        
+        # Validate period parameter
+        valid_periods = ["1week", "1month", "3months", "6months", "1year", "2years", "5years"]
+        if period not in valid_periods:
+            raise HTTPException(status_code=400, detail=f"Invalid period. Must be one of: {', '.join(valid_periods)}")
+        
+        # Ensure we have sufficient historical data, backfill if needed
+        data_check = await market_service.ensure_historical_data(symbol, period)
+        
+        # Convert period to days for database query
+        period_days = {
+            "1week": 7,
+            "1month": 30,
+            "3months": 90,
+            "6months": 180,
+            "1year": 365,
+            "2years": 730,
+            "5years": 1825
+        }
+        days = period_days.get(period, 180)
+        
+        # Get historical data from database
+        historical_data = await market_service.get_historical_data(symbol, days)
+        
+        if not historical_data:
+            raise HTTPException(status_code=404, detail=f"No historical data available for {symbol}")
+        
+        # Format data for charting (newest first)
+        chart_data = []
+        for record in reversed(historical_data):  # Reverse to get newest first
+            chart_data.append({
+                "date": record["timestamp"][:10],  # Extract date part (YYYY-MM-DD)
+                "datetime": record["timestamp"],
+                "open": record.get("open_price"),
+                "high": record.get("high_price"),
+                "low": record.get("low_price"),
+                "close": record.get("close_price") or record.get("price"),
+                "volume": record.get("volume"),
+                "price": record.get("price")  # For simple line charts
+            })
+        
+        return {
+            "symbol": symbol,
+            "period": period,
+            "interval": interval,
+            "data_points": len(chart_data),
+            "data": chart_data,
+            "meta": {
+                "data_source": data_check.get("action", "existing"),
+                "backfill_info": data_check.get("backfill_result") if data_check.get("action") == "backfilled" else None
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting chart data for {symbol}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching chart data: {str(e)}")
+
+@app.post("/backfill-historical/{symbol}")
+async def backfill_historical_data(
+    symbol: str,
+    period: str = "1year",
+    interval: str = "1day",
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Manually trigger historical data backfill for a symbol"""
+    try:
+        symbol = symbol.upper()
+        
+        # Validate parameters
+        valid_periods = ["1week", "1month", "3months", "6months", "1year", "2years", "5years"]
+        if period not in valid_periods:
+            raise HTTPException(status_code=400, detail=f"Invalid period. Must be one of: {', '.join(valid_periods)}")
+        
+        # Trigger backfill
+        result = await market_service.backfill_historical_data(symbol, period, interval)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return {
+            "message": f"Successfully backfilled historical data for {symbol}",
+            "result": result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error backfilling data for {symbol}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error backfilling historical data: {str(e)}")
+
+@app.get("/portfolio-charts")
+async def get_portfolio_charts(user: Dict[str, Any] = Depends(require_auth)):
+    """Get chart data for all holdings in user's portfolio"""
+    try:
+        user_id = user.get('db_user_id')
+        
+        if not user_id:
+            # Create or get user in database
+            db_user = await db_service.create_or_get_user(
+                google_id=user.get('sub'),
+                email=user.get('email'),
+                name=user.get('name'),
+                picture_url=user.get('picture')
+            )
+            user_id = db_user['id']
+        
+        # Get user's portfolio
+        portfolios = await db_service.get_user_portfolios(user_id)
+        if not portfolios:
+            return {"charts": [], "message": "No portfolio found"}
+        
+        portfolio = portfolios[0]
+        holdings = await db_service.get_portfolio_holdings(portfolio['id'])
+        
+        if not holdings:
+            return {"charts": [], "message": "No holdings in portfolio"}
+        
+        # Get chart data for each holding
+        charts = {}
+        for holding in holdings:
+            symbol = holding['symbol']
+            try:
+                # Ensure we have historical data
+                await market_service.ensure_historical_data(symbol, "3months")
+                
+                # Get 30 days of data for portfolio overview
+                historical_data = await market_service.get_historical_data(symbol, 30)
+                
+                if historical_data:
+                    # Format for simple line chart
+                    chart_data = []
+                    for record in reversed(historical_data[-30:]):  # Last 30 days, newest first
+                        chart_data.append({
+                            "date": record["timestamp"][:10],
+                            "price": record.get("close_price") or record.get("price"),
+                            "change": record.get("change_amount", 0)
+                        })
+                    
+                    charts[symbol] = {
+                        "symbol": symbol,
+                        "data": chart_data,
+                        "data_points": len(chart_data)
+                    }
+                    
+            except Exception as e:
+                logger.warning(f"Error getting chart data for {symbol}: {str(e)}")
+                continue
+        
+        return {
+            "charts": charts,
+            "symbols": list(charts.keys()),
+            "total_charts": len(charts)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting portfolio charts: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching portfolio charts: {str(e)}")
+
+@app.get("/intraday/{symbol}")
+async def get_intraday_data(
+    symbol: str,
+    interval: str = "1h",
+    outputsize: int = 24,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get intraday data for hover charts and real-time updates"""
+    try:
+        symbol = symbol.upper()
+        
+        # Validate interval parameter
+        valid_intervals = ["1min", "5min", "15min", "30min", "1h", "2h", "4h"]
+        if interval not in valid_intervals:
+            raise HTTPException(status_code=400, detail=f"Invalid interval. Must be one of: {', '.join(valid_intervals)}")
+        
+        # Get intraday data from market service
+        result = await market_service.get_intraday_data(symbol, interval, outputsize)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting intraday data for {symbol}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching intraday data: {str(e)}")
+
+@app.get("/stock-details/{symbol}")
+async def get_stock_details(
+    symbol: str,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get comprehensive stock details for detail page"""
+    try:
+        symbol = symbol.upper()
+        
+        # Get current quote
+        quote_data = await market_service.get_stock_quote(symbol)
+        if not quote_data:
+            raise HTTPException(status_code=404, detail=f"Stock data not available for {symbol}")
+        
+        # Get basic historical data for quick overview
+        historical_data = await market_service.get_historical_data(symbol, 30)
+        
+        # Calculate additional metrics
+        prices = [float(record.get("close_price") or record.get("price", 0)) for record in historical_data[-30:]]
+        
+        # Simple price analytics
+        price_analytics = {}
+        if len(prices) >= 2:
+            current_price = prices[-1]
+            prev_price = prices[-2] if len(prices) > 1 else prices[0]
+            week_ago_price = prices[-7] if len(prices) >= 7 else prices[0]
+            month_ago_price = prices[0] if len(prices) >= 30 else prices[0]
+            
+            price_analytics = {
+                "daily_change": current_price - prev_price,
+                "daily_change_percent": ((current_price - prev_price) / prev_price * 100) if prev_price else 0,
+                "weekly_change": current_price - week_ago_price,
+                "weekly_change_percent": ((current_price - week_ago_price) / week_ago_price * 100) if week_ago_price else 0,
+                "monthly_change": current_price - month_ago_price,
+                "monthly_change_percent": ((current_price - month_ago_price) / month_ago_price * 100) if month_ago_price else 0,
+                "high_52w": max(prices) if prices else current_price,
+                "low_52w": min(prices) if prices else current_price,
+                "avg_volume": sum([record.get("volume", 0) for record in historical_data[-30:] if record.get("volume")]) / len([r for r in historical_data[-30:] if r.get("volume")]) if historical_data else None
+            }
+        
+        return {
+            "symbol": symbol,
+            "quote": quote_data,
+            "analytics": price_analytics,
+            "data_points": len(historical_data),
+            "last_updated": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting stock details for {symbol}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching stock details: {str(e)}")
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_ai(
     chat_request: ChatMessage,
