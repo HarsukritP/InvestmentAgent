@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { isMarketOpen } from '../utils/formatters';
 import BuyStock from '../BuyStock';
 import './PortfolioPage.css';
 
@@ -14,7 +15,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     nextUpdateMinutes: 5,
     nextUpdateSeconds: 0
   });
-  const [healthStatus, setHealthStatus] = useState(null);
+
   const refreshIntervalRef = useRef(null);
   const countdownIntervalRef = useRef(null);
   const nextUpdateTimeRef = useRef(null);
@@ -52,7 +53,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
   const fetchHealthStatus = useCallback(async () => {
     try {
       const response = await axios.get('/health');
-      setHealthStatus(response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching health status:', error);
