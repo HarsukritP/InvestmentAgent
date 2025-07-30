@@ -517,7 +517,7 @@ Be helpful, accurate, and provide actionable insights."""
                             max_tokens=1500
                         )
                         
-                                                final_content = final_response.choices[0].message.content
+                        final_content = final_response.choices[0].message.content
                     except Exception as e:
                         logger.error(f"Function execution error: {e}")
                         final_content = f"I encountered an error while executing {function_name}. Please try again or rephrase your request."
