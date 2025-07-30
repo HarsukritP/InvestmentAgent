@@ -217,12 +217,9 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="status-indicator-container">
           <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
           <span className="status-text">
-            Market {marketStatus.isOpen ? 'Open' : 'Closed'}
+            Market {marketStatus.isOpen ? 'Open' : 'Closed'} | Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s
           </span>
         </div>
-        <span className="update-time">
-          Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s
-        </span>
       </div>
       
       <div className="portfolio-summary">

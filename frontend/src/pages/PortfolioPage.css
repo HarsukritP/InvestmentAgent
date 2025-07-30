@@ -22,7 +22,6 @@
 .market-status-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
@@ -56,7 +55,7 @@
 
 .status-text {
   font-weight: 500;
-  margin-right: 10px;
+  color: #2C3E50;
 }
 
 .update-time {
