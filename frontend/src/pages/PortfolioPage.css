@@ -22,6 +22,7 @@
 .market-status-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
@@ -58,9 +59,73 @@
   color: #2C3E50;
 }
 
-.update-time {
+.update-text {
   color: #6c757d;
-  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* Status Actions */
+.status-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 1px solid rgba(139, 195, 74, 0.3);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #5A6C7D;
+  font-size: 14px;
+  min-width: 32px;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.icon-button .icon {
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.icon-button .button-text {
+  max-width: 0;
+  opacity: 0;
+  margin-left: 0;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.icon-button:hover {
+  background-color: rgba(139, 195, 74, 0.1);
+  border-color: rgba(139, 195, 74, 0.5);
+  color: #8BC34A;
+  min-width: auto;
+  padding: 6px 12px;
+}
+
+.icon-button:hover .button-text {
+  max-width: 80px;
+  opacity: 1;
+  margin-left: 6px;
+}
+
+.icon-button:hover .icon {
+  transform: scale(1.1);
+}
+
+.buy-icon .icon {
+  font-size: 18px;
+}
+
+.refresh-icon .icon {
+  font-size: 16px;
 }
 
 /* Portfolio Summary */
@@ -119,37 +184,7 @@
   margin: 5px 0 0 0;
 }
 
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-left: 20px;
-}
 
-.action-button {
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  min-width: 140px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.buy-button {
-  background-color: #2196f3;
-  color: white;
-  border: none;
-}
-
-.refresh-button {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
-}
 
 /* Holdings Table */
 .positions-count {
@@ -323,11 +358,7 @@
     flex-direction: column;
   }
   
-  .action-buttons {
-    flex-direction: row;
-    margin-left: 0;
-    margin-top: 20px;
-  }
+
 }
 
 @media (max-width: 768px) {
@@ -339,6 +370,11 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+  
+  .status-actions {
+    align-self: stretch;
+    justify-content: flex-end;
   }
   
   .stats-grid {

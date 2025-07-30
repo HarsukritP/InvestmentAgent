@@ -217,8 +217,18 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="status-indicator-container">
           <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
           <span className="status-text">
-            Market {marketStatus.isOpen ? 'Open' : 'Closed'} | Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s
+            Market {marketStatus.isOpen ? 'Open' : 'Closed'} | <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span>
           </span>
+        </div>
+        <div className="status-actions">
+          <button className="icon-button buy-icon" onClick={handleBuyStock} title="Buy Stock">
+            <span className="icon">+</span>
+            <span className="button-text">Buy Stock</span>
+          </button>
+          <button className="icon-button refresh-icon" onClick={fetchPortfolio} title="Refresh">
+            <span className="icon">↻</span>
+            <span className="button-text">Refresh</span>
+          </button>
         </div>
       </div>
       
@@ -251,14 +261,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           </div>
         </div>
         
-        <div className="action-buttons">
-          <button className="action-button buy-button" onClick={handleBuyStock}>
-            Buy Stock
-          </button>
-          <button className="action-button refresh-button" onClick={fetchPortfolio}>
-            Refresh
-          </button>
-        </div>
+
       </div>
       
       {holdingsCount > 0 ? (
