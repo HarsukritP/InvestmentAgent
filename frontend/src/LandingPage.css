@@ -63,11 +63,11 @@
 }
 
 .logo-image-small {
-  height: 30px;
+  height: 32px;
   width: auto;
-  
-  
-  
+  max-width: 200px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .logo-subtitle {
@@ -378,14 +378,17 @@
 .footer-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   color: #5A6C7D;
+  gap: 2rem;
 }
 
 .footer-logo {
   display: flex;
   flex-direction: column;
   margin-bottom: 0.5rem;
+  align-items: flex-start;
+  flex-shrink: 0;
 }
 
 .footer-logo .logo-text {
