@@ -60,32 +60,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   }, []);
 
-  // Schedule next update
-  const scheduleNextUpdate = useCallback((currentMarketOpen) => {
-    const interval = getUpdateInterval(currentMarketOpen);
-    nextUpdateTimeRef.current = Date.now() + interval;
-    
-    // Clear existing intervals
-    if (refreshIntervalRef.current) {
-      clearTimeout(refreshIntervalRef.current);
-    }
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-    
-    // Set up new refresh interval
-    refreshIntervalRef.current = setTimeout(async () => {
-      const marketOpen = await fetchPortfolio();
-      scheduleNextUpdate(marketOpen);
-    }, interval);
-    
-    // Set up countdown timer (updates every second)
-    countdownIntervalRef.current = setInterval(updateCountdown, 1000);
-    
-    // Initial countdown update
-    updateCountdown();
-  }, [getUpdateInterval, updateCountdown, fetchPortfolio]);
-
   const fetchPortfolio = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -144,6 +118,32 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       setIsLoading(false);
     }
   }, [fetchHealthStatus]);
+
+  // Schedule next update
+  const scheduleNextUpdate = useCallback((currentMarketOpen) => {
+    const interval = getUpdateInterval(currentMarketOpen);
+    nextUpdateTimeRef.current = Date.now() + interval;
+    
+    // Clear existing intervals
+    if (refreshIntervalRef.current) {
+      clearTimeout(refreshIntervalRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    
+    // Set up new refresh interval
+    refreshIntervalRef.current = setTimeout(async () => {
+      const marketOpen = await fetchPortfolio();
+      scheduleNextUpdate(marketOpen);
+    }, interval);
+    
+    // Set up countdown timer (updates every second)
+    countdownIntervalRef.current = setInterval(updateCountdown, 1000);
+    
+    // Initial countdown update
+    updateCountdown();
+  }, [getUpdateInterval, updateCountdown, fetchPortfolio]);
 
   useEffect(() => {
     const initializePortfolio = async () => {
