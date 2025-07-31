@@ -412,119 +412,121 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
             </div>
           ) : (
             // Stock Purchase View with Slider (for both new and existing)
-            <div className="stock-purchase adjust-position">
-              {/* Current Position Info */}
-              <div className="selected-stock">
-                <h3>Current Position:</h3>
-                <div className="stock-card">
-                  <div className="stock-header">
-                    <span className="symbol">{selectedStock.symbol}</span>
-                    <span className="name">Current: {currentShares.toFixed(2)} shares</span>
+            <div className="stock-purchase modern-layout">
+              {/* Header Section */}
+              <div className="purchase-header">
+                <div className="stock-info-compact">
+                  <div className="symbol-price">
+                    <span className="symbol-large">{selectedStock.symbol}</span>
+                    <span className="current-price-large">${affordability?.current_price?.toFixed(2) || '0.00'}</span>
                   </div>
-                  <div className="price-info">
-                    <span className="current-price">
-                      Current Price: ${affordability?.current_price?.toFixed(2) || '0.00'}
-                    </span>
-                    <span className="position-value">
-                      Position Value: ${((currentShares * (affordability?.current_price || 0))).toFixed(2)}
-                    </span>
+                  <div className="position-summary">
+                    <span className="current-position">Current: {currentShares.toFixed(2)} shares</span>
+                    <span className="position-value">Value: ${((currentShares * (affordability?.current_price || 0))).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Position Slider */}
-              <div className="slider-section">
-                <label>{existingHolding ? 'Adjust Position:' : 'Shares to Buy:'}</label>
-                <div className="slider-container">
-                  <div className="slider-labels">
-                    <span className="slider-label sell">Sell All (0)</span>
-                    {existingHolding && <span className="slider-label current">Current ({currentShares.toFixed(2)})</span>}
-                    <span className="slider-label buy">Max ({getMaxDisplay().toFixed(2)})</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max={sliderMax}
-                    value={targetShares}
-                    onChange={(e) => handleSliderChange(e.target.value)}
-                    className="position-slider"
-                    step="0.01"
-                  />
-                  <div className="slider-markers">
-                    <div 
-                      className="marker sell-all" 
-                      style={{ left: '0%' }}
+              {/* Modern Slider Section */}
+              <div className="slider-section modern-slider">
+                <div className="slider-header">
+                  <span className="slider-title">{existingHolding ? 'Adjust Position' : 'Shares to Buy'}</span>
+                  <div className="target-input-wrapper">
+                    <input
+                      type="number"
+                      min="0"
+                      max={sliderMax}
+                      step="0.01"
+                      value={targetShares}
+                      onChange={(e) => handleQuantityChange(e.target.value)}
+                      className="target-input-modern"
                     />
-                    {existingHolding && (
-                      <div 
-                        className="marker current-position" 
-                        style={{ left: `${getSliderPosition(currentShares)}%` }}
-                      />
-                    )}
-                    <div 
-                      className="marker max-position" 
-                      style={{ left: '100%' }}
-                    />
+                    <span className="input-label">shares</span>
                   </div>
                 </div>
                 
-                {/* Target Shares Display */}
-                <div className="target-display">
-                  <span className="target-label">Target Shares:</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max={sliderMax}
-                    step="0.01"
-                    value={targetShares}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    className="target-input"
-                  />
+                <div className="slider-container-modern">
+                  <div className="slider-track">
+                    <input
+                      type="range"
+                      min="0"
+                      max={sliderMax}
+                      value={targetShares}
+                      onChange={(e) => handleSliderChange(e.target.value)}
+                      className="position-slider-modern"
+                      step="0.01"
+                    />
+                    <div className="slider-progress" style={{ 
+                      width: `${(targetShares / sliderMax) * 100}%` 
+                    }}></div>
+                  </div>
+                  
+                  <div className="slider-labels-modern">
+                    <div className="label-item">
+                      <span className="label-value">0</span>
+                      <span className="label-text">Sell All</span>
+                    </div>
+                    {existingHolding && (
+                      <div className="label-item current" style={{ 
+                        left: `${getSliderPosition(currentShares)}%` 
+                      }}>
+                        <span className="label-value">{currentShares.toFixed(1)}</span>
+                        <span className="label-text">Current</span>
+                      </div>
+                    )}
+                    <div className="label-item">
+                      <span className="label-value">{getMaxDisplay().toFixed(1)}</span>
+                      <span className="label-text">Max</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Real-time Stats */}
+              {/* Compact Stats Section */}
               {affordability && (
-                <div className="stats-section">
-                  <div className="stats-header">
-                    <h4 className={sharesDifference > 0 ? "buying" : sharesDifference < 0 ? "selling" : "no-change"}>
-                      {sharesDifference > 0 ? 
-                        `📈 Buying ${sharesDifference.toFixed(2)} More Shares` : 
-                        sharesDifference < 0 ? 
-                          `📉 Selling ${Math.abs(sharesDifference).toFixed(2)} Shares` : 
-                          `No Change in Position`}
-                    </h4>
-                  </div>
-                  
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <span className="stat-label">Position Change:</span>
-                      <span className={`stat-value ${sharesDifference > 0 ? 'positive' : sharesDifference < 0 ? 'negative' : ''}`}>
-                        {sharesDifference > 0 ? `+${sharesDifference.toFixed(2)}` : sharesDifference.toFixed(2)} shares
+                <div className="stats-section-modern">
+                  <div className="transaction-summary">
+                    <div className="summary-header">
+                      <span className={`transaction-badge ${sharesDifference > 0 ? 'buy' : sharesDifference < 0 ? 'sell' : 'neutral'}`}>
+                        {sharesDifference > 0 ? 
+                          `📈 Buying ${sharesDifference.toFixed(2)} More Shares` : 
+                          sharesDifference < 0 ? 
+                            `📉 Selling ${Math.abs(sharesDifference).toFixed(2)} Shares` : 
+                            `⚖️ No Change in Position`}
                       </span>
                     </div>
                     
-                    <div className="stat-item">
-                      <span className="stat-label">{sharesDifference >= 0 ? 'Cost:' : 'Proceeds:'}</span>
-                      <span className={`stat-value ${sharesDifference < 0 ? 'positive' : ''}`}>
-                        ${Math.abs(sharesDifference * (affordability.current_price || 0)).toFixed(2)}
-                      </span>
-                    </div>
-                    
-                    <div className="stat-item">
-                      <span className="stat-label">New Position Value:</span>
-                      <span className="stat-value">
-                        ${(targetShares * (affordability.current_price || 0)).toFixed(2)}
-                      </span>
-                    </div>
-                    
-                    <div className="stat-item">
-                      <span className="stat-label">Remaining Cash:</span>
-                      <span className={`stat-value ${sharesDifference >= 0 ? (affordability.can_afford ? 'positive' : 'negative') : 'positive'}`}>
-                        ${(sharesDifference >= 0 ? 
-                          (affordability.available_cash - (sharesDifference * (affordability.current_price || 0))) : 
-                          (affordability.available_cash + Math.abs(sharesDifference * (affordability.current_price || 0)))).toFixed(2)}
-                      </span>
+                    <div className="stats-grid-compact">
+                      <div className="stat-card">
+                        <span className="stat-label">Position Change</span>
+                        <span className={`stat-value ${sharesDifference > 0 ? 'positive' : sharesDifference < 0 ? 'negative' : ''}`}>
+                          {sharesDifference > 0 ? `+${sharesDifference.toFixed(2)}` : sharesDifference.toFixed(2)}
+                        </span>
+                        <span className="stat-unit">shares</span>
+                      </div>
+                      
+                      <div className="stat-card">
+                        <span className="stat-label">{sharesDifference >= 0 ? 'Cost' : 'Proceeds'}</span>
+                        <span className={`stat-value ${sharesDifference < 0 ? 'positive' : ''}`}>
+                          ${Math.abs(sharesDifference * (affordability.current_price || 0)).toFixed(2)}
+                        </span>
+                      </div>
+                      
+                      <div className="stat-card">
+                        <span className="stat-label">New Position Value</span>
+                        <span className="stat-value">
+                          ${(targetShares * (affordability.current_price || 0)).toFixed(2)}
+                        </span>
+                      </div>
+                      
+                      <div className="stat-card">
+                        <span className="stat-label">Remaining Cash</span>
+                        <span className={`stat-value ${sharesDifference >= 0 ? (affordability.can_afford ? 'positive' : 'negative') : 'positive'}`}>
+                          ${(sharesDifference >= 0 ? 
+                            (affordability.available_cash - (sharesDifference * (affordability.current_price || 0))) : 
+                            (affordability.available_cash + Math.abs(sharesDifference * (affordability.current_price || 0)))).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
