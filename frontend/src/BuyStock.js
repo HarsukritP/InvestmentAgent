@@ -389,8 +389,15 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                     <ul className="stock-list">
                       {searchResults.map((stock, index) => (
                         <li key={index} className="stock-item" onClick={() => handleStockSelect(stock)}>
-                          <div className="stock-symbol">{stock.symbol}</div>
-                          <div className="stock-name">{stock.name}</div>
+                          <div className="stock-info">
+                            <div className="stock-symbol">{stock.symbol}</div>
+                            <div className="stock-name">{stock.name}</div>
+                            <div className="stock-details">
+                              {stock.exchange && <span className="stock-exchange">{stock.exchange}</span>}
+                              {stock.region && stock.region !== 'United States' && <span className="stock-region">{stock.region}</span>}
+                              {stock.currency && stock.currency !== 'USD' && <span className="stock-currency">{stock.currency}</span>}
+                            </div>
+                          </div>
                           {stock.current_price && (
                             <div className="stock-price">${stock.current_price.toFixed(2)}</div>
                           )}
