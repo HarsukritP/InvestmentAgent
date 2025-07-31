@@ -311,58 +311,41 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       </div>
       
       <div className="portfolio-summary">
-        <div className="stats-grid">
-          <div className="stat-card total-value">
-            <div className="stat-header">
-              <div className="stat-icon">💰</div>
-              <div className="stat-label">Total Value</div>
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">${total_value !== undefined ? total_value.toFixed(2) : '—'}</div>
-              <div className="stat-details">
-                {portfolio && portfolio.total_change !== undefined ? (
-                  <div className={`stat-change ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
-                    {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
-                  </div>
-                ) : (
-                  <div className="stat-placeholder">Today's change</div>
-                )}
-              </div>
+        <div className="summary-cards">
+          <div className="summary-card">
+            <div className="card-label">Total Value</div>
+            <div className="card-value">${total_value !== undefined ? total_value.toFixed(2) : '—'}</div>
+            <div className="card-subtitle">
+              {portfolio && portfolio.total_change !== undefined ? (
+                <span className={`change-indicator ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
+                  {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
+                </span>
+              ) : (
+                <span className="change-placeholder">Today's change</span>
+              )}
             </div>
           </div>
           
-          <div className="stat-card holdings-value">
-            <div className="stat-header">
-              <div className="stat-icon">📈</div>
-              <div className="stat-label">Holdings Value</div>
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">${holdings_value !== undefined ? holdings_value.toFixed(2) : '—'}</div>
-              <div className="stat-details">
-                <div className="stat-percentage">
-                  {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
-                </div>
-              </div>
+          <div className="summary-card">
+            <div className="card-label">Holdings Value</div>
+            <div className="card-value">${holdings_value !== undefined ? holdings_value.toFixed(2) : '—'}</div>
+            <div className="card-subtitle">
+              <span className="portfolio-percentage">
+                {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
+              </span>
             </div>
           </div>
           
-          <div className="stat-card cash-balance">
-            <div className="stat-header">
-              <div className="stat-icon">💵</div>
-              <div className="stat-label">Cash Balance</div>
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">${cash_balance !== undefined ? cash_balance.toFixed(2) : '—'}</div>
-              <div className="stat-details">
-                <div className="stat-percentage">
-                  {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
-                </div>
-              </div>
+          <div className="summary-card">
+            <div className="card-label">Cash Balance</div>
+            <div className="card-value">${cash_balance !== undefined ? cash_balance.toFixed(2) : '—'}</div>
+            <div className="card-subtitle">
+              <span className="portfolio-percentage">
+                {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
+              </span>
             </div>
           </div>
         </div>
-        
-
       </div>
       
       {holdingsCount > 0 ? (

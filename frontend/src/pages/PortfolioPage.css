@@ -137,145 +137,85 @@
   margin-bottom: 12px;
 }
 
-/* Modern Stats Grid */
-.stats-grid {
+/* Clean Summary Cards */
+.summary-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: auto;
-  gap: 24px;
-  flex: 1;
-  align-items: stretch;
+  grid-template-rows: 1fr;
+  gap: 16px;
+  width: 100%;
 }
 
-/* Modern Stat Cards */
-.stat-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(139, 195, 74, 0.1);
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 140px;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--procogia-primary), var(--procogia-secondary));
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-/* Card-specific accent colors */
-.stat-card.total-value::before {
-  background: linear-gradient(90deg, #4CAF50, #8BC34A);
-}
-
-.stat-card.holdings-value::before {
-  background: linear-gradient(90deg, #2196F3, #03A9F4);
-}
-
-.stat-card.cash-balance::before {
-  background: linear-gradient(90deg, #FF9800, #FFC107);
-}
-
-/* Stat Header */
-.stat-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.stat-icon {
-  font-size: 20px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(139, 195, 74, 0.1);
+.summary-card {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
   border-radius: 8px;
-  flex-shrink: 0;
+  padding: 20px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  min-height: 100px;
+  height: 100px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
 }
 
-.stat-label {
-  font-size: 13px;
+.summary-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-label {
+  font-size: 12px;
   font-weight: 600;
-  color: #5A6C7D;
+  color: #6c757d;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  line-height: 1.2;
+  margin: 0;
 }
 
-/* Stat Content */
-.stat-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.stat-value {
-  font-size: 28px;
+.card-value {
+  font-size: 24px;
   font-weight: 700;
-  color: #2C3E50;
-  margin: 0 0 12px 0;
-  line-height: 1.1;
+  color: #2c3e50;
+  margin: 0;
+  line-height: 1.2;
+  align-self: center;
 }
 
-/* Stat Details */
-.stat-details {
+.card-subtitle {
+  font-size: 13px;
+  margin: 0;
   display: flex;
   align-items: center;
-  min-height: 24px;
+  min-height: 18px;
 }
 
-.stat-change {
-  font-size: 14px;
+.change-indicator {
   font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
-.stat-change.positive {
-  background: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
+.change-indicator.positive {
+  background: #e8f5e8;
+  color: #2e7d32;
 }
 
-.stat-change.negative {
-  background: rgba(244, 67, 54, 0.1);
-  color: #f44336;
+.change-indicator.negative {
+  background: #ffebee;
+  color: #c62828;
 }
 
-.stat-percentage {
-  font-size: 14px;
+.change-placeholder {
+  color: #adb5bd;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.portfolio-percentage {
   color: #6c757d;
   font-weight: 500;
-  background: rgba(108, 117, 125, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.stat-placeholder {
-  font-size: 14px;
-  color: #adb5bd;
-  font-weight: 500;
-  font-style: italic;
 }
 
 
@@ -496,23 +436,30 @@
     padding: 1.5rem;
   }
   
-  .stats-grid {
+  .summary-cards {
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto;
+    gap: 12px;
+  }
+  
+  .summary-card {
+    padding: 16px;
+    height: 90px;
   }
   
   .portfolio-summary {
     flex-direction: column;
   }
-  
-
 }
 
 /* Medium screens: 3 columns still fit */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .stats-grid {
+  .summary-cards {
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto;
+    gap: 12px;
+  }
+  
+  .summary-card {
+    height: 90px;
   }
 }
 
@@ -522,19 +469,18 @@
     padding: 1.5rem;
   }
   
-  .stats-grid {
+  .summary-cards {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto auto;
-    gap: 16px;
+    gap: 12px;
   }
   
-  .stat-card {
-    min-height: 120px;
-    padding: 20px;
+  .summary-card {
+    height: 85px;
+    padding: 16px;
   }
   
-  .stat-value {
-    font-size: 24px;
+  .card-value {
+    font-size: 20px;
   }
   
   .market-status-bar {
@@ -566,30 +512,22 @@
     justify-content: flex-end;
   }
   
-  .stats-grid {
+  .summary-cards {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 16px;
+    gap: 12px;
   }
   
-  .stat-card {
-    min-height: 100px;
-    padding: 18px;
+  .summary-card {
+    height: 80px;
+    padding: 16px;
   }
   
-  .stat-value {
-    font-size: 22px;
-  }
-  
-  .stat-header {
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  
-  .stat-icon {
-    width: 28px;
-    height: 28px;
+  .card-value {
     font-size: 18px;
+  }
+  
+  .card-label {
+    font-size: 11px;
   }
   
   .holdings-table th,
