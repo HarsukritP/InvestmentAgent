@@ -241,8 +241,8 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   };
 
-  // Show error state only if there's an error and we've never loaded data before
-  if (error && !hasLoadedBefore) {
+  // Only show error page if there's an error and absolutely no data exists
+  if (error && !portfolio && !hasLoadedBefore) {
     return (
       <div className="portfolio-page">
         <h1 className="page-title">Portfolio</h1>
@@ -252,49 +252,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         </div>
       </div>
     );
-  }
-
-  // Show initial loading state only if we've never loaded data before
-  if (!hasLoadedBefore && !portfolio) {
-    return (
-      <div className="portfolio-page">
-        <h1 className="page-title">Portfolio</h1>
-        <div className="market-status-bar">
-          <div className="status-indicator-container">
-            <span className="status-indicator open"></span>
-            <span className="status-text">Loading portfolio data...</span>
-          </div>
-        </div>
-        
-        {/* Show minimal loading state */}
-        <div className="portfolio-summary">
-          <div className="stats-grid">
-            <div className="stat-card">
-              <h3>TOTAL VALUE</h3>
-              <p className="stat-value">Loading...</p>
-            </div>
-            <div className="stat-card">
-              <h3>HOLDINGS VALUE</h3>
-              <p className="stat-value">Loading...</p>
-            </div>
-            <div className="stat-card">
-              <h3>CASH BALANCE</h3>
-              <p className="stat-value">Loading...</p>
-            </div>
-          </div>
-        </div>
-        
-        <GlobalLoadingIndicator 
-          isVisible={true} 
-          message="•" 
-        />
-      </div>
-    );
-  }
-
-  // If there's an error but we have existing portfolio data, show the data with an error notification
-  if (error && hasLoadedBefore) {
-    console.warn('Portfolio error with existing data:', error);
   }
 
   const { cash_balance, holdings, total_value, holdings_value } = portfolio || {};
@@ -331,7 +288,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="stats-grid">
           <div className="stat-card">
             <h3>TOTAL VALUE</h3>
-            <p className="stat-value">${total_value ? total_value.toFixed(2) : '0.00'}</p>
+            <p className="stat-value">${total_value ? total_value.toFixed(2) : (hasLoadedBefore ? '0.00' : '—')}</p>
             {portfolio && portfolio.total_change && (
               <p className={`stat-change ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
                 {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
@@ -341,7 +298,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           
           <div className="stat-card">
             <h3>HOLDINGS VALUE</h3>
-            <p className="stat-value">${holdings_value ? holdings_value.toFixed(2) : '0.00'}</p>
+            <p className="stat-value">${holdings_value ? holdings_value.toFixed(2) : (hasLoadedBefore ? '0.00' : '—')}</p>
             <p className="stat-secondary">
               {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
             </p>
@@ -349,7 +306,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           
           <div className="stat-card">
             <h3>CASH BALANCE</h3>
-            <p className="stat-value">${cash_balance ? cash_balance.toFixed(2) : '0.00'}</p>
+            <p className="stat-value">${cash_balance ? cash_balance.toFixed(2) : (hasLoadedBefore ? '0.00' : '—')}</p>
             <p className="stat-secondary">
               {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
             </p>
