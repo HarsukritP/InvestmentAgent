@@ -9,6 +9,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
   const [quantity, setQuantity] = useState(1);
   const [maxAffordableShares, setMaxAffordableShares] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [affordability, setAffordability] = useState(null);
   const [error, setError] = useState('');
@@ -28,6 +29,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
+    setHasSearched(true);
     setError('');
     
     try {
@@ -111,10 +113,12 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
         setTargetShares(shares); // Start at current position
         setSearchQuery('');
         setSearchResults([]);
+        setHasSearched(false);
       } else {
         // New stock purchase
         setSearchQuery('');
         setSearchResults([]);
+        setHasSearched(false);
         setSelectedStock(null);
         setCurrentShares(0);
         setTargetShares(1); // Start with 1 for new purchases
@@ -356,7 +360,10 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                   type="text"
                   placeholder="Search by symbol or company name"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setHasSearched(false); // Reset search state when typing
+                  }}
                   onKeyPress={handleKeyPress}
                   autoFocus
                 />
@@ -390,7 +397,7 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                         </li>
                       ))}
                     </ul>
-                  ) : searchQuery.trim() ? (
+                  ) : hasSearched && searchQuery.trim() ? (
                     <div className="no-results">No stocks found matching "{searchQuery}"</div>
                   ) : null}
                 </div>

@@ -15,13 +15,15 @@
 /* Modal Container */
 .buy-stock-modal {
   background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   width: 100%;
-  max-width: 500px;
+  max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Modal Header */
@@ -29,8 +31,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #eee;
+  padding: 2rem 2rem 1.5rem 2rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .modal-header h2 {
@@ -51,65 +53,101 @@
 
 /* Modal Content */
 .modal-content {
-  padding: 1.5rem;
+  padding: 0;
 }
 
 /* Stock Search */
 .stock-search {
-  padding: 0.5rem;
+  padding: 1.5rem 2rem 2rem 2rem;
 }
 
 .search-box {
   display: flex;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 50px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.search-box:focus-within {
+  border-color: #2196F3;
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.15);
 }
 
 .search-box input {
   flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px 0 0 4px;
+  padding: 1rem 1.5rem;
+  border: none;
+  background: transparent;
   font-size: 1rem;
+  outline: none;
+  color: #333;
+}
+
+.search-box input::placeholder {
+  color: #888;
 }
 
 .search-button {
-  padding: 0.75rem 1.5rem;
-  background-color: #2196F3;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #2196F3, #1976D2);
   color: white;
   border: none;
-  border-radius: 0 4px 4px 0;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.search-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1976D2, #1565C0);
+  transform: translateY(-1px);
 }
 
 .search-button:disabled {
-  background-color: #ccc;
+  background: #e0e0e0;
+  color: #999;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* Search Results */
 .search-results {
   max-height: 300px;
   overflow-y: auto;
+  margin: 0 -0.5rem;
 }
 
 .stock-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .stock-item {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+  border: 2px solid transparent;
 }
 
 .stock-item:hover {
-  background-color: #f5f5f5;
+  background: rgba(33, 150, 243, 0.08);
+  border-color: rgba(33, 150, 243, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .stock-symbol {
@@ -132,7 +170,12 @@
 .no-results {
   padding: 2rem;
   text-align: center;
-  color: #666;
+  color: #888;
+  background: #f8f9fa;
+  border-radius: 16px;
+  margin: 0.5rem;
+  border: 2px dashed rgba(0, 0, 0, 0.1);
+  font-style: italic;
 }
 
 /* Stock Purchase */
