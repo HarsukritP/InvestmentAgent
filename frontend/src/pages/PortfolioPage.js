@@ -9,8 +9,20 @@ import './PortfolioPage.css';
 
 const PortfolioPage = ({ onTransactionSuccess }) => {
   const navigate = useNavigate();
-  const [portfolio, setPortfolio] = useState(null);
-  const [hasLoadedBefore, setHasLoadedBefore] = useState(false);
+  
+  // Load cached portfolio data immediately if available
+  const getCachedPortfolio = () => {
+    try {
+      const cached = localStorage.getItem('portfolio_data');
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      console.warn('Failed to load cached portfolio data:', error);
+      return null;
+    }
+  };
+  
+  const [portfolio, setPortfolio] = useState(getCachedPortfolio());
+  const [hasLoadedBefore, setHasLoadedBefore] = useState(!!getCachedPortfolio());
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -98,12 +110,21 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       const holdingsValue = holdingsData.reduce((total, holding) => total + (holding.market_value || 0), 0);
       const totalValue = cashBalance + holdingsValue;
       
-      setPortfolio({
+      const newPortfolioData = {
         cash_balance: cashBalance,
         holdings: holdingsData,
         total_value: totalValue,
         holdings_value: holdingsValue
-      });
+      };
+      
+      setPortfolio(newPortfolioData);
+      
+      // Cache the portfolio data for persistence
+      try {
+        localStorage.setItem('portfolio_data', JSON.stringify(newPortfolioData));
+      } catch (error) {
+        console.warn('Failed to cache portfolio data:', error);
+      }
       
       // Mark that we've successfully loaded data at least once
       setHasLoadedBefore(true);
