@@ -99,7 +99,14 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
       });
 
     } catch (err) {
-      setError(err.message);
+      console.error(`HoverChart error for ${symbol}:`, err);
+      if (err.response) {
+        console.error('Response status:', err.response.status);
+        console.error('Response data:', err.response.data);
+        setError(`Chart unavailable (${err.response.status})`);
+      } else {
+        setError(err.message || 'Chart data unavailable');
+      }
     } finally {
       setLoading(false);
     }
@@ -137,6 +144,14 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        left: 5,
+        right: 5,
+        top: 5,
+        bottom: 5
+      }
+    },
     plugins: {
       legend: {
         display: false

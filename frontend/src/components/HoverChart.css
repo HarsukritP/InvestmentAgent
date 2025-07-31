@@ -46,8 +46,9 @@
 
 .hover-chart-content {
   height: 120px;
-  padding: 8px;
+  padding: 4px 8px;
   position: relative;
+  overflow: hidden;
 }
 
 .hover-chart-wrapper {
@@ -141,10 +142,19 @@
   }
 }
 
-/* Ensure chart canvas is responsive */
+/* Ensure chart canvas is responsive and removes white space */
 .hover-chart-wrapper canvas {
   max-width: 100% !important;
   height: auto !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hover-chart-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Prevent text selection in tooltip */
