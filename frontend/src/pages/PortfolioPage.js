@@ -10,7 +10,6 @@ import './PortfolioPage.css';
 const PortfolioPage = ({ onTransactionSuccess }) => {
   const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -73,13 +72,9 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   }, []);
 
-  const fetchPortfolio = useCallback(async (isInitialLoad = false) => {
-    // Only show full-page loading on initial load, use corner indicator for updates
-    if (isInitialLoad) {
-      setIsLoading(true);
-    } else {
-      setIsUpdating(true);
-    }
+  const fetchPortfolio = useCallback(async () => {
+    // Always use corner loading indicator for all scenarios
+    setIsUpdating(true);
     setError(null);
     
     try {
@@ -133,7 +128,6 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       setMarketStatus(prev => ({ ...prev, isOpen: fallbackMarketOpen }));
       return fallbackMarketOpen;
     } finally {
-      setIsLoading(false);
       setIsUpdating(false);
     }
   }, [fetchHealthStatus]);
@@ -166,7 +160,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
 
   useEffect(() => {
     const initializePortfolio = async () => {
-      const marketOpen = await fetchPortfolio(true); // Initial load
+      const marketOpen = await fetchPortfolio(); // Initial load
       scheduleNextUpdate(marketOpen);
     };
     
@@ -243,28 +237,23 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   };
 
-  if (isLoading && !portfolio) {
-    return (
-      <div className="portfolio-page">
-        <h1 className="page-title">Portfolio</h1>
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Loading portfolio data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  // Show error state only if there's an error and no existing data
+  if (error && !portfolio) {
     return (
       <div className="portfolio-page">
         <h1 className="page-title">Portfolio</h1>
         <div className="error">
           <p>{error}</p>
-          <button onClick={() => fetchPortfolio(true)}>Try Again</button>
+          <button onClick={fetchPortfolio}>Try Again</button>
         </div>
       </div>
     );
+  }
+
+  // If there's an error but we have existing portfolio data, show the data with an error message
+  if (error && portfolio) {
+    // Show portfolio with error notification in corner
+    console.warn('Portfolio error with existing data:', error);
   }
 
   const { cash_balance, holdings, total_value, holdings_value } = portfolio || {};
@@ -278,11 +267,15 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="status-indicator-container">
           <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
           <span className="status-text">
-            Market {marketStatus.isOpen ? 'Open' : 'Closed'} | <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span>
+            {portfolio ? (
+              <>Market {marketStatus.isOpen ? 'Open' : 'Closed'} | <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span></>
+            ) : (
+              'Loading portfolio data...'
+            )}
           </span>
         </div>
         <div className="status-actions">
-          <button className="icon-button buy-icon" onClick={handleBuyStock} title="Buy Stock">
+          <button className="icon-button buy-icon" onClick={handleBuyStock} title="Buy Stock" disabled={!portfolio}>
             <span className="icon">+</span>
             <span className="button-text">Buy Stock</span>
           </button>
