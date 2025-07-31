@@ -35,30 +35,30 @@
   align-items: center;
 }
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-  flex-shrink: 0;
-  display: inline-block;
+/* Market Status Text Colors */
+.market-status-text {
+  font-weight: 600;
 }
 
-.status-indicator.open {
-  background-color: #4caf50;
+.market-status-text.open {
+  color: #4caf50;
 }
 
-.status-indicator.closed {
-  background-color: #f44336;
+.market-status-text.closed {
+  color: #f44336;
 }
 
-.status-indicator.loading {
-  background-color: #6c757d;
+.separator {
+  color: #6c757d;
+  margin: 0 8px;
+  font-weight: 400;
 }
 
 .status-text {
   font-weight: 500;
   color: #2C3E50;
+  display: flex;
+  align-items: center;
 }
 
 .update-text {

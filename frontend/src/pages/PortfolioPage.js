@@ -284,12 +284,15 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       
       <div className="market-status-bar">
         <div className="status-indicator-container">
-          {portfolio && (
-            <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
-          )}
           <span className="status-text">
             {portfolio ? (
-              <>Market {marketStatus.isOpen ? 'Open' : 'Closed'} | <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span></>
+              <>
+                <span className={`market-status-text ${marketStatus.isOpen ? 'open' : 'closed'}`}>
+                  Market {marketStatus.isOpen ? 'Open' : 'Closed'}
+                </span>
+                <span className="separator">|</span>
+                <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span>
+              </>
             ) : (
               'Connecting to market data...'
             )}
