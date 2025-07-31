@@ -50,10 +50,15 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
       setLoading(true);
       setError(null);
       
+      console.log(`🔍 StockChart: Fetching chart data for ${symbol} with period ${selectedPeriod}`);
+      
       const response = await axios.get(`/chart/${symbol}?period=${selectedPeriod}`);
       const data = response.data;
       
+      console.log(`📊 StockChart: Received data for ${symbol}:`, data);
+      
       if (!data.data || data.data.length === 0) {
+        console.error(`❌ StockChart: No data received for ${symbol}`);
         throw new Error('No chart data available');
       }
 
@@ -118,7 +123,14 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
       });
 
     } catch (err) {
-      setError(err.message);
+      console.error(`❌ StockChart: Error fetching data for ${symbol}:`, err);
+      if (err.response) {
+        console.error('Response status:', err.response.status);
+        console.error('Response data:', err.response.data);
+        setError(`Chart unavailable (${err.response.status}): ${err.response.data?.detail || err.message}`);
+      } else {
+        setError(err.message || 'Chart data unavailable');
+      }
     } finally {
       setLoading(false);
     }

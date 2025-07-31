@@ -246,8 +246,12 @@ const IntradayChart = ({ symbol }) => {
     try {
       setLoading(true);
       
+      console.log(`🔍 IntradayChart: Fetching intraday data for ${symbol} with interval ${interval}`);
+      
       const response = await axios.get(`/intraday/${symbol}?interval=${interval}&outputsize=50`);
       const data = response.data;
+      
+      console.log(`📊 IntradayChart: Received data for ${symbol}:`, data);
       setIntradayData(data);
 
     } catch (err) {
@@ -315,15 +319,26 @@ const IntradayChart = ({ symbol }) => {
     <div className="intraday-chart-container">
       <div className="intraday-controls">
         <div className="interval-selector">
-          {['30min', '1h', '2h', '4h'].map(int => (
-            <button
-              key={int}
-              className={`interval-btn ${interval === int ? 'active' : ''}`}
-              onClick={() => setInterval(int)}
-            >
-              {int}
-            </button>
-          ))}
+          {['30min', '1h', '2h', '4h'].map(int => {
+            console.log(`🔧 Rendering interval button: ${int}, active: ${interval === int}`);
+            return (
+              <button
+                key={int}
+                className={`interval-btn ${interval === int ? 'active' : ''}`}
+                onClick={() => {
+                  console.log(`🔧 Interval button clicked: ${int}`);
+                  setInterval(int);
+                }}
+                style={{ 
+                  display: 'inline-block',
+                  visibility: 'visible',
+                  opacity: 1
+                }}
+              >
+                {int}
+              </button>
+            );
+          })}
         </div>
       </div>
       
