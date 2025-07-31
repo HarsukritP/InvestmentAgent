@@ -434,10 +434,21 @@ class MarketDataService:
             return {"error": str(e)}
     
     async def get_intraday_data(self, symbol: str, interval: str = "1h", outputsize: int = 24) -> Dict[str, Any]:
-        """Get intraday data for hover charts (hours/minutes)"""
+        """Get intraday data for hover charts (hours/minutes) with intelligent caching"""
         try:
             if not self.twelvedata_api_key:
                 return {"error": "Twelve Data API key not configured"}
+            
+            # Check cache first
+            cache_key = f"intraday_{symbol.upper()}_{interval}"
+            cached_data = await self._get_cached_intraday_data(cache_key)
+            
+            if cached_data:
+                logger.info(f"📊 CACHE HIT  | {symbol:6} | Using cached {interval} intraday data")
+                return cached_data
+            
+            # Cache miss - fetch from API
+            logger.info(f"📊 CACHE MISS | {symbol:6} | Fetching fresh {interval} intraday data")
             
             # Fetch intraday data from Twelve Data API
             url = f"{self.twelvedata_base_url}/time_series"
@@ -486,19 +497,151 @@ class MarketDataService:
                             logger.warning(f"Error processing intraday record for {symbol}: {str(e)}")
                             continue
                     
-                    logger.info(f"📈 INTRADAY  | {symbol:6} | Fetched {len(chart_data)} {interval} data points")
-                    
-                    return {
+                    result = {
                         "symbol": symbol,
                         "interval": interval,
                         "data_points": len(chart_data),
                         "data": chart_data,
-                        "current_price": chart_data[0]["close"] if chart_data else None,
-                        "change": chart_data[0]["close"] - chart_data[-1]["close"] if len(chart_data) > 1 else 0
+                        "current_price": chart_data[-1]["close"] if chart_data else None,  # Most recent price
+                        "change": chart_data[-1]["close"] - chart_data[0]["close"] if len(chart_data) > 1 else 0  # Change from first to last
                     }
+                    
+                    # Cache the result for future requests
+                    await self._cache_intraday_data(cache_key, result)
+                    
+                    logger.info(f"📈 INTRADAY  | {symbol:6} | Fetched & cached {len(chart_data)} {interval} data points")
+                    
+                    return result
                     
         except Exception as e:
             logger.error(f"Error getting intraday data for {symbol}: {str(e)}")
+            return {"error": str(e)}
+    
+    async def _get_cached_intraday_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Get cached intraday data if it's still fresh"""
+        try:
+            from datetime import datetime, timedelta
+            
+            # Check if cache entry exists
+            cached = await self.db_service.get_cached_market_context(cache_key)
+            if not cached:
+                return None
+            
+            # Check if cache is still fresh (30 minutes for intraday data)
+            cache_time = datetime.fromisoformat(cached['timestamp'].replace('Z', '+00:00'))
+            now = datetime.now(cache_time.tzinfo)
+            cache_age_minutes = (now - cache_time).total_seconds() / 60
+            
+            # Cache expiry based on interval
+            max_age_minutes = 30  # Default 30 minutes
+            if 'interval' in cached.get('data', {}):
+                interval = cached['data']['interval']
+                if interval in ['1min', '5min']:
+                    max_age_minutes = 5  # 5 minutes for very short intervals
+                elif interval in ['15min', '30min']:
+                    max_age_minutes = 15  # 15 minutes for short intervals
+                elif interval in ['1h', '2h']:
+                    max_age_minutes = 30  # 30 minutes for hourly data
+                else:
+                    max_age_minutes = 60  # 1 hour for longer intervals
+            
+            if cache_age_minutes <= max_age_minutes:
+                return cached['data']
+            else:
+                logger.info(f"📊 CACHE STALE| {cache_key} | Age: {cache_age_minutes:.1f}min > {max_age_minutes}min")
+                return None
+                
+        except Exception as e:
+            logger.warning(f"Error reading intraday cache for {cache_key}: {str(e)}")
+            return None
+    
+    async def _cache_intraday_data(self, cache_key: str, data: Dict[str, Any]) -> bool:
+        """Cache intraday data for future requests"""
+        try:
+            success = await self.db_service.store_market_context(cache_key, data)
+            if success:
+                logger.info(f"📊 CACHED     | {cache_key} | Stored {data.get('data_points', 0)} data points")
+            return success
+        except Exception as e:
+            logger.warning(f"Error caching intraday data for {cache_key}: {str(e)}")
+            return False
+    
+    async def cleanup_old_intraday_cache(self, max_age_hours: int = 24) -> Dict[str, Any]:
+        """Clean up old intraday cache entries to prevent database bloat"""
+        try:
+            from datetime import datetime, timedelta
+            
+            # Calculate cutoff time
+            cutoff_time = datetime.utcnow() - timedelta(hours=max_age_hours)
+            cutoff_iso = cutoff_time.isoformat()
+            
+            # Find old intraday cache entries
+            result = self.db_service.supabase.table('market_context_cache').select('key').like('key', 'intraday_%').lt('timestamp', cutoff_iso).execute()
+            
+            old_entries = [entry['key'] for entry in result.data]
+            
+            if old_entries:
+                # Delete old entries
+                delete_result = self.db_service.supabase.table('market_context_cache').delete().in_('key', old_entries).execute()
+                logger.info(f"🧹 CACHE CLEAN| Removed {len(old_entries)} old intraday cache entries")
+                
+                return {
+                    "cleaned": True,
+                    "removed_entries": len(old_entries),
+                    "cutoff_hours": max_age_hours
+                }
+            else:
+                return {
+                    "cleaned": True,
+                    "removed_entries": 0,
+                    "cutoff_hours": max_age_hours
+                }
+                
+        except Exception as e:
+            logger.error(f"Error cleaning intraday cache: {str(e)}")
+            return {"error": str(e)}
+    
+    async def get_intraday_cache_stats(self) -> Dict[str, Any]:
+        """Get statistics about intraday cache usage"""
+        try:
+            # Count total intraday cache entries
+            result = self.db_service.supabase.table('market_context_cache').select('key, timestamp').like('key', 'intraday_%').execute()
+            
+            total_entries = len(result.data)
+            if total_entries == 0:
+                return {"total_entries": 0, "fresh_entries": 0, "stale_entries": 0}
+            
+            # Analyze freshness
+            from datetime import datetime, timedelta
+            now = datetime.utcnow()
+            fresh_count = 0
+            stale_count = 0
+            symbols = set()
+            
+            for entry in result.data:
+                cache_time = datetime.fromisoformat(entry['timestamp'].replace('Z', ''))
+                age_minutes = (now - cache_time).total_seconds() / 60
+                
+                if age_minutes <= 60:  # Consider 1 hour as fresh
+                    fresh_count += 1
+                else:
+                    stale_count += 1
+                
+                # Extract symbol from key (format: intraday_SYMBOL_interval)
+                key_parts = entry['key'].split('_')
+                if len(key_parts) >= 2:
+                    symbols.add(key_parts[1])
+            
+            return {
+                "total_entries": total_entries,
+                "fresh_entries": fresh_count,
+                "stale_entries": stale_count,
+                "unique_symbols": len(symbols),
+                "symbols_cached": list(symbols)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting cache stats: {str(e)}")
             return {"error": str(e)}
     
     async def get_cache_stats(self) -> Dict[str, Any]:

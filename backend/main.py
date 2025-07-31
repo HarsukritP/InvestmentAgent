@@ -3,6 +3,7 @@ AI Portfolio Agent - FastAPI backend with OAuth authentication and database inte
 """
 import os
 import uuid
+import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, Depends, Cookie, Response, Request
@@ -15,6 +16,9 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Import services
 from portfolio import PortfolioManager
@@ -1144,6 +1148,83 @@ async def health_check():
             "news_api_key_configured": bool(os.getenv("NEWS_API_KEY"))
         }
     }
+
+@app.get("/cache/stats")
+async def get_cache_statistics(user: Dict[str, Any] = Depends(require_auth)):
+    """Get comprehensive cache statistics including intraday cache"""
+    try:
+        # Get general cache stats
+        general_stats = await market_service.get_cache_stats()
+        
+        # Get intraday-specific cache stats
+        intraday_stats = await market_service.get_intraday_cache_stats()
+        
+        return {
+            "general_cache": general_stats,
+            "intraday_cache": intraday_stats,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving cache statistics: {str(e)}")
+
+@app.post("/cache/cleanup")
+async def cleanup_old_cache(
+    max_age_hours: int = 24,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Clean up old cache entries to free space and improve performance"""
+    try:
+        if max_age_hours < 1 or max_age_hours > 168:  # 1 hour to 1 week
+            raise HTTPException(status_code=400, detail="max_age_hours must be between 1 and 168")
+        
+        # Clean up old intraday cache entries
+        cleanup_result = await market_service.cleanup_old_intraday_cache(max_age_hours)
+        
+        if "error" in cleanup_result:
+            raise HTTPException(status_code=500, detail=cleanup_result["error"])
+        
+        return {
+            "message": "Cache cleanup completed successfully",
+            "result": cleanup_result,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during cache cleanup: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error during cache cleanup: {str(e)}")
+
+@app.get("/cache/intraday/stats")
+async def get_intraday_cache_stats(user: Dict[str, Any] = Depends(require_auth)):
+    """Get detailed statistics about intraday data caching"""
+    try:
+        stats = await market_service.get_intraday_cache_stats()
+        
+        if "error" in stats:
+            raise HTTPException(status_code=500, detail=stats["error"])
+        
+        return {
+            "intraday_cache_stats": stats,
+            "cache_policy": {
+                "cache_duration_1min": "5 minutes",
+                "cache_duration_5min": "5 minutes", 
+                "cache_duration_15min": "15 minutes",
+                "cache_duration_30min": "15 minutes",
+                "cache_duration_1h": "30 minutes",
+                "cache_duration_2h": "30 minutes",
+                "cache_duration_default": "60 minutes"
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting intraday cache stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving intraday cache statistics: {str(e)}")
 
 @app.get("/transaction-stats")
 async def get_transaction_stats(user: Dict[str, Any] = Depends(get_current_user)):
