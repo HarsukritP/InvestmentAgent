@@ -265,10 +265,10 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="status-indicator-container">
           <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
           <span className="status-text">
-            {hasLoadedBefore ? (
+            {portfolio ? (
               <>Market {marketStatus.isOpen ? 'Open' : 'Closed'} | <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span></>
             ) : (
-              'Loading portfolio data...'
+              'Connecting to market data...'
             )}
           </span>
         </div>
@@ -288,7 +288,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="stats-grid">
           <div className="stat-card">
             <h3>TOTAL VALUE</h3>
-            <p className="stat-value">${total_value ? total_value.toFixed(2) : (hasLoadedBefore ? '0.00' : '—')}</p>
+            <p className="stat-value">${total_value !== undefined ? total_value.toFixed(2) : '—'}</p>
             {portfolio && portfolio.total_change && (
               <p className={`stat-change ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
                 {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
@@ -298,7 +298,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           
           <div className="stat-card">
             <h3>HOLDINGS VALUE</h3>
-            <p className="stat-value">${holdings_value ? holdings_value.toFixed(2) : (hasLoadedBefore ? '0.00' : '—')}</p>
+            <p className="stat-value">${holdings_value !== undefined ? holdings_value.toFixed(2) : '—'}</p>
             <p className="stat-secondary">
               {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
             </p>
@@ -306,7 +306,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           
           <div className="stat-card">
             <h3>CASH BALANCE</h3>
-            <p className="stat-value">${cash_balance ? cash_balance.toFixed(2) : (hasLoadedBefore ? '0.00' : '—')}</p>
+            <p className="stat-value">${cash_balance !== undefined ? cash_balance.toFixed(2) : '—'}</p>
             <p className="stat-secondary">
               {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
             </p>
@@ -387,7 +387,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
 
       {/* Global Loading Indicator */}
       <GlobalLoadingIndicator 
-        isVisible={isUpdating} 
+        isVisible={isUpdating || !portfolio} 
         message="•" 
       />
 
