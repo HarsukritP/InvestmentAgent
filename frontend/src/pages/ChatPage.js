@@ -858,7 +858,7 @@ ${sectorInfo}
       {/* Global Loading Indicator */}
       <GlobalLoadingIndicator 
         isVisible={isLoading} 
-        message="AI is thinking..." 
+        message="•" 
       />
     </div>
   );

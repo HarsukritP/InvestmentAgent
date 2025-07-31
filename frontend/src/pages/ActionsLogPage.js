@@ -196,7 +196,7 @@ function ActionsLogPage() {
       {/* Global Loading Indicator */}
       <GlobalLoadingIndicator 
         isVisible={loading} 
-        message="Loading transactions..." 
+        message="•" 
       />
     </div>
   );

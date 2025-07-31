@@ -286,7 +286,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         
         <GlobalLoadingIndicator 
           isVisible={true} 
-          message="Loading..." 
+          message="•" 
         />
       </div>
     );
@@ -431,7 +431,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       {/* Global Loading Indicator */}
       <GlobalLoadingIndicator 
         isVisible={isUpdating} 
-        message="Updating portfolio..." 
+        message="•" 
       />
 
       {/* Hover Chart */}
