@@ -452,16 +452,21 @@ class MarketDataService:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params) as response:
                     if response.status != 200:
-                        return {"error": f"API request failed: {response.status}"}
+                        response_text = await response.text()
+                        logger.warning(f"Twelve Data API request failed for {symbol}: Status {response.status}, Response: {response_text[:200]}")
+                        return {"error": f"API request failed for {symbol}: {response.status}"}
                     
                     data = await response.json()
                     
                     if data.get("status") == "error":
-                        return {"error": data.get("message", "API returned error")}
+                        error_msg = data.get("message", "API returned error")
+                        logger.warning(f"Twelve Data API error for {symbol}: {error_msg}")
+                        return {"error": f"Market data unavailable for {symbol}: {error_msg}"}
                     
                     values = data.get("values", [])
                     if not values:
-                        return {"error": "No intraday data received"}
+                        logger.warning(f"No intraday data received for {symbol}")
+                        return {"error": f"No intraday data available for {symbol}"}
                     
                     # Format data for charts
                     chart_data = []
