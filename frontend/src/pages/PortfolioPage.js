@@ -10,6 +10,7 @@ import './PortfolioPage.css';
 const PortfolioPage = ({ onTransactionSuccess }) => {
   const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState(null);
+  const [hasLoadedBefore, setHasLoadedBefore] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -103,6 +104,9 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         total_value: totalValue,
         holdings_value: holdingsValue
       });
+      
+      // Mark that we've successfully loaded data at least once
+      setHasLoadedBefore(true);
       
       // Determine market status - prefer health status data, fallback to local check
       let currentMarketOpen;
@@ -237,8 +241,8 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   };
 
-  // Show error state only if there's an error and no existing data
-  if (error && !portfolio) {
+  // Show error state only if there's an error and we've never loaded data before
+  if (error && !hasLoadedBefore) {
     return (
       <div className="portfolio-page">
         <h1 className="page-title">Portfolio</h1>
@@ -250,9 +254,46 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     );
   }
 
-  // If there's an error but we have existing portfolio data, show the data with an error message
-  if (error && portfolio) {
-    // Show portfolio with error notification in corner
+  // Show initial loading state only if we've never loaded data before
+  if (!hasLoadedBefore && !portfolio) {
+    return (
+      <div className="portfolio-page">
+        <h1 className="page-title">Portfolio</h1>
+        <div className="market-status-bar">
+          <div className="status-indicator-container">
+            <span className="status-indicator open"></span>
+            <span className="status-text">Loading portfolio data...</span>
+          </div>
+        </div>
+        
+        {/* Show minimal loading state */}
+        <div className="portfolio-summary">
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h3>TOTAL VALUE</h3>
+              <p className="stat-value">Loading...</p>
+            </div>
+            <div className="stat-card">
+              <h3>HOLDINGS VALUE</h3>
+              <p className="stat-value">Loading...</p>
+            </div>
+            <div className="stat-card">
+              <h3>CASH BALANCE</h3>
+              <p className="stat-value">Loading...</p>
+            </div>
+          </div>
+        </div>
+        
+        <GlobalLoadingIndicator 
+          isVisible={true} 
+          message="Loading..." 
+        />
+      </div>
+    );
+  }
+
+  // If there's an error but we have existing portfolio data, show the data with an error notification
+  if (error && hasLoadedBefore) {
     console.warn('Portfolio error with existing data:', error);
   }
 
@@ -267,7 +308,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <div className="status-indicator-container">
           <span className={`status-indicator ${marketStatus.isOpen ? 'open' : 'closed'}`}></span>
           <span className="status-text">
-            {portfolio ? (
+            {hasLoadedBefore ? (
               <>Market {marketStatus.isOpen ? 'Open' : 'Closed'} | <span className="update-text">Next update in {marketStatus.nextUpdateMinutes}m {marketStatus.nextUpdateSeconds}s</span></>
             ) : (
               'Loading portfolio data...'
@@ -275,7 +316,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
           </span>
         </div>
         <div className="status-actions">
-          <button className="icon-button buy-icon" onClick={handleBuyStock} title="Buy Stock" disabled={!portfolio}>
+          <button className="icon-button buy-icon" onClick={handleBuyStock} title="Buy Stock" disabled={!hasLoadedBefore}>
             <span className="icon">+</span>
             <span className="button-text">Buy Stock</span>
           </button>
