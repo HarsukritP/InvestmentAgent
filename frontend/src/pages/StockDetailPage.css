@@ -1,7 +1,7 @@
 .stock-detail-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  min-height: calc(100vh - 80px);
+  background: var(--background-color, #ffffff);
+  padding: 24px;
   overflow-x: hidden;
 }
 
@@ -231,36 +231,10 @@
 
 .intraday-chart-wrapper {
   height: 400px;
-}
-
-.chart-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  background: rgba(139, 195, 74, 0.05);
-  border: 2px dashed rgba(139, 195, 74, 0.3);
+  background: white;
   border-radius: 12px;
-  color: #5A6C7D;
-  gap: 12px;
-}
-
-.time-labels {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.time-label {
-  background: rgba(139, 195, 74, 0.1);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #8BC34A;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Actions Section */

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import StockChart from '../components/StockChart';
+import { Line } from 'react-chartjs-2';
 import './StockDetailPage.css';
 
 const StockDetailPage = () => {
@@ -328,25 +329,127 @@ const IntradayChart = ({ symbol }) => {
       
       <div className="intraday-chart-wrapper">
         <div style={{ height: '400px' }}>
-          {/* We'll use the StockChart component but with custom data */}
-          <div className="chart-placeholder">
-            <p>📊 Intraday chart with {filteredData.length} data points ({interval} intervals)</p>
-            <p>Price range: ${Math.min(...prices).toFixed(2)} - ${Math.max(...prices).toFixed(2)}</p>
-            <p>Timezone: Eastern Time (ET)</p>
-            <div className="time-labels">
-              {filteredData.slice(0, 5).map((point, index) => (
-                <span key={index} className="time-label">
-                  {new Date(point.datetime).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    timeZone: 'America/New_York',
-                    hour12: false
-                  })} ET
-                </span>
-              ))}
-              {filteredData.length > 5 && <span>...</span>}
-            </div>
-          </div>
+          <Line
+            data={{
+              labels: filteredData.map(point => {
+                const datetime = new Date(point.datetime);
+                return datetime.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'America/New_York',
+                  hour12: false
+                }) + ' ET';
+              }),
+              datasets: [
+                {
+                  label: `${symbol} Price`,
+                  data: prices,
+                  borderColor: prices[prices.length - 1] >= prices[0] ? '#8BC34A' : '#E57373',
+                  backgroundColor: prices[prices.length - 1] >= prices[0] ? 'rgba(139, 195, 74, 0.1)' : 'rgba(229, 115, 115, 0.1)',
+                  borderWidth: 2,
+                  fill: true,
+                  tension: 0.1,
+                  pointBackgroundColor: prices[prices.length - 1] >= prices[0] ? '#8BC34A' : '#E57373',
+                  pointBorderColor: '#ffffff',
+                  pointBorderWidth: 2,
+                  pointRadius: 3,
+                  pointHoverRadius: 5,
+                }
+              ]
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: {
+                padding: {
+                  left: 10,
+                  right: 10,
+                  top: 10,
+                  bottom: 10
+                }
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top',
+                  labels: {
+                    font: { size: 14 },
+                    color: '#2C3E50'
+                  }
+                },
+                title: {
+                  display: true,
+                  text: `${symbol} - ${interval} intervals (${filteredData.length} data points)`,
+                  font: { size: 16, weight: 'bold' },
+                  color: '#2C3E50'
+                },
+                tooltip: {
+                  enabled: true,
+                  mode: 'nearest',
+                  intersect: false,
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  titleColor: '#2C3E50',
+                  bodyColor: '#2C3E50',
+                  borderColor: '#8BC34A',
+                  borderWidth: 1,
+                  titleFont: { size: 12 },
+                  bodyFont: { size: 11 },
+                  callbacks: {
+                    label: function(context) {
+                      return `Price: $${context.parsed.y.toFixed(2)}`;
+                    },
+                    afterLabel: function(context) {
+                      const index = context.dataIndex;
+                      if (index > 0) {
+                        const currentPrice = context.parsed.y;
+                        const prevPrice = prices[index - 1];
+                        const change = currentPrice - prevPrice;
+                        const changePercent = (change / prevPrice * 100);
+                        const sign = change >= 0 ? '+' : '';
+                        return `Change: ${sign}$${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+                      }
+                      return '';
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  display: true,
+                  grid: {
+                    display: false
+                  },
+                  ticks: {
+                    display: true,
+                    maxTicksLimit: 8,
+                    color: '#7A8A9A',
+                    font: { size: 11 }
+                  }
+                },
+                y: {
+                  display: true,
+                  grid: {
+                    display: true,
+                    color: 'rgba(139, 195, 74, 0.1)'
+                  },
+                  ticks: {
+                    display: true,
+                    maxTicksLimit: 6,
+                    color: '#7A8A9A',
+                    font: { size: 11 },
+                    callback: function(value) {
+                      return '$' + value.toFixed(2);
+                    }
+                  }
+                }
+              },
+              interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+              }
+            }}
+          />
         </div>
       </div>
     </div>

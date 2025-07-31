@@ -315,7 +315,9 @@ function App() {
             path="/stock/:symbol" 
             element={
               isAuthenticated ? (
-                <StockDetailPage />
+                <ProtectedLayout>
+                  <StockDetailPage />
+                </ProtectedLayout>
               ) : (
                 <Navigate to="/" replace />
               )
