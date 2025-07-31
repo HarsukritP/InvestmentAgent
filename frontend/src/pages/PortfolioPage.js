@@ -312,30 +312,53 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       
       <div className="portfolio-summary">
         <div className="stats-grid">
-          <div className="stat-card">
-            <h3>TOTAL VALUE</h3>
-            <p className="stat-value">${total_value !== undefined ? total_value.toFixed(2) : '—'}</p>
-            {portfolio && portfolio.total_change && (
-              <p className={`stat-change ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
-                {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
-              </p>
-            )}
+          <div className="stat-card total-value">
+            <div className="stat-header">
+              <div className="stat-icon">💰</div>
+              <div className="stat-label">Total Value</div>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">${total_value !== undefined ? total_value.toFixed(2) : '—'}</div>
+              <div className="stat-details">
+                {portfolio && portfolio.total_change !== undefined ? (
+                  <div className={`stat-change ${portfolio.total_change >= 0 ? 'positive' : 'negative'}`}>
+                    {portfolio.total_change >= 0 ? '+' : ''}{portfolio.total_change.toFixed(2)}%
+                  </div>
+                ) : (
+                  <div className="stat-placeholder">Today's change</div>
+                )}
+              </div>
+            </div>
           </div>
           
-          <div className="stat-card">
-            <h3>HOLDINGS VALUE</h3>
-            <p className="stat-value">${holdings_value !== undefined ? holdings_value.toFixed(2) : '—'}</p>
-            <p className="stat-secondary">
-              {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
-            </p>
+          <div className="stat-card holdings-value">
+            <div className="stat-header">
+              <div className="stat-icon">📈</div>
+              <div className="stat-label">Holdings Value</div>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">${holdings_value !== undefined ? holdings_value.toFixed(2) : '—'}</div>
+              <div className="stat-details">
+                <div className="stat-percentage">
+                  {holdings_value && total_value ? ((holdings_value / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
+                </div>
+              </div>
+            </div>
           </div>
           
-          <div className="stat-card">
-            <h3>CASH BALANCE</h3>
-            <p className="stat-value">${cash_balance !== undefined ? cash_balance.toFixed(2) : '—'}</p>
-            <p className="stat-secondary">
-              {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
-            </p>
+          <div className="stat-card cash-balance">
+            <div className="stat-header">
+              <div className="stat-icon">💵</div>
+              <div className="stat-label">Cash Balance</div>
+            </div>
+            <div className="stat-content">
+              <div className="stat-value">${cash_balance !== undefined ? cash_balance.toFixed(2) : '—'}</div>
+              <div className="stat-details">
+                <div className="stat-percentage">
+                  {cash_balance && total_value ? ((cash_balance / total_value) * 100).toFixed(1) : '0.0'}% of portfolio
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
