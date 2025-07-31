@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import './StockChart.css';
 
 // For this implementation, we'll use Chart.js with react-chartjs-2
@@ -49,17 +50,8 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/chart/${symbol}?period=${selectedPeriod}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch chart data: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await axios.get(`/chart/${symbol}?period=${selectedPeriod}`);
+      const data = response.data;
       
       if (!data.data || data.data.length === 0) {
         throw new Error('No chart data available');

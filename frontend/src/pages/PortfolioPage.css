@@ -246,18 +246,7 @@
   text-decoration: underline;
 }
 
-.symbol-cell.clickable::after {
-  content: "📊";
-  position: absolute;
-  right: -20px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  font-size: 12px;
-}
-
-.interactive-row:hover .symbol-cell.clickable::after {
-  opacity: 1;
-}
+/* Removed chart emoji icon */
 
 /* Removed problematic tooltip that was causing layout issues */
 

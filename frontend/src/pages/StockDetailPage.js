@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import StockChart from '../components/StockChart';
 import './StockDetailPage.css';
 
@@ -16,17 +17,8 @@ const StockDetailPage = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/stock-details/${symbol}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stock details: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await axios.get(`/stock-details/${symbol}`);
+      const data = response.data;
       setStockDetails(data);
 
     } catch (err) {
@@ -253,17 +245,8 @@ const IntradayChart = ({ symbol }) => {
     try {
       setLoading(true);
       
-      const response = await fetch(`/api/intraday/${symbol}?interval=${interval}&outputsize=50`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch intraday data');
-      }
-
-      const data = await response.json();
+      const response = await axios.get(`/intraday/${symbol}?interval=${interval}&outputsize=50`);
+      const data = response.data;
       setIntradayData(data);
 
     } catch (err) {

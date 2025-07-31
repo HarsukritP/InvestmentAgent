@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import axios from 'axios';
 import './HoverChart.css';
 
 // Mini chart using Chart.js
@@ -36,17 +37,8 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/intraday/${symbol}?interval=1h&outputsize=24`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await axios.get(`/intraday/${symbol}?interval=1h&outputsize=24`);
+      const data = response.data;
       
       if (!data.data || data.data.length === 0) {
         throw new Error('No intraday data available');
