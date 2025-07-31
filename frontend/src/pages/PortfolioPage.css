@@ -141,8 +141,10 @@
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto;
   gap: 20px;
   flex: 1;
+  align-items: start;
 }
 
 .stat-card {
@@ -406,6 +408,7 @@
   
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
   }
   
   .portfolio-summary {
@@ -419,6 +422,7 @@
 @media (max-width: 1024px) and (min-width: 769px) {
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
   }
 }
 
@@ -430,6 +434,7 @@
   
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto auto;
     gap: 15px;
   }
   
@@ -464,6 +469,7 @@
   
   .stats-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
     gap: 15px;
   }
   
