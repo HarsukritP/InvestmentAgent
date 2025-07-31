@@ -47,26 +47,16 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
       // Format data for Chart.js (data already in chronological order)
       const chartPoints = data.data;
       
-      // Filter to get evenly spaced time intervals
-      const filteredPoints = [];
-      const intervalMinutes = 60; // Fixed to 1h for hover charts
+      // For hover charts, limit points but don't be too restrictive
+      let filteredPoints = chartPoints;
       
-      for (let i = 0; i < chartPoints.length; i++) {
-        const point = chartPoints[i];
-        const datetime = new Date(point.datetime);
-        const minutes = datetime.getMinutes();
-        const hours = datetime.getHours();
-        
-        // Only include points that fall on even intervals
-        if (intervalMinutes === 60) {
-          // For hourly: only show on the hour (minutes === 0)
-          if (minutes === 0) filteredPoints.push(point);
-        } else if (intervalMinutes === 30) {
-          // For 30min: show on :00 and :30
-          if (minutes === 0 || minutes === 30) filteredPoints.push(point);
-        } else {
-          // For other intervals, include all points
-          filteredPoints.push(point);
+      // If we have too many points, thin them out for better performance
+      if (chartPoints.length > 12) {
+        const step = Math.ceil(chartPoints.length / 8); // Show roughly 8 points
+        filteredPoints = chartPoints.filter((_, index) => index % step === 0);
+        // Always include the last point
+        if (filteredPoints[filteredPoints.length - 1] !== chartPoints[chartPoints.length - 1]) {
+          filteredPoints.push(chartPoints[chartPoints.length - 1]);
         }
       }
       
