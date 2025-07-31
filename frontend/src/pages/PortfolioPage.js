@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { isMarketOpen } from '../utils/formatters';
 import BuyStock from '../BuyStock';
 import HoverChart from '../components/HoverChart';
+import GlobalLoadingIndicator from '../components/GlobalLoadingIndicator';
 import './PortfolioPage.css';
 
 const PortfolioPage = ({ onTransactionSuccess }) => {
   const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [selectedHolding, setSelectedHolding] = useState(null);
@@ -71,8 +73,13 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   }, []);
 
-  const fetchPortfolio = useCallback(async () => {
-    setIsLoading(true);
+  const fetchPortfolio = useCallback(async (isInitialLoad = false) => {
+    // Only show full-page loading on initial load, use corner indicator for updates
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsUpdating(true);
+    }
     setError(null);
     
     try {
@@ -127,6 +134,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       return fallbackMarketOpen;
     } finally {
       setIsLoading(false);
+      setIsUpdating(false);
     }
   }, [fetchHealthStatus]);
 
@@ -158,7 +166,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
 
   useEffect(() => {
     const initializePortfolio = async () => {
-      const marketOpen = await fetchPortfolio();
+      const marketOpen = await fetchPortfolio(true); // Initial load
       scheduleNextUpdate(marketOpen);
     };
     
@@ -235,7 +243,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !portfolio) {
     return (
       <div className="portfolio-page">
         <h1 className="page-title">Portfolio</h1>
@@ -253,7 +261,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         <h1 className="page-title">Portfolio</h1>
         <div className="error">
           <p>{error}</p>
-          <button onClick={fetchPortfolio}>Try Again</button>
+          <button onClick={() => fetchPortfolio(true)}>Try Again</button>
         </div>
       </div>
     );
@@ -384,6 +392,12 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
         onClose={() => setShowBuyModal(false)}
         onSuccess={handleTransactionSuccess}
         existingHolding={selectedHolding}
+      />
+
+      {/* Global Loading Indicator */}
+      <GlobalLoadingIndicator 
+        isVisible={isUpdating} 
+        message="Updating portfolio..." 
       />
 
       {/* Hover Chart */}
