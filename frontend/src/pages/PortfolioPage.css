@@ -137,10 +137,10 @@
   margin-bottom: 12px;
 }
 
-/* Stats Grid - responsive layout */
+/* Stats Grid - single row layout */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   flex: 1;
 }
@@ -405,7 +405,7 @@
   }
   
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
   }
   
   .portfolio-summary {
@@ -415,10 +415,10 @@
 
 }
 
-/* Medium screens: 2 columns when 3 don't fit comfortably */
+/* Medium screens: 3 columns still fit */
 @media (max-width: 1024px) and (min-width: 769px) {
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -429,7 +429,7 @@
   }
   
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 15px;
   }
   
