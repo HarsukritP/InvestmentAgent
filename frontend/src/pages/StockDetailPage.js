@@ -277,9 +277,38 @@ const IntradayChart = ({ symbol }) => {
     );
   }
 
-  // Format data for display
-  const chartData = intradayData.data.reverse(); // Chronological order
-  const prices = chartData.map(point => point.close);
+  // Format data for display with even intervals
+  const allData = intradayData.data; // Already in chronological order
+  
+  // Filter to get evenly spaced intervals
+  const filteredData = [];
+  const intervalMinutes = interval === '1h' ? 60 : interval === '30min' ? 30 : interval === '2h' ? 120 : 240;
+  
+  for (let i = 0; i < allData.length; i++) {
+    const point = allData[i];
+    const datetime = new Date(point.datetime);
+    const minutes = datetime.getMinutes();
+    const hours = datetime.getHours();
+    
+    // Only include points that fall on even intervals
+    if (intervalMinutes === 60) {
+      // For hourly: only show on the hour
+      if (minutes === 0) filteredData.push(point);
+    } else if (intervalMinutes === 30) {
+      // For 30min: show on :00 and :30
+      if (minutes === 0 || minutes === 30) filteredData.push(point);
+    } else if (intervalMinutes === 120) {
+      // For 2h: show every 2 hours on the hour
+      if (minutes === 0 && hours % 2 === 0) filteredData.push(point);
+    } else if (intervalMinutes === 240) {
+      // For 4h: show every 4 hours on the hour
+      if (minutes === 0 && hours % 4 === 0) filteredData.push(point);
+    } else {
+      filteredData.push(point);
+    }
+  }
+  
+  const prices = filteredData.map(point => point.close);
 
   return (
     <div className="intraday-chart-container">
@@ -301,8 +330,22 @@ const IntradayChart = ({ symbol }) => {
         <div style={{ height: '400px' }}>
           {/* We'll use the StockChart component but with custom data */}
           <div className="chart-placeholder">
-            <p>📊 Intraday chart with {chartData.length} data points</p>
+            <p>📊 Intraday chart with {filteredData.length} data points ({interval} intervals)</p>
             <p>Price range: ${Math.min(...prices).toFixed(2)} - ${Math.max(...prices).toFixed(2)}</p>
+            <p>Timezone: Eastern Time (ET)</p>
+            <div className="time-labels">
+              {filteredData.slice(0, 5).map((point, index) => (
+                <span key={index} className="time-label">
+                  {new Date(point.datetime).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'America/New_York',
+                    hour12: false
+                  })} ET
+                </span>
+              ))}
+              {filteredData.length > 5 && <span>...</span>}
+            </div>
           </div>
         </div>
       </div>

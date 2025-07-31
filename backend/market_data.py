@@ -446,7 +446,7 @@ class MarketDataService:
                 "interval": interval,  # 1h, 30min, 15min, 5min, 1min
                 "outputsize": min(outputsize, 100),  # Limit for responsiveness
                 "apikey": self.twelvedata_api_key,
-                "order": "DESC"  # Newest first
+                "order": "ASC"  # Oldest first for chronological charts
             }
             
             async with aiohttp.ClientSession() as session:

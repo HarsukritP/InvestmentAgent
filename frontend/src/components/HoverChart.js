@@ -44,13 +44,43 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
         throw new Error('No intraday data available');
       }
 
-      // Format data for Chart.js (reverse to show chronologically)
-      const chartPoints = data.data.reverse();
-      const labels = chartPoints.map(point => {
-        const time = point.time || point.datetime.split(' ')[1] || '';
-        return time.slice(0, 5); // Format as HH:MM
+      // Format data for Chart.js (data already in chronological order)
+      const chartPoints = data.data;
+      
+      // Filter to get evenly spaced time intervals
+      const filteredPoints = [];
+      const intervalMinutes = 60; // Fixed to 1h for hover charts
+      
+      for (let i = 0; i < chartPoints.length; i++) {
+        const point = chartPoints[i];
+        const datetime = new Date(point.datetime);
+        const minutes = datetime.getMinutes();
+        const hours = datetime.getHours();
+        
+        // Only include points that fall on even intervals
+        if (intervalMinutes === 60) {
+          // For hourly: only show on the hour (minutes === 0)
+          if (minutes === 0) filteredPoints.push(point);
+        } else if (intervalMinutes === 30) {
+          // For 30min: show on :00 and :30
+          if (minutes === 0 || minutes === 30) filteredPoints.push(point);
+        } else {
+          // For other intervals, include all points
+          filteredPoints.push(point);
+        }
+      }
+      
+      const labels = filteredPoints.map(point => {
+        const datetime = new Date(point.datetime);
+        const timeStr = datetime.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'America/New_York',
+          hour12: false
+        });
+        return `${timeStr} ET`;
       });
-      const prices = chartPoints.map(point => point.close);
+      const prices = filteredPoints.map(point => point.close);
 
       // Determine chart color based on overall trend
       const firstPrice = prices[0];
@@ -140,7 +170,8 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
             return `$${context.parsed.y.toFixed(2)}`;
           },
           title: function(context) {
-            return context[0].label;
+            const label = context[0].label;
+            return label.replace(' ET', ' (Eastern Time)');
           }
         }
       }
@@ -192,7 +223,7 @@ const HoverChart = ({ symbol, isVisible, position, onMouseLeave }) => {
     >
       <div className="hover-chart-header">
         <span className="hover-symbol">{symbol}</span>
-        <span className="hover-period">Today (Hourly)</span>
+        <span className="hover-period">Today (1H • ET)</span>
       </div>
       
       <div className="hover-chart-content">
