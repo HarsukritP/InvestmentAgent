@@ -150,12 +150,11 @@
   background: #ffffff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px 20px;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 8px;
+  grid-template-rows: auto auto auto;
+  gap: 4px;
   min-height: 100px;
-  height: 100px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s ease;
 }
@@ -442,8 +441,7 @@
   }
   
   .summary-card {
-    padding: 16px;
-    height: 90px;
+    padding: 14px 16px;
   }
   
   .portfolio-summary {
@@ -476,7 +474,7 @@
   
   .summary-card {
     height: 85px;
-    padding: 16px;
+    padding: 12px 16px;
   }
   
   .card-value {
@@ -519,7 +517,7 @@
   
   .summary-card {
     height: 80px;
-    padding: 16px;
+    padding: 10px 16px;
   }
   
   .card-value {
