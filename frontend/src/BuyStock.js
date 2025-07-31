@@ -446,6 +446,16 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                 </div>
                 
                 <div className="slider-container-modern">
+                  {/* Current Position Indicator (Above Slider) */}
+                  {existingHolding && (
+                    <div className="current-position-indicator" style={{ 
+                      left: `${getSliderPosition(currentShares)}%` 
+                    }}>
+                      <span className="current-indicator-value">{currentShares.toFixed(1)}</span>
+                      <span className="current-indicator-text">Current</span>
+                    </div>
+                  )}
+                  
                   <div className="slider-track">
                     <input
                       type="range"
@@ -466,14 +476,6 @@ const BuyStock = ({ isOpen, onClose, onSuccess, isMobile, existingHolding = null
                       <span className="label-value">0</span>
                       <span className="label-text">Sell All</span>
                     </div>
-                    {existingHolding && (
-                      <div className="label-item current" style={{ 
-                        left: `${getSliderPosition(currentShares)}%` 
-                      }}>
-                        <span className="label-value">{currentShares.toFixed(1)}</span>
-                        <span className="label-text">Current</span>
-                      </div>
-                    )}
                     <div className="label-item">
                       <span className="label-value">{getMaxDisplay().toFixed(1)}</span>
                       <span className="label-text">Max</span>
