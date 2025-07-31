@@ -4,6 +4,7 @@ import './ActionsLogPage.css';
 import { API_URL } from '../config';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { FaArrowUp, FaArrowDown, FaCheck, FaTimes, FaSync } from 'react-icons/fa';
+import GlobalLoadingIndicator from '../components/GlobalLoadingIndicator';
 
 function ActionsLogPage() {
   const [transactions, setTransactions] = useState([]);
@@ -191,6 +192,12 @@ function ActionsLogPage() {
           </div>
         )}
       </div>
+      
+      {/* Global Loading Indicator */}
+      <GlobalLoadingIndicator 
+        isVisible={loading} 
+        message="Loading transactions..." 
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import './ChatPage.css';
 import { API_URL } from '../config';
 import defaultAvatar from '../assets/default-avatar.js';
 import assistantAvatar from '../assets/assistant-avatar.js';
+import GlobalLoadingIndicator from '../components/GlobalLoadingIndicator';
 
 const STORAGE_KEY = 'procogia_chat_history';
 
@@ -853,6 +854,12 @@ ${sectorInfo}
           </div>
         </div>
       </div>
+      
+      {/* Global Loading Indicator */}
+      <GlobalLoadingIndicator 
+        isVisible={isLoading} 
+        message="AI is thinking..." 
+      />
     </div>
   );
 };
