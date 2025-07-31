@@ -212,6 +212,12 @@
   border-bottom: 1px solid #e9ecef;
 }
 
+/* Add extra left padding to the first column (Symbol) */
+.holdings-table th:first-child,
+.holdings-table td:first-child {
+  padding-left: 30px;
+}
+
 .holdings-table th {
   background-color: #f8f9fa;
   font-weight: 600;
