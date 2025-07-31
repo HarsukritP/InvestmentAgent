@@ -36,22 +36,24 @@
 }
 
 .status-indicator {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  margin-right: 10px;
+  margin-right: 8px;
   flex-shrink: 0;
-  display: block;
+  display: inline-block;
 }
 
 .status-indicator.open {
   background-color: #4caf50;
-  box-shadow: 0 0 5px #4caf50;
 }
 
 .status-indicator.closed {
   background-color: #f44336;
-  box-shadow: 0 0 5px #f44336;
+}
+
+.status-indicator.loading {
+  background-color: #6c757d;
 }
 
 .status-text {

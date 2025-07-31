@@ -7,7 +7,7 @@ const GlobalLoadingIndicator = ({ isVisible, message = "Updating..." }) => {
   return (
     <div className="global-loading-indicator">
       <div className="loading-content">
-        <div className="loading-icon"></div>
+        <div className="mini-spinner"></div>
         <span className="loading-message">{message}</span>
       </div>
     </div>
