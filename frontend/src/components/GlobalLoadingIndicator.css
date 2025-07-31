@@ -3,16 +3,16 @@
   top: 15px;
   right: 15px;
   z-index: 1000;
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(139, 195, 74, 0.3);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(10px);
   animation: slideInRight 0.2s ease-out;
 }
 
@@ -24,13 +24,18 @@
   height: 100%;
 }
 
+.loading-icon {
+  width: 24px;
+  height: 24px;
+  background-image: url('../assets/images/procogia-icon.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+
 .mini-spinner {
-  width: 12px;
-  height: 12px;
-  border: 1.5px solid rgba(139, 195, 74, 0.2);
-  border-top: 1.5px solid #8BC34A;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  display: none;
 }
 
 .loading-message {
@@ -51,6 +56,17 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 /* Mobile responsive */
