@@ -442,7 +442,6 @@
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
@@ -456,6 +455,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  cursor: pointer;
+  flex: 1;
 }
 
 .stock-symbol {
@@ -499,10 +500,46 @@
   color: #ef6c00;
 }
 
+.existing-holding {
+  font-size: 12px;
+  color: var(--procogia-primary);
+  font-weight: 500;
+  background: rgba(139, 195, 74, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.stock-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .stock-price {
   font-weight: 600;
   color: #2c3e50;
   font-size: 14px;
+}
+
+.stock-action-btn {
+  background: linear-gradient(135deg, var(--procogia-primary), var(--procogia-secondary));
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+}
+
+.stock-action-btn:hover {
+  background: linear-gradient(135deg, var(--procogia-secondary), var(--procogia-primary));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(139, 195, 74, 0.3);
 }
 
 .no-results {

@@ -10,6 +10,7 @@ const StockDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [stockDetails, setStockDetails] = useState(null);
+  const [stockInfo, setStockInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedChart, setSelectedChart] = useState('price');
@@ -30,9 +31,23 @@ const StockDetailPage = () => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get(`/stock-details/${symbol}`);
-      const data = response.data;
+      // Fetch both stock details and basic stock info (for exchange data)
+      const [detailsResponse, searchResponse] = await Promise.all([
+        axios.get(`/stock-details/${symbol}`),
+        axios.get(`/search-stocks?query=${symbol}`)
+      ]);
+      
+      const data = detailsResponse.data;
       setStockDetails(data);
+      
+      // Find the exact match in search results for exchange info
+      const searchResults = searchResponse.data.results || [];
+      const exactMatch = searchResults.find(stock => 
+        stock.symbol.toLowerCase() === symbol.toLowerCase()
+      );
+      if (exactMatch) {
+        setStockInfo(exactMatch);
+      }
 
     } catch (err) {
       setError(err.message);
@@ -114,7 +129,20 @@ const StockDetailPage = () => {
           </button>
           <div className="stock-title">
             <h1>{symbol}</h1>
-            <span className="stock-subtitle">Stock Details & Charts</span>
+            <div className="stock-subtitle-container">
+              <span className="stock-subtitle">Stock Details & Charts</span>
+              {stockInfo && (
+                <div className="stock-exchange-info">
+                  {stockInfo.exchange && <span className="exchange-badge">{stockInfo.exchange}</span>}
+                  {stockInfo.region && stockInfo.region !== 'United States' && (
+                    <span className="region-badge">{stockInfo.region}</span>
+                  )}
+                  {stockInfo.currency && stockInfo.currency !== 'USD' && (
+                    <span className="currency-badge">{stockInfo.currency}</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         

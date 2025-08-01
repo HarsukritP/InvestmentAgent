@@ -51,10 +51,47 @@
   font-weight: 700;
 }
 
+.stock-subtitle-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .stock-subtitle {
   color: #7A8A9A;
   font-size: 16px;
   font-weight: 500;
+}
+
+.stock-exchange-info {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exchange-badge,
+.region-badge,
+.currency-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.exchange-badge {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.region-badge {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.currency-badge {
+  background: #fff3e0;
+  color: #ef6c00;
 }
 
 .price-section {

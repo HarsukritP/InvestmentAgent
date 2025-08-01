@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { isMarketOpen } from '../utils/formatters';
 import GlobalLoadingIndicator from '../components/GlobalLoadingIndicator';
+import BuyStock from '../BuyStock';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
@@ -36,6 +37,10 @@ const DashboardPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState('');
+  
+  // Buy/Sell modal state
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState(null);
 
   // Fetch portfolio summary
   const fetchPortfolioSummary = useCallback(async () => {
@@ -108,6 +113,35 @@ const DashboardPage = () => {
   // Handle stock selection
   const handleStockSelect = (stock) => {
     navigate(`/stock/${stock.symbol}`, { state: { from: '/dashboard' } });
+  };
+
+  // Check if user owns a stock
+  const findExistingHolding = (symbol) => {
+    if (!portfolio?.holdings) return null;
+    return portfolio.holdings.find(holding => 
+      holding.symbol.toLowerCase() === symbol.toLowerCase()
+    );
+  };
+
+  // Handle buy/sell action from search results
+  const handleBuyStock = (stock) => {
+    const existingHolding = findExistingHolding(stock.symbol);
+    if (existingHolding) {
+      // User already owns this stock, open adjust modal
+      setSelectedHolding(existingHolding);
+    } else {
+      // New stock purchase
+      setSelectedHolding(null);
+    }
+    setShowBuyModal(true);
+  };
+
+  // Handle successful transaction
+  const handleTransactionSuccess = () => {
+    setShowBuyModal(false);
+    setSelectedHolding(null);
+    // Refresh portfolio data
+    refreshDashboard();
   };
 
   // Handle key press for search
@@ -304,24 +338,43 @@ const DashboardPage = () => {
               <div className="search-results">
                 {searchResults.length > 0 ? (
                   <ul className="stock-list">
-                    {searchResults.slice(0, 5).map((stock, index) => (
-                      <li key={index} className="stock-item" onClick={() => handleStockSelect(stock)}>
-                        <div className="stock-info">
-                          <div className="stock-symbol">{stock.symbol}</div>
-                          <div className="stock-name">{stock.name}</div>
-                          {(stock.exchange || stock.region || stock.currency) && (
-                            <div className="stock-details">
-                              {stock.exchange && <span className="stock-exchange">{stock.exchange}</span>}
-                              {stock.region && stock.region !== 'United States' && <span className="stock-region">{stock.region}</span>}
-                              {stock.currency && stock.currency !== 'USD' && <span className="stock-currency">{stock.currency}</span>}
-                            </div>
-                          )}
-                        </div>
-                        {stock.current_price && (
-                          <div className="stock-price">${stock.current_price.toFixed(2)}</div>
-                        )}
-                      </li>
-                    ))}
+                    {searchResults.slice(0, 5).map((stock, index) => {
+                      const existingHolding = findExistingHolding(stock.symbol);
+                      return (
+                        <li key={index} className="stock-item">
+                          <div className="stock-info" onClick={() => handleStockSelect(stock)}>
+                            <div className="stock-symbol">{stock.symbol}</div>
+                            <div className="stock-name">{stock.name}</div>
+                            {existingHolding && (
+                              <div className="existing-holding">
+                                You own {existingHolding.shares} shares (${existingHolding.market_value?.toFixed(2) || '0.00'})
+                              </div>
+                            )}
+                            {(stock.exchange || stock.region || stock.currency) && (
+                              <div className="stock-details">
+                                {stock.exchange && <span className="stock-exchange">{stock.exchange}</span>}
+                                {stock.region && stock.region !== 'United States' && <span className="stock-region">{stock.region}</span>}
+                                {stock.currency && stock.currency !== 'USD' && <span className="stock-currency">{stock.currency}</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="stock-actions">
+                            {stock.current_price && (
+                              <div className="stock-price">${stock.current_price.toFixed(2)}</div>
+                            )}
+                            <button 
+                              className="stock-action-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBuyStock(stock);
+                              }}
+                            >
+                              {existingHolding ? 'Adjust' : 'Buy'}
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : hasSearched && searchQuery.trim() ? (
                   <div className="no-results">No stocks found matching "{searchQuery}"</div>
@@ -361,6 +414,14 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Buy/Sell Modal */}
+      <BuyStock 
+        isOpen={showBuyModal} 
+        onClose={() => setShowBuyModal(false)}
+        onSuccess={handleTransactionSuccess}
+        existingHolding={selectedHolding}
+      />
 
       {/* Global Loading Indicator */}
       <GlobalLoadingIndicator 
