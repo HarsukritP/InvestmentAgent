@@ -46,8 +46,10 @@
 }
 
 .procogia-icon {
-  font-size: 24px;
-  filter: grayscale(1) brightness(0) invert(1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }
 
 .ai-info {
@@ -96,8 +98,10 @@
   color: #374151;
 }
 
-.icon-clear {
-  font-size: 16px;
+.clear-chat-btn-modern svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ========== MAIN CHAT CONTAINER ========== */
@@ -128,9 +132,11 @@
 }
 
 .welcome-icon {
-  font-size: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 1.5rem;
-  display: block;
+  color: var(--procogia-primary);
 }
 
 .welcome-title {
