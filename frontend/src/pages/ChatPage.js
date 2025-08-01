@@ -3,6 +3,8 @@ import axios from 'axios';
 import './ChatPage.css';
 import { API_URL } from '../config';
 import { formatCurrency, formatPercentage } from '../utils/formatters';
+import defaultAvatar from '../assets/default-avatar.js';
+import assistantAvatar from '../assets/assistant-avatar.js';
 
 const STORAGE_KEY = 'procogia_chat_history';
 
@@ -11,6 +13,7 @@ const ChatPage = ({ portfolio, user }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [expandedFunctions, setExpandedFunctions] = useState({});
+  const [activeFunctions, setActiveFunctions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(true);
   
   const messagesEndRef = useRef(null);
