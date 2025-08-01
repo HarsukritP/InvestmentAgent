@@ -383,82 +383,78 @@ const DashboardPage = () => {
           )}
         </div>
 
-        {/* Stock Lookup Section */}
+        {/* Stock Lookup Section - Rebuilt from AI structure */}
         <div className="dashboard-section lookup-section">
           <div className="section-header">
             <h2 className="section-title">Stock Lookup</h2>
           </div>
           
-          <div className="stock-search">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search stocks by symbol or name..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setHasSearched(false);
-                }}
-                onKeyPress={handleKeyPress}
-              />
-              <button 
-                className="search-button"
-                onClick={searchStocks}
-                disabled={isSearching || !searchQuery.trim()}
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            
-            {searchError && <div className="error-message">{searchError}</div>}
-            
+          <div className="search-box-compact">
+            <input
+              type="text"
+              placeholder="Search stocks..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setHasSearched(false);
+              }}
+              onKeyPress={handleKeyPress}
+            />
+            <button 
+              className="search-button-compact"
+              onClick={searchStocks}
+              disabled={isSearching || !searchQuery.trim()}
+            >
+              {isSearching ? '...' : 'Search'}
+            </button>
+          </div>
+          
+          {searchError && <div className="error-message-compact">{searchError}</div>}
+          
+          <div className="stock-grid">
             {isSearching ? (
-              <div className="loading-indicator">
-                <div className="spinner"></div>
+              <div className="loading-compact">
+                <div className="spinner-small"></div>
                 <span>Searching...</span>
               </div>
-            ) : (
-              <div className="search-results">
-                {searchResults.length > 0 ? (
-                  <ul className="stock-list">
-                    {searchResults.slice(0, 3).map((stock, index) => {
-                      const existingHolding = findExistingHolding(stock.symbol);
-                      return (
-                        <li key={index} className="stock-item">
-                          <div className="stock-info" onClick={() => handleStockSelect(stock)}>
-                            <div className="stock-main">
-                              <span className="stock-symbol">{stock.symbol}</span>
-                              <span className="stock-name">{stock.name}</span>
-                            </div>
-                            {existingHolding && (
-                              <div className="existing-holding">
-                                Own {existingHolding.shares} shares
-                              </div>
-                            )}
-                          </div>
-                          <div className="stock-actions">
-                            {stock.current_price && (
-                              <span className="stock-price">${stock.current_price.toFixed(2)}</span>
-                            )}
-                            <button 
-                              className="stock-action-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleBuyStock(stock);
-                              }}
-                            >
-                              {existingHolding ? 'Adjust' : 'Buy'}
-                            </button>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : hasSearched && searchQuery.trim() ? (
-                  <div className="no-results">No stocks found</div>
-                ) : null}
-              </div>
-            )}
+            ) : searchResults.length > 0 ? (
+              searchResults.slice(0, 4).map((stock, index) => {
+                const existingHolding = findExistingHolding(stock.symbol);
+                return (
+                  <button
+                    key={index}
+                    className="stock-card"
+                    onClick={() => handleStockSelect(stock)}
+                    title={`View ${stock.symbol} details`}
+                  >
+                    <div className="stock-icon">📈</div>
+                    <div className="stock-content">
+                      <h4 className="stock-title">{stock.symbol}</h4>
+                      <p className="stock-preview">
+                        {stock.name?.substring(0, 25)}...
+                        {existingHolding && <span className="owned-indicator"> • Owned</span>}
+                      </p>
+                    </div>
+                    <div className="stock-action">
+                      {stock.current_price && (
+                        <div className="stock-price-compact">${stock.current_price.toFixed(2)}</div>
+                      )}
+                      <button 
+                        className="buy-btn-compact"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBuyStock(stock);
+                        }}
+                      >
+                        {existingHolding ? 'Adjust' : 'Buy'}
+                      </button>
+                    </div>
+                  </button>
+                );
+              })
+            ) : hasSearched && searchQuery.trim() ? (
+              <div className="no-results-compact">No stocks found for "{searchQuery}"</div>
+            ) : null}
           </div>
         </div>
 
