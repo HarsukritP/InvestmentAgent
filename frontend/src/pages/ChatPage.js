@@ -858,11 +858,14 @@ ${sectorInfo}
         </div>
       </div>
 
+      {/* Active Functions Display */}
+      {renderActiveFunctions()}
+
       {/* Main Chat Area */}
       <div className="chat-main-container" ref={chatContainerRef}>
         
         {/* Empty State / Welcome */}
-        {messages.length === 0 && (
+        {messages.length <= 1 && (
           <div className="welcome-container">
             <div className="welcome-content">
               <div className="welcome-icon">💼</div>
@@ -894,7 +897,7 @@ ${sectorInfo}
         )}
 
         {/* Messages Container */}
-        {messages.length > 0 && (
+        {messages.length > 1 && (
           <div className="messages-container-modern">
             <div className="messages-scroll-area">
               {messages.map((message, index) => (
@@ -939,8 +942,8 @@ ${sectorInfo}
 
       {/* Input Area - Fixed at bottom */}
       <div className="input-area-modern">
-        {/* Show suggestions when no messages and input is empty */}
-        {messages.length > 0 && showSuggestions && !inputMessage.trim() && (
+        {/* Show suggestions when there are conversations and input is empty */}
+        {messages.length > 1 && showSuggestions && !inputMessage.trim() && (
           <div className="quick-suggestions">
             {generateSuggestions().slice(0, 3).map((suggestion, index) => (
               <button
@@ -977,7 +980,7 @@ ${sectorInfo}
                 {isLoading ? (
                   <div className="spinner-small"></div>
                 ) : (
-                  <span>↗</span>
+                  <span>Send</span>
                 )}
               </div>
             </button>
