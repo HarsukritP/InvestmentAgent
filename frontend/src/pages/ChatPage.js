@@ -5,10 +5,12 @@ import { API_URL } from '../config';
 import { formatCurrency, formatPercentage } from '../utils/formatters';
 import defaultAvatar from '../assets/default-avatar.js';
 import assistantAvatar from '../assets/assistant-avatar.js';
+import { useLocation } from 'react-router-dom';
 
 const STORAGE_KEY = 'procogia_chat_history';
 
 const ChatPage = ({ portfolio, user }) => {
+  const location = useLocation();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -156,6 +158,21 @@ const ChatPage = ({ portfolio, user }) => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     }
   }, [messages]);
+
+  // Handle prefilled message from navigation
+  useEffect(() => {
+    const prefilledMessage = location.state?.prefilledMessage;
+    if (prefilledMessage) {
+      setInputMessage(prefilledMessage);
+      setShowSuggestions(false);
+      // Focus the input field
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      // Clear the navigation state to prevent re-filling on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Handle transaction confirmation
   const handleTransactionConfirm = (confirmed, transactionDetails) => {

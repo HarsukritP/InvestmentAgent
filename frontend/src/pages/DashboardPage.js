@@ -144,6 +144,89 @@ const DashboardPage = () => {
     refreshDashboard();
   };
 
+  // Generate context-aware AI recommendations
+  const generateAIRecommendations = useCallback(() => {
+    const recommendations = [];
+    
+    if (portfolio && portfolio.holdings) {
+      // Performance-based recommendations
+      const poorPerformers = portfolio.holdings.filter(h => 
+        h.daily_change_percent && h.daily_change_percent < -3
+      );
+      const strongPerformers = portfolio.holdings.filter(h => 
+        h.daily_change_percent && h.daily_change_percent > 5
+      );
+      
+      if (poorPerformers.length > 0) {
+        recommendations.push({
+          title: "Analyze Poor Performers",
+          prompt: `I'm concerned about ${poorPerformers.map(h => h.symbol).join(', ')} dropping significantly today. Can you analyze why these stocks are declining and whether I should hold, sell, or buy more?`,
+          icon: "📉",
+          priority: "high"
+        });
+      }
+      
+      if (strongPerformers.length > 0) {
+        recommendations.push({
+          title: "Review Strong Performers", 
+          prompt: `${strongPerformers.map(h => h.symbol).join(', ')} are performing very well today. Should I take profits, let them run, or buy more while momentum is strong?`,
+          icon: "📈",
+          priority: "medium"
+        });
+      }
+      
+      // Diversification analysis
+      if (portfolio.holdings.length < 5) {
+        recommendations.push({
+          title: "Diversification Analysis",
+          prompt: `I only have ${portfolio.holdings.length} stocks in my portfolio. Can you analyze my current holdings and suggest some diversification strategies to reduce risk?`,
+          icon: "🎯",
+          priority: "medium"
+        });
+      }
+      
+      // Cash position analysis
+      const cashPercentage = portfolio.cash_balance / portfolio.total_value * 100;
+      if (cashPercentage > 20) {
+        recommendations.push({
+          title: "Deploy Excess Cash",
+          prompt: `I have ${cashPercentage.toFixed(1)}% of my portfolio in cash (${portfolio.cash_balance?.toFixed(2)}). What are some good investment opportunities right now to put this cash to work?`,
+          icon: "💰",
+          priority: "medium"
+        });
+      }
+      
+      // Rebalancing opportunities
+      recommendations.push({
+        title: "Portfolio Rebalancing",
+        prompt: `Can you analyze my current portfolio allocation and suggest any rebalancing opportunities? I want to make sure my risk is properly managed.`,
+        icon: "⚖️",
+        priority: "low"
+      });
+    }
+    
+    // Market-based recommendations
+    recommendations.push({
+      title: "Market Outlook Analysis",
+      prompt: `What's your current view on the market? Are there any sectors or trends I should be watching for potential opportunities or risks?`,
+      icon: "🌍",
+      priority: "low"
+    });
+    
+    return recommendations.slice(0, 4); // Limit to 4 recommendations
+  }, [portfolio]);
+
+  // Handle AI recommendation click
+  const handleAIRecommendation = (prompt) => {
+    // Navigate to chat with pre-filled prompt
+    navigate('/chat', { 
+      state: { 
+        prefilledMessage: prompt,
+        from: '/dashboard' 
+      } 
+    });
+  };
+
   // Handle key press for search
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -300,13 +383,13 @@ const DashboardPage = () => {
           )}
         </div>
 
-        {/* Stock Lookup Section */}
-        <div className="dashboard-section lookup-section">
+        {/* Stock Lookup Section - Compact */}
+        <div className="dashboard-section lookup-section compact">
           <div className="section-header">
             <h2 className="section-title">Quick Stock Lookup</h2>
           </div>
           
-          <div className="stock-search">
+          <div className="stock-search compact">
             <div className="search-box">
               <input
                 type="text"
@@ -330,40 +413,35 @@ const DashboardPage = () => {
             {searchError && <div className="error-message">{searchError}</div>}
             
             {isSearching ? (
-              <div className="loading-indicator">
+              <div className="loading-indicator compact">
                 <div className="spinner"></div>
-                <p>Searching for stocks...</p>
+                <span>Searching...</span>
               </div>
             ) : (
-              <div className="search-results">
+              <div className="search-results compact">
                 {searchResults.length > 0 ? (
-                  <ul className="stock-list">
-                    {searchResults.slice(0, 5).map((stock, index) => {
+                  <ul className="stock-list compact">
+                    {searchResults.slice(0, 3).map((stock, index) => {
                       const existingHolding = findExistingHolding(stock.symbol);
                       return (
-                        <li key={index} className="stock-item">
-                          <div className="stock-info" onClick={() => handleStockSelect(stock)}>
-                            <div className="stock-symbol">{stock.symbol}</div>
-                            <div className="stock-name">{stock.name}</div>
+                        <li key={index} className="stock-item compact">
+                          <div className="stock-info compact" onClick={() => handleStockSelect(stock)}>
+                            <div className="stock-main">
+                              <span className="stock-symbol">{stock.symbol}</span>
+                              <span className="stock-name">{stock.name}</span>
+                            </div>
                             {existingHolding && (
-                              <div className="existing-holding">
-                                You own {existingHolding.shares} shares (${existingHolding.market_value?.toFixed(2) || '0.00'})
-                              </div>
-                            )}
-                            {(stock.exchange || stock.region || stock.currency) && (
-                              <div className="stock-details">
-                                {stock.exchange && <span className="stock-exchange">{stock.exchange}</span>}
-                                {stock.region && stock.region !== 'United States' && <span className="stock-region">{stock.region}</span>}
-                                {stock.currency && stock.currency !== 'USD' && <span className="stock-currency">{stock.currency}</span>}
+                              <div className="existing-holding compact">
+                                Own {existingHolding.shares} shares
                               </div>
                             )}
                           </div>
-                          <div className="stock-actions">
+                          <div className="stock-actions compact">
                             {stock.current_price && (
-                              <div className="stock-price">${stock.current_price.toFixed(2)}</div>
+                              <span className="stock-price">${stock.current_price.toFixed(2)}</span>
                             )}
                             <button 
-                              className="stock-action-btn"
+                              className="stock-action-btn compact"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleBuyStock(stock);
@@ -377,10 +455,41 @@ const DashboardPage = () => {
                     })}
                   </ul>
                 ) : hasSearched && searchQuery.trim() ? (
-                  <div className="no-results">No stocks found matching "{searchQuery}"</div>
+                  <div className="no-results compact">No stocks found</div>
                 ) : null}
               </div>
             )}
+          </div>
+
+          {/* AI Recommended Actions */}
+          <div className="ai-recommendations">
+            <div className="recommendations-header">
+              <h3 className="recommendations-title">AI Recommended Actions</h3>
+            </div>
+            
+            <div className="recommendations-grid">
+              {generateAIRecommendations().map((recommendation, index) => (
+                <button
+                  key={index}
+                  className={`recommendation-card ${recommendation.priority}`}
+                  onClick={() => handleAIRecommendation(recommendation.prompt)}
+                  title={`Ask AI: ${recommendation.title}`}
+                >
+                  <div className="recommendation-icon">{recommendation.icon}</div>
+                  <div className="recommendation-content">
+                    <h4 className="recommendation-title">{recommendation.title}</h4>
+                    <p className="recommendation-preview">
+                      {recommendation.prompt.substring(0, 60)}...
+                    </p>
+                  </div>
+                  <div className="recommendation-action">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
