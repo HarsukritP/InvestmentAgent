@@ -101,24 +101,24 @@
   font-size: 16px;
 }
 
-/* Bento Grid Layout - No scrolling */
+/* Bento Grid Layout - 4 Equal Panels */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 16px;
   flex: 1;
   min-height: 0;
   grid-template-areas: 
     "portfolio lookup"
-    "news lookup";
+    "ai news";
 }
 
 .dashboard-section {
   background: white;
   border: 1px solid #e9ecef;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
@@ -132,7 +132,10 @@
 
 .lookup-section {
   grid-area: lookup;
-  grid-row: span 2;
+}
+
+.ai-section {
+  grid-area: ai;
 }
 
 .news-section {
@@ -144,7 +147,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
@@ -320,11 +323,11 @@
   color: #c62828;
 }
 
-/* Stock Search - Optimized for bento layout */
+/* Stock Search - Compact for 4-panel bento layout */
 .stock-search {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   flex: 1;
   min-height: 0;
 }
@@ -400,9 +403,10 @@
 .loading-indicator {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px;
+  gap: 8px;
+  padding: 8px 12px;
   text-align: center;
+  font-size: 14px;
 }
 
 .spinner {
@@ -542,49 +546,6 @@
   box-shadow: 0 2px 4px rgba(139, 195, 74, 0.3);
 }
 
-/* ========== COMPACT STOCK LOOKUP ========== */
-
-.lookup-section.compact {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.stock-search.compact {
-  gap: 8px;
-}
-
-.loading-indicator.compact {
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.loading-indicator.compact span {
-  margin: 0;
-}
-
-.search-results.compact {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.stock-list.compact {
-  gap: 4px;
-}
-
-.stock-item.compact {
-  padding: 8px 12px;
-  border-radius: 8px;
-  min-height: auto;
-}
-
-.stock-info.compact {
-  gap: 4px;
-}
-
 .stock-main {
   display: flex;
   align-items: center;
@@ -603,77 +564,25 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.existing-holding.compact {
-  font-size: 11px;
-  padding: 1px 4px;
-  margin-top: 2px;
-}
-
-.stock-actions.compact {
-  gap: 4px;
-  align-items: center;
-}
-
-.stock-actions.compact .stock-price {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.stock-action-btn.compact {
-  padding: 4px 8px;
-  font-size: 11px;
-  min-width: 40px;
-  border-radius: 4px;
-}
-
-.no-results.compact {
-  padding: 12px;
-  font-size: 14px;
-  text-align: center;
+  max-width: 140px;
 }
 
 /* ========== AI RECOMMENDATIONS ========== */
 
-.ai-recommendations {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-}
-
-.recommendations-header {
-  margin-bottom: 0.75rem;
-}
-
-.recommendations-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.recommendations-title::before {
-  content: "🤖";
-  font-size: 0.875rem;
-}
-
-.recommendations-grid {
+.ai-section .recommendations-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .recommendation-card {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: white;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
   cursor: pointer;
@@ -701,10 +610,10 @@
 }
 
 .recommendation-icon {
-  font-size: 1.25rem;
+  font-size: 1rem;
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -718,18 +627,18 @@
 }
 
 .recommendation-title {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #2c3e50;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.15rem 0;
   line-height: 1.2;
 }
 
 .recommendation-preview {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #6c757d;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -746,55 +655,16 @@
   opacity: 1;
 }
 
-/* ========== RESPONSIVE ADJUSTMENTS ========== */
 
-@media (max-width: 1200px) {
-  .recommendations-grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-  
-  .recommendation-card {
-    padding: 0.5rem;
-  }
-  
-  .recommendation-icon {
-    width: 1.75rem;
-    height: 1.75rem;
-    font-size: 1rem;
-  }
-  
-  .recommendation-title {
-    font-size: 0.8rem;
-  }
-  
-  .recommendation-preview {
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .stock-main .stock-name {
-    max-width: 80px;
-  }
-  
-  .recommendation-card {
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
-  
-  .recommendation-content {
-    min-width: 0;
-  }
-}
 
 .no-results {
-  padding: 20px;
+  padding: 12px;
   text-align: center;
   color: #6c757d;
   background: #f8f9fa;
   border: 2px dashed #dee2e6;
   border-radius: 8px;
+  font-size: 14px;
 }
 
 /* News Feed */
@@ -872,7 +742,7 @@
   color: #6c757d;
 }
 
-/* Responsive Design - Allow scrolling on smaller screens */
+/* Responsive Design - Stack 4 panels on smaller screens */
 @media (max-width: 1200px) {
   .dashboard-page {
     min-height: 100vh;
@@ -882,10 +752,11 @@
   
   .dashboard-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas: 
       "portfolio"
       "lookup"  
+      "ai"
       "news";
     flex: none;
   }
@@ -893,10 +764,6 @@
   .dashboard-section {
     min-height: auto;
     height: auto;
-  }
-  
-  .lookup-section {
-    grid-row: span 1;
   }
   
   .summary-cards {
@@ -942,10 +809,15 @@
   /* Allow natural content flow on mobile */
   .top-holdings,
   .stock-search,
-  .news-feed {
+  .news-feed,
+  .recommendations-grid {
     flex: none;
     min-height: 200px;
     overflow-y: auto;
+  }
+
+  .stock-main .stock-name {
+    max-width: 100px;
   }
   
   /* Compact search box on mobile */
@@ -990,8 +862,13 @@
   /* Ensure small mobile screens have proper content space */
   .top-holdings,
   .stock-search,
-  .news-feed {
+  .news-feed,
+  .recommendations-grid {
     min-height: 180px;
+  }
+
+  .stock-main .stock-name {
+    max-width: 80px;
   }
   
   /* Very compact search box for small screens */

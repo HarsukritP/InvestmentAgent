@@ -383,13 +383,13 @@ const DashboardPage = () => {
           )}
         </div>
 
-        {/* Stock Lookup Section - Compact */}
-        <div className="dashboard-section lookup-section compact">
+        {/* Stock Lookup Section */}
+        <div className="dashboard-section lookup-section">
           <div className="section-header">
             <h2 className="section-title">Quick Stock Lookup</h2>
           </div>
           
-          <div className="stock-search compact">
+          <div className="stock-search">
             <div className="search-box">
               <input
                 type="text"
@@ -413,35 +413,35 @@ const DashboardPage = () => {
             {searchError && <div className="error-message">{searchError}</div>}
             
             {isSearching ? (
-              <div className="loading-indicator compact">
+              <div className="loading-indicator">
                 <div className="spinner"></div>
                 <span>Searching...</span>
               </div>
             ) : (
-              <div className="search-results compact">
+              <div className="search-results">
                 {searchResults.length > 0 ? (
-                  <ul className="stock-list compact">
+                  <ul className="stock-list">
                     {searchResults.slice(0, 3).map((stock, index) => {
                       const existingHolding = findExistingHolding(stock.symbol);
                       return (
-                        <li key={index} className="stock-item compact">
-                          <div className="stock-info compact" onClick={() => handleStockSelect(stock)}>
+                        <li key={index} className="stock-item">
+                          <div className="stock-info" onClick={() => handleStockSelect(stock)}>
                             <div className="stock-main">
                               <span className="stock-symbol">{stock.symbol}</span>
                               <span className="stock-name">{stock.name}</span>
                             </div>
                             {existingHolding && (
-                              <div className="existing-holding compact">
+                              <div className="existing-holding">
                                 Own {existingHolding.shares} shares
                               </div>
                             )}
                           </div>
-                          <div className="stock-actions compact">
+                          <div className="stock-actions">
                             {stock.current_price && (
                               <span className="stock-price">${stock.current_price.toFixed(2)}</span>
                             )}
                             <button 
-                              className="stock-action-btn compact"
+                              className="stock-action-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleBuyStock(stock);
@@ -455,41 +455,41 @@ const DashboardPage = () => {
                     })}
                   </ul>
                 ) : hasSearched && searchQuery.trim() ? (
-                  <div className="no-results compact">No stocks found</div>
+                  <div className="no-results">No stocks found</div>
                 ) : null}
               </div>
             )}
           </div>
+        </div>
 
-          {/* AI Recommended Actions */}
-          <div className="ai-recommendations">
-            <div className="recommendations-header">
-              <h3 className="recommendations-title">AI Recommended Actions</h3>
-            </div>
-            
-            <div className="recommendations-grid">
-              {generateAIRecommendations().map((recommendation, index) => (
-                <button
-                  key={index}
-                  className={`recommendation-card ${recommendation.priority}`}
-                  onClick={() => handleAIRecommendation(recommendation.prompt)}
-                  title={`Ask AI: ${recommendation.title}`}
-                >
-                  <div className="recommendation-icon">{recommendation.icon}</div>
-                  <div className="recommendation-content">
-                    <h4 className="recommendation-title">{recommendation.title}</h4>
-                    <p className="recommendation-preview">
-                      {recommendation.prompt.substring(0, 60)}...
-                    </p>
-                  </div>
-                  <div className="recommendation-action">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="m9 18 6-6-6-6"/>
-                    </svg>
-                  </div>
-                </button>
-              ))}
-            </div>
+        {/* AI Recommendations Section */}
+        <div className="dashboard-section ai-section">
+          <div className="section-header">
+            <h2 className="section-title">AI Recommended Actions</h2>
+          </div>
+          
+          <div className="recommendations-grid">
+            {generateAIRecommendations().map((recommendation, index) => (
+              <button
+                key={index}
+                className={`recommendation-card ${recommendation.priority}`}
+                onClick={() => handleAIRecommendation(recommendation.prompt)}
+                title={`Ask AI: ${recommendation.title}`}
+              >
+                <div className="recommendation-icon">{recommendation.icon}</div>
+                <div className="recommendation-content">
+                  <h4 className="recommendation-title">{recommendation.title}</h4>
+                  <p className="recommendation-preview">
+                    {recommendation.prompt.substring(0, 45)}...
+                  </p>
+                </div>
+                <div className="recommendation-action">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
