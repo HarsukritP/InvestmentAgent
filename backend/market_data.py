@@ -689,15 +689,61 @@ class MarketDataService:
             }
     
     async def _search_twelvedata(self, query: str) -> List[Dict[str, Any]]:
-        """Search stocks using Twelve Data API"""
+        """Search stocks using Twelve Data API with intelligent filtering"""
         try:
+            # Common company name to ticker mappings for better search
+            company_mappings = {
+                'nvidia': 'NVDA',
+                'apple': 'AAPL', 
+                'microsoft': 'MSFT',
+                'google': 'GOOGL',
+                'alphabet': 'GOOGL',
+                'amazon': 'AMZN',
+                'meta': 'META',
+                'facebook': 'META',
+                'tesla': 'TSLA',
+                'netflix': 'NFLX',
+                'disney': 'DIS',
+                'boeing': 'BA',
+                'intel': 'INTC',
+                'amd': 'AMD',
+                'cisco': 'CSCO',
+                'oracle': 'ORCL',
+                'salesforce': 'CRM',
+                'adobe': 'ADBE',
+                'paypal': 'PYPL',
+                'visa': 'V',
+                'mastercard': 'MA',
+                'jpmorgan': 'JPM',
+                'bank of america': 'BAC',
+                'wells fargo': 'WFC',
+                'berkshire': 'BRK.A',
+                'johnson': 'JNJ',
+                'procter': 'PG',
+                'cocacola': 'KO',
+                'coca cola': 'KO',
+                'pepsi': 'PEP',
+                'walmart': 'WMT',
+                'target': 'TGT',
+                'home depot': 'HD',
+                'lowes': 'LOW'
+            }
+            
+            # Check if query matches a known company name
+            query_lower = query.lower().strip()
+            preferred_symbol = None
+            for company, symbol in company_mappings.items():
+                if company in query_lower or query_lower in company:
+                    preferred_symbol = symbol
+                    break
+            
             url = f"{self.twelvedata_base_url}/symbol_search"
             params = {
                 "symbol": query,
                 "apikey": self.twelvedata_api_key
             }
             
-            logger.info(f"Searching stocks with Twelve Data for query: {query}")
+            logger.info(f"Searching stocks with Twelve Data for query: {query} (preferred: {preferred_symbol})")
             
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params, timeout=10) as response:
@@ -712,24 +758,90 @@ class MarketDataService:
                 logger.error(f"Twelve Data Search API Error: {error_msg}")
                 raise Exception(f"API Error: {error_msg}")
             
-            # Parse search results
+            # Parse search results with intelligent filtering and sorting
             results = []
             search_data = data.get("data", [])
             
-            for item in search_data[:10]:  # Limit to top 10 results
+            # Define preferred exchanges and unwanted instrument types
+            us_exchanges = {'NYSE', 'NASDAQ', 'AMEX', 'NYSEARCA'}
+            major_international = {'LSE', 'TSX', 'ASX', 'HKEX', 'EURONEXT'}
+            unwanted_types = {'warrant', 'certificate', 'option', 'future', 'bond', 'etf', 'fund'}
+            
+            for item in search_data:
                 try:
+                    symbol = item.get('symbol', '')
+                    name = item.get('instrument_name', '')
+                    instrument_type = item.get('instrument_type', 'Equity').lower()
+                    region = item.get('country', 'United States')
+                    currency = item.get('currency', 'USD')
+                    exchange = item.get('exchange', '')
+                    
+                    # Skip unwanted instrument types
+                    if any(unwanted in instrument_type for unwanted in unwanted_types):
+                        continue
+                    
+                    # Skip symbols that look like derivatives (contain numbers, F123456, etc)
+                    if len(symbol) > 6 or any(char.isdigit() for char in symbol):
+                        # Allow some exceptions for legitimate tickers with numbers
+                        if not (symbol.upper() in ['3M', 'MMM'] or symbol.endswith('.TO') or symbol.endswith('.L')):
+                            continue
+                    
+                    # Calculate relevance score
+                    score = 0
+                    
+                    # Preferred symbol gets massive boost (for company name searches like "NVIDIA" -> NVDA)
+                    if preferred_symbol and symbol.upper() == preferred_symbol.upper():
+                        score += 200
+                    
+                    # Exact symbol match gets highest priority
+                    if symbol.upper() == query.upper():
+                        score += 100
+                    elif symbol.upper().startswith(query.upper()):
+                        score += 80
+                    elif query.upper() in symbol.upper():
+                        score += 60
+                    
+                    # Company name matching
+                    if query.lower() in name.lower():
+                        score += 50
+                    
+                    # Prefer US exchanges
+                    if exchange in us_exchanges:
+                        score += 30
+                    elif exchange in major_international:
+                        score += 20
+                    elif region == 'United States':
+                        score += 25
+                    
+                    # Prefer USD currency
+                    if currency == 'USD':
+                        score += 15
+                    
+                    # Prefer equity instruments
+                    if instrument_type in ['equity', 'common stock', 'stock']:
+                        score += 10
+                    
+                    # Penalty for very long names (often derivatives)
+                    if len(name) > 50:
+                        score -= 20
+                    
                     results.append({
-                        'symbol': item.get('symbol', ''),
-                        'name': item.get('instrument_name', ''),
-                        'type': item.get('instrument_type', 'Equity'),
-                        'region': item.get('country', 'United States'),
-                        'currency': item.get('currency', 'USD'),
-                        'exchange': item.get('exchange', ''),
-                        'match_score': 1.0  # Twelve Data doesn't provide match scores
+                        'symbol': symbol,
+                        'name': name,
+                        'type': instrument_type.title(),
+                        'region': region,
+                        'currency': currency,
+                        'exchange': exchange,
+                        'match_score': score
                     })
+                    
                 except (ValueError, KeyError) as e:
                     logger.warning(f"Error parsing Twelve Data search result: {e}")
                     continue
+            
+            # Sort by relevance score (highest first) and take top 8
+            results.sort(key=lambda x: x['match_score'], reverse=True)
+            results = results[:8]
             
             logger.info(f"✅ Found {len(results)} search results from Twelve Data for query: {query}")
             return results
