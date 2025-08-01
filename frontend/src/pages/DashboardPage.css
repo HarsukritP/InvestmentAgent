@@ -1,11 +1,17 @@
 /* Dashboard Page Styles */
 .dashboard-page {
   padding: 2rem;
-  height: 100vh;
   background: var(--background-color);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+}
+
+/* Desktop: Bento grid with no scrolling */
+@media (min-width: 1201px) {
+  .dashboard-page {
+    height: 100vh;
+    overflow: hidden;
+  }
 }
 
 .page-title {
@@ -576,15 +582,27 @@
   color: #6c757d;
 }
 
-/* Responsive Design */
+/* Responsive Design - Allow scrolling on smaller screens */
 @media (max-width: 1200px) {
+  .dashboard-page {
+    min-height: 100vh;
+    height: auto;
+    overflow: visible;
+  }
+  
   .dashboard-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: auto auto auto;
     grid-template-areas: 
       "portfolio"
-      "lookup"
+      "lookup"  
       "news";
+    flex: none;
+  }
+  
+  .dashboard-section {
+    min-height: auto;
+    height: auto;
   }
   
   .lookup-section {
@@ -601,6 +619,11 @@
     padding: 1.5rem;
   }
   
+  .dashboard-section {
+    padding: 20px;
+    min-height: 300px; /* Ensure sections have adequate space */
+  }
+  
   .summary-cards {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -615,10 +638,6 @@
     font-size: 20px;
   }
   
-  .dashboard-section {
-    padding: 20px;
-  }
-  
   .market-status-bar {
     flex-direction: column;
     align-items: flex-start;
@@ -629,11 +648,25 @@
     align-self: stretch;
     justify-content: flex-end;
   }
+  
+  /* Allow natural content flow on mobile */
+  .top-holdings,
+  .stock-search,
+  .news-feed {
+    flex: none;
+    min-height: 200px;
+    overflow-y: auto;
+  }
 }
 
 @media (max-width: 480px) {
   .dashboard-page {
     padding: 1rem;
+  }
+  
+  .dashboard-section {
+    padding: 16px;
+    min-height: 280px; /* Slightly smaller but still adequate */
   }
   
   .summary-card {
@@ -649,11 +682,14 @@
     font-size: 11px;
   }
   
-  .dashboard-section {
-    padding: 16px;
-  }
-  
   .section-title {
     font-size: 1.1rem;
+  }
+  
+  /* Ensure small mobile screens have proper content space */
+  .top-holdings,
+  .stock-search,
+  .news-feed {
+    min-height: 180px;
   }
 }
