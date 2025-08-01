@@ -29,6 +29,8 @@ const ActionsLogPage = () => {
   // Filter and sort state
   const [filterType, setFilterType] = useState('ALL');
   const [sortBy, setSortBy] = useState('DATE_DESC');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [timeFilter, setTimeFilter] = useState('ALL_TIME');
 
   // Fetch transaction data
   const fetchTransactions = async () => {
@@ -148,9 +150,36 @@ const ActionsLogPage = () => {
     // Apply type filter
     if (filterType !== 'ALL') {
       if (filterType === 'BUY') {
-        filtered = transactions.filter(t => ['BUY', 'BUY_NEW', 'BUY_ADD'].includes(t.transaction_type));
+        filtered = filtered.filter(t => ['BUY', 'BUY_NEW', 'BUY_ADD'].includes(t.transaction_type));
       } else if (filterType === 'SELL') {
-        filtered = transactions.filter(t => t.transaction_type === 'SELL');
+        filtered = filtered.filter(t => t.transaction_type === 'SELL');
+      }
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t => 
+        t.symbol.toLowerCase().includes(query) ||
+        (t.notes && t.notes.toLowerCase().includes(query))
+      );
+    }
+    
+    // Apply time filter
+    if (timeFilter !== 'ALL_TIME') {
+      const now = new Date();
+      let startDate;
+      
+      if (timeFilter === 'THIS_WEEK') {
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+      } else if (timeFilter === 'THIS_MONTH') {
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+      }
+      
+      if (startDate) {
+        filtered = filtered.filter(t => new Date(t.created_at) >= startDate);
       }
     }
     
@@ -203,6 +232,22 @@ const ActionsLogPage = () => {
             <span className="activity-text">Trading Activity</span>
             <span className="separator">|</span>
             <div className="filter-controls">
+              <input
+                type="text"
+                placeholder="Search symbol or notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+              <select 
+                value={timeFilter} 
+                onChange={(e) => setTimeFilter(e.target.value)}
+                className="time-filter-select"
+              >
+                <option value="ALL_TIME">All Time</option>
+                <option value="THIS_MONTH">This Month</option>
+                <option value="THIS_WEEK">This Week</option>
+              </select>
               <select 
                 value={filterType} 
                 onChange={(e) => setFilterType(e.target.value)}
@@ -290,7 +335,10 @@ const ActionsLogPage = () => {
       {/* Transaction History */}
       {transactions && transactions.length > 0 ? (
         <>
-          <div className="transactions-count">{getFilteredAndSortedTransactions().length} transactions{filterType !== 'ALL' || sortBy !== 'DATE_DESC' ? ` (filtered/sorted)` : ''}</div>
+          <div className="transactions-count">
+            {getFilteredAndSortedTransactions().length} transactions
+            {(filterType !== 'ALL' || sortBy !== 'DATE_DESC' || searchQuery.trim() || timeFilter !== 'ALL_TIME') ? ` (filtered/sorted)` : ''}
+          </div>
           <div className="transactions-table-container">
             <table className="transactions-table">
               <thead>
