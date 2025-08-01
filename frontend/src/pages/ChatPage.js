@@ -539,13 +539,6 @@ ${sectorInfo}
 `;
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   const clearChat = () => {
     // Clear messages state
     setMessages([]);
