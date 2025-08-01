@@ -270,6 +270,14 @@ const DashboardPage = () => {
     });
   };
 
+  // Get text length class for dynamic card sizing
+  const getTextLengthClass = (prompt) => {
+    const length = prompt.length;
+    if (length > 150) return 'extra-long-text';
+    if (length > 100) return 'long-text';
+    return '';
+  };
+
   // Handle key press for search
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -511,7 +519,7 @@ const DashboardPage = () => {
             {generateAIRecommendations().map((recommendation, index) => (
               <button
                 key={index}
-                className={`recommendation-card ${recommendation.priority}`}
+                className={`recommendation-card ${recommendation.priority} ${getTextLengthClass(recommendation.prompt)}`}
                 onClick={() => handleAIRecommendation(recommendation.prompt)}
                 title={`Ask AI: ${recommendation.title}`}
               >
