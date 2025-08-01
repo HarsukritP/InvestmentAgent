@@ -1,205 +1,303 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './ActionsLogPage.css';
-import { API_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { FaArrowUp, FaArrowDown, FaCheck, FaTimes, FaSync } from 'react-icons/fa';
 import GlobalLoadingIndicator from '../components/GlobalLoadingIndicator';
+import './ActionsLogPage.css';
 
-function ActionsLogPage() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [stats, setStats] = useState({
-    totalTransactions: 0,
-    buys: 0,
-    sells: 0,
-    totalBuyAmount: 0,
-    totalSellAmount: 0,
-    mostTradedSymbol: 'N/A'
-  });
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [alert, setAlert] = useState(null);
-
-  // Fetch data when component mounts or refreshTrigger changes
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch transactions and stats in parallel
-        const [transactionsResponse, statsResponse] = await Promise.all([
-          axios.get(`${API_URL}/transactions`, { withCredentials: true }),
-          axios.get(`${API_URL}/transaction-stats`, { withCredentials: true })
-        ]);
-        
-        console.log('Transactions response:', transactionsResponse.data);
-        console.log('Stats response:', statsResponse.data);
-        
-        // Handle transactions
-        if (transactionsResponse.data.status === 'success') {
-          setTransactions(transactionsResponse.data.data || []);
-        } else {
-          console.error('Error fetching transactions:', transactionsResponse.data.message);
-          setTransactions([]);
-        }
-        
-        // Handle stats
-        if (statsResponse.data.status === 'success') {
-          setStats({
-            totalTransactions: statsResponse.data.transaction_count || 0,
-            buys: statsResponse.data.buy_count || 0,
-            sells: statsResponse.data.sell_count || 0,
-            totalBuyAmount: statsResponse.data.total_buy_amount || 0,
-            totalSellAmount: statsResponse.data.total_sell_amount || 0,
-            mostTradedSymbol: statsResponse.data.most_traded_symbol || 'N/A'
-          });
-        } else {
-          console.error('Error fetching transaction stats:', statsResponse.data.message);
-          // Use default stats
-          setStats({
-            totalTransactions: 0,
-            buys: 0,
-            sells: 0,
-            totalBuyAmount: 0,
-            totalSellAmount: 0,
-            mostTradedSymbol: 'N/A'
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to load data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [refreshTrigger]);
-
-  const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
-    setAlert({ type: 'success', message: 'Data refreshed' });
+const ActionsLogPage = () => {
+  const navigate = useNavigate();
+  
+  // Load cached data immediately if available
+  const getCachedData = (key) => {
+    try {
+      const cached = localStorage.getItem(key);
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      console.warn(`Failed to load cached ${key}:`, error);
+      return null;
+    }
   };
 
+  // State management
+  const [transactions, setTransactions] = useState(getCachedData('actions_transactions'));
+  const [stats, setStats] = useState(getCachedData('actions_stats'));
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [hasLoadedBefore, setHasLoadedBefore] = useState(!!getCachedData('actions_transactions'));
+  const [error, setError] = useState(null);
+
+  // Fetch transaction data
+  const fetchTransactions = async () => {
+    try {
+      const response = await axios.get('/transactions', { withCredentials: true });
+      
+      if (response.data.status === 'success') {
+        const transactionData = response.data.data || [];
+        setTransactions(transactionData);
+        localStorage.setItem('actions_transactions', JSON.stringify(transactionData));
+        return transactionData;
+      } else {
+        console.error('Error fetching transactions:', response.data.message);
+        setTransactions([]);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      throw error;
+    }
+  };
+
+  // Fetch stats data
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get('/transaction-stats', { withCredentials: true });
+      
+      if (response.data.status === 'success') {
+        const statsData = {
+          totalTransactions: response.data.transaction_count || 0,
+          buys: response.data.buy_count || 0,
+          sells: response.data.sell_count || 0,
+          totalBuyAmount: response.data.total_buy_amount || 0,
+          totalSellAmount: response.data.total_sell_amount || 0,
+          mostTradedSymbol: response.data.most_traded_symbol || 'N/A'
+        };
+        setStats(statsData);
+        localStorage.setItem('actions_stats', JSON.stringify(statsData));
+        return statsData;
+      } else {
+        console.error('Error fetching transaction stats:', response.data.message);
+        // Use default stats
+        const defaultStats = {
+          totalTransactions: 0,
+          buys: 0,
+          sells: 0,
+          totalBuyAmount: 0,
+          totalSellAmount: 0,
+          mostTradedSymbol: 'N/A'
+        };
+        setStats(defaultStats);
+        return defaultStats;
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      throw error;
+    }
+  };
+
+  // Refresh all data
+  const refreshData = async () => {
+    setIsUpdating(true);
+    setError(null);
+    
+    try {
+      // Fetch both transactions and stats concurrently
+      await Promise.all([
+        fetchTransactions(),
+        fetchStats()
+      ]);
+      
+      setHasLoadedBefore(true);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setError('Failed to load transaction data. Please try again.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Initial data load
+  useEffect(() => {
+    refreshData();
+  }, []);
+
+  // Get transaction type icon
   const getTransactionIcon = (type) => {
     if (type === 'BUY' || type === 'BUY_NEW' || type === 'BUY_ADD') {
-      return <FaArrowUp className="buy-icon" />;
+      return '↗';
     } else if (type === 'SELL') {
-      return <FaArrowDown className="sell-icon" />;
+      return '↘';
     }
-    return null;
+    return '◦';
   };
+
+  // Get transaction type color class
+  const getTransactionColorClass = (type) => {
+    if (type === 'BUY' || type === 'BUY_NEW' || type === 'BUY_ADD') {
+      return 'buy-transaction';
+    } else if (type === 'SELL') {
+      return 'sell-transaction';
+    }
+    return 'other-transaction';
+  };
+
+  // Handle stock symbol click
+  const handleSymbolClick = (symbol) => {
+    navigate(`/stock/${symbol}`, { state: { from: '/actions-log' } });
+  };
+
+  // Only show error page if there's an error and absolutely no data exists
+  if (error && !transactions && !hasLoadedBefore) {
+    return (
+      <div className="actions-log-page">
+        <h1 className="page-title">Actions Log</h1>
+        <div className="error">
+          <p>{error}</p>
+          <button onClick={refreshData}>Try Again</button>
+        </div>
+      </div>
+    );
+  }
+
+  const netTradingAmount = (stats?.totalSellAmount || 0) - (stats?.totalBuyAmount || 0);
 
   return (
     <div className="actions-log-page">
-      <h1>Actions Log</h1>
+      <h1 className="page-title">Actions Log</h1>
       
-      {alert && (
-        <div className={`alert alert-${alert.type}`}>
-          {alert.type === 'success' && <FaCheck />}
-          {alert.type === 'error' && <FaTimes />}
-          {alert.type === 'info' && <FaSync className="spinning" />}
-          {alert.message}
+      {/* Market Status Bar */}
+      <div className="market-status-bar">
+        <div className="status-indicator-container">
+          <span className="status-text">
+            {stats ? (
+              <>
+                <span className="activity-text">Trading Activity</span>
+                <span className="separator">|</span>
+                <span className="update-text">Track all your investment transactions</span>
+              </>
+            ) : (
+              'Loading transaction data...'
+            )}
+          </span>
         </div>
-      )}
-      
-      <div className="action-buttons">
-        <button className="refresh-button" onClick={handleRefresh}>
-          Refresh
-        </button>
-      </div>
-      
-      <div className="stats-section">
-        <h2>Transaction Statistics</h2>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <h3>TOTAL TRANSACTIONS</h3>
-            <p className="stat-value">{stats.totalTransactions}</p>
-          </div>
-          <div className="stat-card">
-            <h3>BUY TRANSACTIONS</h3>
-            <p className="stat-value">{stats.buys}</p>
-          </div>
-          <div className="stat-card">
-            <h3>SELL TRANSACTIONS</h3>
-            <p className="stat-value">{stats.sells}</p>
-          </div>
-          <div className="stat-card">
-            <h3>TOTAL BUY AMOUNT</h3>
-            <p className="stat-value">{formatCurrency(stats.totalBuyAmount)}</p>
-          </div>
-          <div className="stat-card">
-            <h3>TOTAL SELL AMOUNT</h3>
-            <p className="stat-value">{formatCurrency(stats.totalSellAmount)}</p>
-          </div>
-          <div className="stat-card">
-            <h3>MOST TRADED SYMBOL</h3>
-            <p className="stat-value">{stats.mostTradedSymbol}</p>
-          </div>
+        <div className="status-actions">
+          <button 
+            className="icon-button refresh-icon" 
+            onClick={refreshData} 
+            title="Refresh Data"
+            disabled={isUpdating}
+          >
+            <span className="icon">↻</span>
+            <span className="button-text">Refresh</span>
+          </button>
         </div>
       </div>
-      
-      <div className="transactions-section">
-        <h2>Transaction History</h2>
-        {loading ? (
-          <div className="loading">Loading transactions...</div>
-        ) : error ? (
-          <div className="error-state">
-            <p>⚠️ {error}</p>
-            <button onClick={handleRefresh} className="retry-button">
-              Try Again
-            </button>
+
+      {/* Transaction Summary */}
+      <div className="transaction-summary">
+        <div className="summary-cards">
+          <div className="summary-card">
+            <div className="card-label">Total Transactions</div>
+            <div className="card-value">{stats?.totalTransactions || 0}</div>
+            <div className="card-subtitle">
+              <span className="transaction-info">All time activity</span>
+            </div>
           </div>
-        ) : transactions.length > 0 ? (
+          
+          <div className="summary-card">
+            <div className="card-label">Buy Orders</div>
+            <div className="card-value">{stats?.buys || 0}</div>
+            <div className="card-subtitle">
+              <span className="buy-info">{formatCurrency(stats?.totalBuyAmount || 0)} invested</span>
+            </div>
+          </div>
+          
+          <div className="summary-card">
+            <div className="card-label">Sell Orders</div>
+            <div className="card-value">{stats?.sells || 0}</div>
+            <div className="card-subtitle">
+              <span className="sell-info">{formatCurrency(stats?.totalSellAmount || 0)} realized</span>
+            </div>
+          </div>
+
+          <div className="summary-card">
+            <div className="card-label">Net Trading</div>
+            <div className="card-value">{formatCurrency(netTradingAmount)}</div>
+            <div className="card-subtitle">
+              <span className={`net-info ${netTradingAmount >= 0 ? 'positive' : 'negative'}`}>
+                {netTradingAmount >= 0 ? 'Net inflow' : 'Net outflow'}
+              </span>
+            </div>
+          </div>
+
+          <div className="summary-card">
+            <div className="card-label">Most Traded</div>
+            <div className="card-value symbol-value">{stats?.mostTradedSymbol || 'N/A'}</div>
+            <div className="card-subtitle">
+              <span className="traded-info">Favorite stock</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Transaction History */}
+      {transactions && transactions.length > 0 ? (
+        <>
+          <div className="transactions-count">{transactions.length} transactions</div>
           <div className="transactions-table-container">
             <table className="transactions-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Symbol</th>
-                  <th>Shares</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                  <th>Notes</th>
+                  <th>DATE</th>
+                  <th>TYPE</th>
+                  <th>SYMBOL</th>
+                  <th>SHARES</th>
+                  <th>PRICE</th>
+                  <th>TOTAL</th>
+                  <th>NOTES</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
-                  <tr key={transaction.id} className={transaction.transaction_type.toLowerCase()}>
-                    <td>{formatDate(transaction.created_at)}</td>
-                    <td className="transaction-type">
-                      {getTransactionIcon(transaction.transaction_type)}
-                      {transaction.transaction_type}
+                  <tr 
+                    key={transaction.id}
+                    className={`transaction-row ${getTransactionColorClass(transaction.transaction_type)}`}
+                  >
+                    <td className="date-cell">{formatDate(transaction.created_at)}</td>
+                    <td className="type-cell">
+                      <span className="transaction-type">
+                        <span className="transaction-icon">
+                          {getTransactionIcon(transaction.transaction_type)}
+                        </span>
+                        {transaction.transaction_type}
+                      </span>
                     </td>
-                    <td>{transaction.symbol}</td>
-                    <td>{transaction.shares}</td>
-                    <td>{formatCurrency(transaction.price_per_share)}</td>
-                    <td>{formatCurrency(transaction.total_amount)}</td>
-                    <td>{transaction.notes || '-'}</td>
+                    <td className="symbol-cell">
+                      <button 
+                        className="symbol-link"
+                        onClick={() => handleSymbolClick(transaction.symbol)}
+                        title={`View ${transaction.symbol} details`}
+                      >
+                        {transaction.symbol}
+                      </button>
+                    </td>
+                    <td className="shares-cell">{transaction.shares}</td>
+                    <td className="price-cell">{formatCurrency(transaction.price_per_share)}</td>
+                    <td className="total-cell">{formatCurrency(transaction.total_amount)}</td>
+                    <td className="notes-cell">{transaction.notes || '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="no-transactions">
-            <div className="chart-icon">📊</div>
-            <h3>No Transactions Yet</h3>
-            <p>Your transaction history will appear here after you buy or sell stocks.</p>
-          </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <div className="no-transactions">
+          <div className="no-transactions-icon">◯</div>
+          <h3>No Transactions Yet</h3>
+          <p>Your transaction history will appear here after you buy or sell stocks.</p>
+          <button className="start-trading-btn" onClick={() => navigate('/portfolio')}>
+            Start Trading
+          </button>
+        </div>
+      )}
       
       {/* Global Loading Indicator */}
       <GlobalLoadingIndicator 
-        isVisible={loading} 
+        isVisible={isUpdating || (!transactions && !hasLoadedBefore)} 
         message="•" 
       />
     </div>
   );
-}
+};
 
-export default ActionsLogPage; 
+export default ActionsLogPage;
