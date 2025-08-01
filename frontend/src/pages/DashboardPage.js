@@ -212,8 +212,51 @@ const DashboardPage = () => {
       icon: "🌍",
       priority: "low"
     });
+
+    // Always available recommendations
+    recommendations.push({
+      title: "Sector Analysis",
+      prompt: `Can you analyze which sectors are currently performing well and which ones I should consider for potential investment opportunities?`,
+      icon: "🏭",
+      priority: "low"
+    });
+
+    recommendations.push({
+      title: "Risk Assessment",
+      prompt: `Please assess the overall risk level of my current portfolio and suggest strategies to optimize my risk-return profile.`,
+      icon: "🛡️",
+      priority: "medium"
+    });
+
+    recommendations.push({
+      title: "Earnings Calendar",
+      prompt: `What upcoming earnings reports should I be aware of for my holdings, and how might they impact my portfolio?`,
+      icon: "📅",
+      priority: "medium"
+    });
+
+    recommendations.push({
+      title: "Tax Optimization",
+      prompt: `Can you help me understand any tax implications of my current holdings and suggest strategies for tax-efficient investing?`,
+      icon: "📊",
+      priority: "low"
+    });
+
+    recommendations.push({
+      title: "Market News Impact",
+      prompt: `Based on recent market news and events, how might current economic trends affect my investment strategy?`,
+      icon: "📰",
+      priority: "low"
+    });
+
+    recommendations.push({
+      title: "Growth vs Value",
+      prompt: `Should I be focusing more on growth stocks or value stocks given current market conditions and my portfolio?`,
+      icon: "📈",
+      priority: "low"
+    });
     
-    return recommendations.slice(0, 4); // Limit to 4 recommendations
+    return recommendations.slice(0, 8); // Show more recommendations
   }, [portfolio]);
 
   // Handle AI recommendation click
