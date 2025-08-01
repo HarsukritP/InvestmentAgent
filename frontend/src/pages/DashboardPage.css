@@ -101,17 +101,17 @@
   font-size: 16px;
 }
 
-/* Bento Grid Layout - 4 Equal Panels */
+/* Bento Grid Layout - Left Column Wider, Right Column Narrower */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 16px;
   flex: 1;
   min-height: 0;
   grid-template-areas: 
     "portfolio lookup"
-    "ai news";
+    "news ai";
 }
 
 .dashboard-section {
@@ -755,9 +755,9 @@
     grid-template-rows: auto auto auto auto;
     grid-template-areas: 
       "portfolio"
+      "news"
       "lookup"  
-      "ai"
-      "news";
+      "ai";
     flex: none;
   }
   
