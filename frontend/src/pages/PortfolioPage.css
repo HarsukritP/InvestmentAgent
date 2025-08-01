@@ -150,12 +150,11 @@
   background: #ffffff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 16px 20px;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 4px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   min-height: 120px;
-  height: 120px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s ease;
 }
@@ -164,41 +163,33 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.card-label {
+.portfolio-page .card-label {
   font-size: 12px;
   font-weight: 600;
   color: #6c757d;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin: 0;
+  margin: 0 0 8px 0;
   line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.card-value {
-  font-size: 22px;
+.portfolio-page .card-value {
+  font-size: 28px;
   font-weight: 700;
   color: #2c3e50;
   margin: 0;
-  line-height: 1.2;
-  align-self: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  align-self: center;
-}
-
-.card-subtitle {
-  font-size: 12px;
-  margin: 0;
+  line-height: 1.1;
+  flex: 1;
   display: flex;
   align-items: center;
-  min-height: 16px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.portfolio-page .card-subtitle {
+  font-size: 13px;
+  margin: 8px 0 0 0;
+  display: flex;
+  align-items: center;
+  line-height: 1.3;
 }
 
 .change-indicator {
