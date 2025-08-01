@@ -337,6 +337,8 @@
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  min-width: 0;
+  width: 100%;
 }
 
 .search-box:focus-within {
@@ -352,6 +354,8 @@
   background: transparent;
   font-size: 14px;
   color: #2c3e50;
+  min-width: 0;
+  width: 100%;
 }
 
 .search-box input::placeholder {
@@ -367,6 +371,9 @@
   font-weight: 600;
   font-size: 14px;
   transition: all 0.3s ease;
+  flex-shrink: 0;
+  min-width: 80px;
+  white-space: nowrap;
 }
 
 .search-button:hover:not(:disabled) {
@@ -657,6 +664,17 @@
     min-height: 200px;
     overflow-y: auto;
   }
+  
+  /* Compact search box on mobile */
+  .search-box input {
+    padding: 10px 16px;
+  }
+  
+  .search-button {
+    padding: 10px 16px;
+    min-width: 70px;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -691,5 +709,44 @@
   .stock-search,
   .news-feed {
     min-height: 180px;
+  }
+  
+  /* Very compact search box for small screens */
+  .search-box input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .search-box input::placeholder {
+    content: "Search...";
+  }
+  
+  .search-button {
+    padding: 8px 12px;
+    min-width: 60px;
+    font-size: 12px;
+  }
+}
+
+/* Compressed lookup section handling */
+@media (max-width: 1400px) {
+  .lookup-section .search-box input::placeholder {
+    content: "Search stocks...";
+  }
+}
+
+/* Very compressed lookup section */
+@media (max-width: 1300px) {
+  .lookup-section .search-box input {
+    padding: 10px 14px;
+  }
+  
+  .lookup-section .search-button {
+    padding: 10px 18px;
+    min-width: 75px;
+  }
+  
+  .lookup-section .search-box input::placeholder {
+    content: "Search...";
   }
 }
