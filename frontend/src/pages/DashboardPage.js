@@ -386,7 +386,7 @@ const DashboardPage = () => {
         {/* Stock Lookup Section */}
         <div className="dashboard-section lookup-section">
           <div className="section-header">
-            <h2 className="section-title">Quick Stock Lookup</h2>
+            <h2 className="section-title">Stock Lookup</h2>
           </div>
           
           <div className="stock-search">
