@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MdDashboard, MdSmartToy, MdLogout, MdHistory, MdMenu, MdClose } from 'react-icons/md';
+import { MdDashboard, MdSmartToy, MdLogout, MdHistory, MdMenu, MdClose, MdHome } from 'react-icons/md';
 import { IoChevronBack } from 'react-icons/io5';
 import './Navigation.css';
 // Direct link to logo
@@ -17,6 +17,13 @@ const Navigation = ({
 }) => {
 
   const navItems = [
+    {
+      path: '/dashboard',
+      label: 'Dashboard',
+      description: 'Overview and quick access',
+      shortLabel: 'Dashboard',
+      icon: MdHome
+    },
     {
       path: '/portfolio',
       label: 'Portfolio',

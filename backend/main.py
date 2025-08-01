@@ -1149,6 +1149,35 @@ async def health_check():
         }
     }
 
+@app.get("/market-news")
+async def get_market_news(user: Dict[str, Any] = Depends(require_auth)):
+    """Get market news for dashboard"""
+    try:
+        # Import market context service
+        from market_context import MarketContextService
+        
+        # Initialize market context service
+        market_context = MarketContextService()
+        
+        # Fetch general market news
+        news_data = await market_context.get_market_news()
+        
+        return {
+            "general_news": news_data.get("general_news", []),
+            "timestamp": news_data.get("_timestamp"),
+            "source": news_data.get("_source", "News API")
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching market news: {str(e)}")
+        # Return empty news instead of error to not break dashboard
+        return {
+            "general_news": [],
+            "timestamp": datetime.now().isoformat(),
+            "source": "Error",
+            "error": str(e)
+        }
+
 @app.get("/cache/stats")
 async def get_cache_statistics(user: Dict[str, Any] = Depends(require_auth)):
     """Get comprehensive cache statistics including intraday cache"""

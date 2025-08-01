@@ -1,0 +1,628 @@
+/* Dashboard Page Styles */
+.dashboard-page {
+  padding: 2rem;
+  min-height: 100vh;
+  background: var(--background-color);
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 2rem 0;
+}
+
+/* Market Status Bar - Reuse Portfolio styles */
+.market-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+}
+
+.status-indicator-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.market-status-text.open {
+  color: #2e7d32;
+}
+
+.market-status-text.closed {
+  color: #c62828;
+}
+
+.separator {
+  color: #adb5bd;
+  margin: 0 4px;
+}
+
+.update-text {
+  color: #adb5bd;
+}
+
+.status-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #6c757d;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+  color: #495057;
+}
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+/* Dashboard Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 24px;
+  grid-template-areas: 
+    "portfolio lookup"
+    "news news";
+}
+
+.dashboard-section {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.portfolio-section {
+  grid-area: portfolio;
+}
+
+.lookup-section {
+  grid-area: lookup;
+}
+
+.news-section {
+  grid-area: news;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.view-all-button {
+  background: none;
+  border: none;
+  color: var(--procogia-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.view-all-button:hover {
+  color: var(--procogia-secondary);
+}
+
+/* Summary Cards - Reuse Portfolio styles */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 4px;
+  min-height: 100px;
+  height: 100px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  line-height: 1.2;
+  align-self: center;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  min-height: 18px;
+}
+
+.portfolio-percentage,
+.portfolio-info {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Top Holdings */
+.top-holdings {
+  margin-top: 24px;
+}
+
+.holdings-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 16px 0;
+}
+
+.holdings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.holding-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.holding-item:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+}
+
+.holding-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.holding-symbol {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.holding-shares {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.holding-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.holding-value {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.holding-change {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.holding-change.positive {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.holding-change.negative {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Stock Search - Reuse BuyStock modal styles */
+.stock-search {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.search-box {
+  display: flex;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 50px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.search-box:focus-within {
+  border-color: var(--procogia-primary);
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
+}
+
+.search-box input {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.search-box input::placeholder {
+  color: #adb5bd;
+}
+
+.search-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--procogia-primary), var(--procogia-secondary));
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.search-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--procogia-secondary), var(--procogia-primary));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(139, 195, 74, 0.3);
+}
+
+.search-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+  padding: 8px 12px;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid var(--procogia-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.stock-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stock-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stock-item:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  transform: translateY(-1px);
+}
+
+.stock-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stock-symbol {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.stock-name {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.stock-details {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stock-exchange,
+.stock-region,
+.stock-currency {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.stock-exchange {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.stock-region {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.stock-currency {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.stock-price {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.no-results {
+  padding: 20px;
+  text-align: center;
+  color: #6c757d;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+}
+
+/* News Feed */
+.news-feed {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.news-item {
+  padding: 16px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.news-item:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.news-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.news-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.news-description {
+  font-size: 13px;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #adb5bd;
+}
+
+.news-source {
+  font-weight: 500;
+}
+
+.news-time {
+  font-style: italic;
+}
+
+.no-news {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+      "portfolio"
+      "lookup"
+      "news";
+  }
+  
+  .summary-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 1.5rem;
+  }
+  
+  .summary-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .summary-card {
+    height: 85px;
+    padding: 12px 16px;
+  }
+  
+  .card-value {
+    font-size: 20px;
+  }
+  
+  .dashboard-section {
+    padding: 20px;
+  }
+  
+  .market-status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .status-actions {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-page {
+    padding: 1rem;
+  }
+  
+  .summary-card {
+    height: 80px;
+    padding: 10px 16px;
+  }
+  
+  .card-value {
+    font-size: 18px;
+  }
+  
+  .card-label {
+    font-size: 11px;
+  }
+  
+  .dashboard-section {
+    padding: 16px;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+  }
+}

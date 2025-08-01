@@ -8,6 +8,7 @@ import { API_URL } from './config';
 // Import page components
 import LandingPage from './LandingPage';
 import AuthSuccess from './AuthSuccess';
+import DashboardPage from './pages/DashboardPage';
 import PortfolioPage from './pages/PortfolioPage';
 import ChatPage from './pages/ChatPage';
 import ActionsLogPage from './pages/ActionsLogPage';
@@ -255,7 +256,7 @@ function App() {
               !isAuthenticated ? (
                 <LandingPage onAuthenticated={handleAuthenticated} />
               ) : (
-                <Navigate to="/portfolio" replace />
+                <Navigate to="/dashboard" replace />
               )
             } 
           />
@@ -265,6 +266,18 @@ function App() {
           />
           
           {/* Protected routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              isAuthenticated ? (
+                <ProtectedLayout>
+                  <DashboardPage />
+                </ProtectedLayout>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
           <Route 
             path="/portfolio" 
             element={
@@ -323,7 +336,7 @@ function App() {
               )
             } 
           />
-          <Route path="*" element={<Navigate to={isAuthenticated ? "/portfolio" : "/"} replace />} />
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/"} replace />} />
         </Routes>
 
         {/* Global Modals */}
