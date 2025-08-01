@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import './ChatPage.css';
 import { API_URL } from '../config';
-import defaultAvatar from '../assets/default-avatar.js';
-import assistantAvatar from '../assets/assistant-avatar.js';
-import GlobalLoadingIndicator from '../components/GlobalLoadingIndicator';
+import { formatCurrency, formatPercentage } from '../utils/formatters';
 
 const STORAGE_KEY = 'procogia_chat_history';
 
@@ -13,11 +11,58 @@ const ChatPage = ({ portfolio, user }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [expandedFunctions, setExpandedFunctions] = useState({});
-  const [activeFunctions, setActiveFunctions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const chatContainerRef = useRef(null);
   
+  // Generate context-aware suggestions
+  const generateSuggestions = useCallback(() => {
+    const suggestions = [];
+    
+    // Portfolio-based suggestions
+    if (portfolio && portfolio.holdings && portfolio.holdings.length > 0) {
+      const topHolding = portfolio.holdings[0];
+      const poorPerformers = portfolio.holdings.filter(h => 
+        h.daily_change_percent && h.daily_change_percent < -2
+      );
+      const strongPerformers = portfolio.holdings.filter(h => 
+        h.daily_change_percent && h.daily_change_percent > 3
+      );
+      
+      suggestions.push(`How is my ${topHolding.symbol} performing?`);
+      
+      if (poorPerformers.length > 0) {
+        suggestions.push(`Should I be concerned about ${poorPerformers[0].symbol}?`);
+      }
+      
+      if (strongPerformers.length > 0) {
+        suggestions.push(`Why is ${strongPerformers[0].symbol} doing so well?`);
+      }
+      
+      suggestions.push("What's my portfolio's overall performance?");
+      suggestions.push("Are there any rebalancing opportunities?");
+    }
+    
+    // General market suggestions
+    suggestions.push("What are the latest market trends?");
+    suggestions.push("Should I diversify my portfolio?");
+    suggestions.push("What stocks are trending today?");
+    
+    // Chat history based suggestions
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === 'assistant') {
+        suggestions.push("Can you explain that in more detail?");
+        suggestions.push("What should I do next?");
+      }
+    }
+    
+    // Return a mix of 4-6 relevant suggestions
+    return suggestions.slice(0, Math.min(6, suggestions.length));
+  }, [portfolio, messages]);
+
   // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,6 +79,45 @@ const ChatPage = ({ portfolio, user }) => {
       inputRef.current?.focus();
     }
   }, [isLoading]);
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion) => {
+    setInputMessage(suggestion);
+    setShowSuggestions(false);
+    setTimeout(() => {
+      handleSendMessage(suggestion);
+    }, 100);
+  };
+
+  // Handle input change
+  const handleInputChange = (e) => {
+    setInputMessage(e.target.value);
+    // Hide suggestions when user starts typing
+    if (e.target.value.trim() && showSuggestions) {
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle key press
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Auto-resize textarea
+  const handleTextareaResize = (e) => {
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  };
+
+  // Combined input change handler
+  const handleInputChangeWithResize = (e) => {
+    handleInputChange(e);
+    handleTextareaResize(e);
+  };
   
   // Load chat history from localStorage on mount
   useEffect(() => {
@@ -57,7 +141,7 @@ const ChatPage = ({ portfolio, user }) => {
     // Initialize with welcome message if no history was loaded
     const welcomeMessage = {
       role: 'assistant',
-      content: `👋 Hello! I'm your AI investment assistant. How can I help you today?`,
+      content: `👋 Hello! I'm your AI investment assistant. I can help you analyze your portfolio, understand market trends, and provide personalized investment insights based on real-time data.`,
       timestamp: new Date().toISOString()
     };
     setMessages([welcomeMessage]);
@@ -747,119 +831,163 @@ ${sectorInfo}
   };
 
   return (
-    <div className="chat-page">
-      {/* Page Header */}
-      <h1 className="page-title">AI Assistant</h1>
-      
-      <div className="header-actions">
-        <div className="portfolio-summary-badge">
-          {getPortfolioSummary()}
+    <div className="modern-chat-page">
+      {/* Chat Header */}
+      <div className="chat-header-modern">
+        <div className="header-left">
+          <div className="ai-indicator">
+            <div className="ai-avatar">
+              <div className="procogia-icon">🤖</div>
+            </div>
+            <div className="ai-info">
+              <h1 className="ai-title">AI Investment Assistant</h1>
+              <p className="ai-subtitle">
+                {portfolio ? 
+                  `Managing ${formatCurrency(portfolio.total_value || 0)} • ${portfolio.holdings?.length || 0} Holdings` :
+                  'Ready to help with your investments'
+                }
+              </p>
+            </div>
+          </div>
         </div>
-        <button 
-          className="clear-chat-btn"
-          onClick={clearChat}
-          title="Clear conversation"
-        >
-          <span className="btn-icon">🗑️</span>
-          Clear Chat
-        </button>
+        
+        <div className="header-actions-modern">
+          <button 
+            className="clear-chat-btn-modern"
+            onClick={clearChat}
+            title="Clear conversation"
+          >
+            <span className="icon-clear">🗑️</span>
+          </button>
+        </div>
       </div>
 
-      {/* Active Functions Display */}
-      {renderActiveFunctions()}
-
-      {/* Chat Container */}
-      <div className="chat-container">
-        {/* Messages Area */}
-        <div className="messages-area">
-          <div className="messages-list">
-            {messages.map((message, index) => 
-              renderMessage(message, index)
-            )}
-            
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="chat-message assistant-message">
-                <div className="message-avatar">
-                  <img src={assistantAvatar} alt="AI Assistant" />
+      {/* Main Chat Area */}
+      <div className="chat-main-container" ref={chatContainerRef}>
+        
+        {/* Empty State / Welcome */}
+        {messages.length === 0 && (
+          <div className="welcome-container">
+            <div className="welcome-content">
+              <div className="welcome-icon">💼</div>
+              <h2 className="welcome-title">Welcome to your AI Investment Assistant</h2>
+              <p className="welcome-description">
+                I can help you analyze your portfolio, understand market trends, and provide personalized investment insights.
+              </p>
+              
+              {/* Context-aware suggestions */}
+              {showSuggestions && (
+                <div className="suggestions-grid">
+                  <h3 className="suggestions-title">Try asking me:</h3>
+                  <div className="suggestions-list">
+                    {generateSuggestions().map((suggestion, index) => (
+                      <button
+                        key={index}
+                        className="suggestion-card"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        disabled={isLoading}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="message-content">
-                  <div className="message-text">
-                    <div className="typing-indicator">
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Messages Container */}
+        {messages.length > 0 && (
+          <div className="messages-container-modern">
+            <div className="messages-scroll-area">
+              {messages.map((message, index) => (
+                <div key={index} className={`message-wrapper ${message.role}`}>
+                  <div className="message-bubble">
+                    <div className="message-content-modern">
+                      {message.content}
+                    </div>
+                    <div className="message-meta">
+                      <span className="message-time">
+                        {new Date(message.timestamp).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
                     </div>
                   </div>
-                  <div className="message-timestamp">Thinking...</div>
                 </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
+              ))}
+              
+              {/* Loading Message */}
+              {isLoading && (
+                <div className="message-wrapper assistant">
+                  <div className="message-bubble loading">
+                    <div className="typing-indicator-modern">
+                      <div className="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                      <span className="typing-text">AI is thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Input Area */}
-        <div className="input-area">
-          <div className="input-container">
+      {/* Input Area - Fixed at bottom */}
+      <div className="input-area-modern">
+        {/* Show suggestions when no messages and input is empty */}
+        {messages.length > 0 && showSuggestions && !inputMessage.trim() && (
+          <div className="quick-suggestions">
+            {generateSuggestions().slice(0, 3).map((suggestion, index) => (
+              <button
+                key={index}
+                className="quick-suggestion-chip"
+                onClick={() => handleSuggestionClick(suggestion)}
+                disabled={isLoading}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+        
+        <div className="input-container-modern">
+          <div className="input-wrapper">
             <textarea
               ref={inputRef}
-              className="message-input"
+              className="input-field-modern"
               placeholder="Ask about your portfolio, market trends, or investment strategies..."
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onChange={handleInputChangeWithResize}
+              onKeyDown={handleKeyPress}
               disabled={isLoading}
+              rows={1}
+              style={{ height: 'auto', overflow: 'hidden' }}
             />
             <button
-              className="send-button"
-              onClick={handleSendMessage}
+              className="send-button-modern"
+              onClick={() => handleSendMessage()}
               disabled={!inputMessage.trim() || isLoading}
             >
-              <span className="send-icon">➤</span>
-            </button>
-          </div>
-          
-          {/* Quick Action Buttons */}
-          <div className="quick-actions">
-            <button 
-              className="quick-action-btn"
-              onClick={() => setInputMessage("What's my portfolio performance?")}
-              disabled={isLoading}
-            >
-              Portfolio Performance
-            </button>
-            <button 
-              className="quick-action-btn"
-              onClick={() => setInputMessage("What are my top holdings?")}
-              disabled={isLoading}
-            >
-              Top Holdings
-            </button>
-            <button 
-              className="quick-action-btn"
-              onClick={() => setInputMessage("How can I diversify my portfolio?")}
-              disabled={isLoading}
-            >
-              Diversification Advice
-            </button>
-            <button 
-              className="quick-action-btn"
-              onClick={() => setInputMessage("What's the current market outlook?")}
-              disabled={isLoading}
-            >
-              Market Outlook
+              <div className="send-icon-modern">
+                {isLoading ? (
+                  <div className="spinner-small"></div>
+                ) : (
+                  <span>↗</span>
+                )}
+              </div>
             </button>
           </div>
         </div>
       </div>
-      
-      {/* Global Loading Indicator */}
-      <GlobalLoadingIndicator 
-        isVisible={isLoading} 
-        message="•" 
-      />
     </div>
   );
 };
