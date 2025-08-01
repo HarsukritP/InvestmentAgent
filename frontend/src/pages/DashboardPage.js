@@ -270,14 +270,6 @@ const DashboardPage = () => {
     });
   };
 
-  // Get text length class for dynamic card sizing
-  const getTextLengthClass = (prompt) => {
-    const length = prompt.length;
-    if (length > 150) return 'extra-long-text';
-    if (length > 100) return 'long-text';
-    return '';
-  };
-
   // Handle key press for search
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -519,13 +511,13 @@ const DashboardPage = () => {
             {generateAIRecommendations().map((recommendation, index) => (
               <button
                 key={index}
-                className={`recommendation-card ${recommendation.priority} ${getTextLengthClass(recommendation.prompt)}`}
+                className={`recommendation-card ${recommendation.priority}`}
                 onClick={() => handleAIRecommendation(recommendation.prompt)}
                 title={`Ask AI: ${recommendation.title}`}
               >
                 <div className="recommendation-icon">{recommendation.icon}</div>
                 <div className="recommendation-content">
-                  <h4 className="recommendation-title">{recommendation.title}</h4>
+                  <h4 className="recommendation-title">{recommendation.title.length > 20 ? recommendation.title.substring(0, 20) + '...' : recommendation.title}</h4>
                   <p className="recommendation-preview">
                     {recommendation.prompt.substring(0, 45)}...
                   </p>
