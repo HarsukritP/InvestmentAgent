@@ -25,6 +25,10 @@ const ActionsLogPage = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [hasLoadedBefore, setHasLoadedBefore] = useState(!!getCachedData('actions_transactions'));
   const [error, setError] = useState(null);
+  
+  // Filter and sort state
+  const [filterType, setFilterType] = useState('ALL');
+  const [sortBy, setSortBy] = useState('DATE_DESC');
 
   // Fetch transaction data
   const fetchTransactions = async () => {
@@ -135,6 +139,44 @@ const ActionsLogPage = () => {
     navigate(`/stock/${symbol}`, { state: { from: '/actions-log' } });
   };
 
+  // Filter and sort transactions
+  const getFilteredAndSortedTransactions = () => {
+    if (!transactions) return [];
+    
+    let filtered = transactions;
+    
+    // Apply type filter
+    if (filterType !== 'ALL') {
+      if (filterType === 'BUY') {
+        filtered = transactions.filter(t => ['BUY', 'BUY_NEW', 'BUY_ADD'].includes(t.transaction_type));
+      } else if (filterType === 'SELL') {
+        filtered = transactions.filter(t => t.transaction_type === 'SELL');
+      }
+    }
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'DATE_DESC':
+          return new Date(b.created_at) - new Date(a.created_at);
+        case 'DATE_ASC':
+          return new Date(a.created_at) - new Date(b.created_at);
+        case 'AMOUNT_DESC':
+          return b.total_amount - a.total_amount;
+        case 'AMOUNT_ASC':
+          return a.total_amount - b.total_amount;
+        case 'SYMBOL_ASC':
+          return a.symbol.localeCompare(b.symbol);
+        case 'SYMBOL_DESC':
+          return b.symbol.localeCompare(a.symbol);
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  };
+
   // Only show error page if there's an error and absolutely no data exists
   if (error && !transactions && !hasLoadedBefore) {
     return (
@@ -158,15 +200,31 @@ const ActionsLogPage = () => {
       <div className="market-status-bar">
         <div className="status-indicator-container">
           <span className="status-text">
-            {stats ? (
-              <>
-                <span className="activity-text">Trading Activity</span>
-                <span className="separator">|</span>
-                <span className="update-text">Track all your investment transactions</span>
-              </>
-            ) : (
-              'Loading transaction data...'
-            )}
+            <span className="activity-text">Trading Activity</span>
+            <span className="separator">|</span>
+            <div className="filter-controls">
+              <select 
+                value={filterType} 
+                onChange={(e) => setFilterType(e.target.value)}
+                className="filter-select"
+              >
+                <option value="ALL">All Types</option>
+                <option value="BUY">Buy Orders</option>
+                <option value="SELL">Sell Orders</option>
+              </select>
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
+              >
+                <option value="DATE_DESC">Latest First</option>
+                <option value="DATE_ASC">Oldest First</option>
+                <option value="AMOUNT_DESC">Highest Amount</option>
+                <option value="AMOUNT_ASC">Lowest Amount</option>
+                <option value="SYMBOL_ASC">Symbol A-Z</option>
+                <option value="SYMBOL_DESC">Symbol Z-A</option>
+              </select>
+            </div>
           </span>
         </div>
         <div className="status-actions">
@@ -232,7 +290,7 @@ const ActionsLogPage = () => {
       {/* Transaction History */}
       {transactions && transactions.length > 0 ? (
         <>
-          <div className="transactions-count">{transactions.length} transactions</div>
+          <div className="transactions-count">{getFilteredAndSortedTransactions().length} transactions{filterType !== 'ALL' || sortBy !== 'DATE_DESC' ? ` (filtered/sorted)` : ''}</div>
           <div className="transactions-table-container">
             <table className="transactions-table">
               <thead>
@@ -247,7 +305,7 @@ const ActionsLogPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) => (
+                {getFilteredAndSortedTransactions().map((transaction) => (
                   <tr 
                     key={transaction.id}
                     className={`transaction-row ${getTransactionColorClass(transaction.transaction_type)}`}
