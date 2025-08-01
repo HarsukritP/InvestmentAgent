@@ -246,8 +246,8 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
   const handleRowClick = (symbol) => {
     // Hide hover chart when clicking
     setHoverChart(prev => ({ ...prev, visible: false }));
-    // Navigate to stock detail page
-    navigate(`/stock/${symbol}`);
+    // Navigate to stock detail page with context
+    navigate(`/stock/${symbol}`, { state: { from: '/portfolio' } });
   };
 
   const handleChartMouseLeave = () => {

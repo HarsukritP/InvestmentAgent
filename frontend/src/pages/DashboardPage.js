@@ -107,7 +107,7 @@ const DashboardPage = () => {
 
   // Handle stock selection
   const handleStockSelect = (stock) => {
-    navigate(`/stock/${stock.symbol}`);
+    navigate(`/stock/${stock.symbol}`, { state: { from: '/dashboard' } });
   };
 
   // Handle key press for search

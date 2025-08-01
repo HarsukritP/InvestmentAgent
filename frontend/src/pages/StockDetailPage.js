@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import StockChart from '../components/StockChart';
 import { Line } from 'react-chartjs-2';
@@ -8,10 +8,22 @@ import './StockDetailPage.css';
 const StockDetailPage = () => {
   const { symbol } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [stockDetails, setStockDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedChart, setSelectedChart] = useState('price');
+
+  // Handle back navigation based on where user came from
+  const handleBackNavigation = () => {
+    const from = location.state?.from;
+    if (from) {
+      navigate(from);
+    } else {
+      // Default fallback to portfolio
+      navigate('/portfolio');
+    }
+  };
 
   const fetchStockDetails = useCallback(async () => {
     try {
@@ -77,7 +89,7 @@ const StockDetailPage = () => {
             <button onClick={fetchStockDetails} className="retry-btn">
               Try Again
             </button>
-            <button onClick={() => navigate('/portfolio')} className="back-btn">
+            <button onClick={handleBackNavigation} className="back-btn">
               Back to Portfolio
             </button>
           </div>
@@ -95,8 +107,8 @@ const StockDetailPage = () => {
         <div className="header-main">
           <button 
             className="back-button" 
-            onClick={() => navigate('/portfolio')}
-            title="Back to Portfolio"
+            onClick={handleBackNavigation}
+            title="Back"
           >
             ← Back
           </button>
