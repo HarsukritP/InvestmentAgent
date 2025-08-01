@@ -828,46 +828,8 @@ ${sectorInfo}
 
   return (
     <div className="modern-chat-page">
-      {/* Chat Header */}
-      <div className="chat-header-modern">
-        <div className="header-left">
-          <div className="ai-indicator">
-            <div className="ai-avatar">
-              <div className="procogia-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-              </div>
-            </div>
-            <div className="ai-info">
-              <h1 className="ai-title">AI Investment Assistant</h1>
-              <p className="ai-subtitle">
-                {portfolio ? 
-                  `Managing ${formatCurrency(portfolio.total_value || 0)} • ${portfolio.holdings?.length || 0} Holdings` :
-                  'Ready to help with your investments'
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="header-actions-modern">
-          <button 
-            className="clear-chat-btn-modern"
-            onClick={clearChat}
-            title="Clear conversation"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="3,6 5,6 21,6"/>
-              <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
-              <line x1="10" y1="11" x2="10" y2="17"/>
-              <line x1="14" y1="11" x2="14" y2="17"/>
-            </svg>
-          </button>
-        </div>
-      </div>
+      {/* Page Title */}
+      <h1 className="page-title">AI Assistant</h1>
 
       {/* Active Functions Display */}
       {renderActiveFunctions()}
