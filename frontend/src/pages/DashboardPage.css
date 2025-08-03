@@ -128,6 +128,8 @@
 
 .portfolio-section {
   grid-area: portfolio;
+  min-width: 0;
+  width: 100%;
 }
 
 .lookup-section {
@@ -186,11 +188,11 @@
 }
 
 /* Summary Cards - Compact for bento */
-.summary-cards {
+.dashboard-page .summary-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: 1fr;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
   margin-bottom: 16px;
   flex-shrink: 0;
@@ -200,7 +202,7 @@
   background: #ffffff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -208,6 +210,8 @@
   height: 90px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s ease;
+  width: 100%;
+  min-width: 0;
 }
 
 .dashboard-page .summary-card:hover {
