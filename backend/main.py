@@ -28,6 +28,11 @@ from auth import AuthenticationService
 from market_context import MarketContextService
 import database
 
+# Import monitoring services
+from email_service import email_service
+from monitoring_service import MonitoringService
+from scheduler import MonitoringScheduler
+
 # Create FastAPI app
 app = FastAPI(
     title="AI Portfolio Agent",
@@ -63,8 +68,41 @@ db_service = database.db_service
 market_context_service = MarketContextService(db_service)
 ai_agent = AIPortfolioAgent(portfolio_manager, market_service, market_context_service)
 
+# Initialize monitoring services
+monitoring_service = MonitoringService(
+    db_service=db_service,
+    market_service=market_service,
+    ai_agent=ai_agent,
+    auth_service=auth_service,
+    market_context_service=market_context_service
+)
+monitoring_scheduler = MonitoringScheduler(monitoring_service, email_service)
+
 # Security
 security = HTTPBearer(auto_error=False)
+
+# Startup and shutdown events for monitoring
+@app.on_event("startup")
+async def startup_event():
+    """Initialize monitoring system on startup"""
+    logger.info("Starting Investment Agent with monitoring system")
+    
+    # Start the monitoring scheduler
+    monitoring_scheduler.start_monitoring()
+    
+    # Log startup information
+    scheduler_status = monitoring_scheduler.get_scheduler_status()
+    logger.info(f"Monitoring system initialized - Enabled: {scheduler_status['enabled']}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup monitoring system on shutdown"""
+    logger.info("Shutting down Investment Agent monitoring system")
+    
+    # Stop the monitoring scheduler
+    monitoring_scheduler.stop_monitoring()
+    
+    logger.info("Monitoring system shutdown complete")
 
 # Pydantic models
 class ChatMessage(BaseModel):
@@ -134,6 +172,12 @@ async def root():
                 "callback": "/auth/callback",
                 "logout": "/auth/logout",
                 "me": "/auth/me"
+            },
+            "monitoring": {
+                "status": "/monitoring/status",
+                "trigger_check": "/monitoring/trigger-check",
+                "reset_failures": "/monitoring/reset-failures",
+                "test_email": "/monitoring/test-email"
             }
         }
     }
@@ -1347,6 +1391,92 @@ async def get_transaction_stats(user: Dict[str, Any] = Depends(get_current_user)
             "status": "error",
             "message": str(e)
         }
+
+# Monitoring Management Endpoints
+@app.get("/monitoring/status")
+async def get_monitoring_status(user: Dict[str, Any] = Depends(require_auth)):
+    """Get monitoring system status and statistics"""
+    try:
+        scheduler_status = monitoring_scheduler.get_scheduler_status()
+        monitoring_stats = monitoring_service.get_monitoring_stats()
+        email_health = email_service.health_check()
+        
+        return {
+            "monitoring_system": {
+                "scheduler": scheduler_status,
+                "monitoring_service": monitoring_stats,
+                "email_service": email_health
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting monitoring status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving monitoring status: {str(e)}")
+
+@app.post("/monitoring/trigger-check")
+async def trigger_immediate_monitoring_check(user: Dict[str, Any] = Depends(require_auth)):
+    """Trigger an immediate monitoring check and email report"""
+    try:
+        result = await monitoring_scheduler.trigger_immediate_check()
+        
+        if result["success"]:
+            return {
+                "message": "Immediate monitoring check triggered successfully",
+                "result": result,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail=result["message"])
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error triggering monitoring check: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error triggering monitoring check: {str(e)}")
+
+@app.post("/monitoring/reset-failures")
+async def reset_monitoring_failures(
+    service_name: Optional[str] = None,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Reset failure tracking for monitoring services"""
+    try:
+        monitoring_service.reset_failure_tracking(service_name)
+        
+        return {
+            "message": f"Reset failure tracking for {service_name or 'all services'}",
+            "service": service_name,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error resetting monitoring failures: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error resetting failures: {str(e)}")
+
+@app.get("/monitoring/test-email")
+async def test_monitoring_email(user: Dict[str, Any] = Depends(require_auth)):
+    """Test email functionality by sending a test message"""
+    try:
+        # Get current health data
+        health_data = await monitoring_service.perform_comprehensive_health_check()
+        
+        # Send test email
+        success = await email_service.send_status_report(health_data)
+        
+        if success:
+            return {
+                "message": "Test email sent successfully",
+                "timestamp": datetime.now().isoformat(),
+                "email_to": email_service.email_to
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to send test email")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending test email: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error sending test email: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
