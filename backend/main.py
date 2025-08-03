@@ -4,7 +4,7 @@ AI Portfolio Agent - FastAPI backend with OAuth authentication and database inte
 import os
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, Depends, Cookie, Response, Request
 from fastapi.middleware.cors import CORSMiddleware

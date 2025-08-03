@@ -53,6 +53,8 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       const response = await axios.get('/market/refresh-status');
       const refreshData = response.data;
       
+      console.log('📡 Sync with backend:', refreshData);
+      
       // Update market status with synchronized backend data
       setMarketStatus(prev => ({
         ...prev,
@@ -70,7 +72,26 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       
       return refreshData;
     } catch (error) {
-      console.error('Error fetching refresh status:', error);
+      console.error('❌ Error fetching refresh status:', error);
+      
+      // Fallback to local timer if backend sync fails
+      const isMarketOpenLocal = isMarketOpen();
+      const fallbackInterval = isMarketOpenLocal ? 3 : 20; // 3 min open, 20 min closed
+      const fallbackSeconds = fallbackInterval * 60;
+      
+      console.log('🔄 Using fallback timer:', fallbackInterval, 'minutes');
+      
+      setMarketStatus(prev => ({
+        ...prev,
+        isOpen: isMarketOpenLocal,
+        nextUpdateMinutes: fallbackInterval,
+        nextUpdateSeconds: 0,
+        refreshInterval: fallbackInterval
+      }));
+      
+      // Set fallback sync time
+      nextSyncTimeRef.current = Date.now() + (fallbackSeconds * 1000);
+      
       return null;
     }
   }, []);
