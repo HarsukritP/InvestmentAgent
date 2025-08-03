@@ -767,8 +767,9 @@
     height: auto;
   }
   
-  .summary-cards {
+  .dashboard-page .summary-cards {
     grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
 }
 
