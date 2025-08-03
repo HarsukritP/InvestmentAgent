@@ -176,8 +176,9 @@ async def root():
             "monitoring": {
                 "status": "/monitoring/status",
                 "trigger_check": "/monitoring/trigger-check",
-                "reset_failures": "/monitoring/reset-failures",
-                "test_email": "/monitoring/test-email"
+                "reset_failures": "/monitoring/reset-failures", 
+                "test_email": "/monitoring/test-email",
+                "test_email_public": "/monitoring/test-email-public"
             }
         }
     }
@@ -1478,6 +1479,45 @@ async def test_monitoring_email(user: Dict[str, Any] = Depends(require_auth)):
     except Exception as e:
         logger.error(f"Error sending test email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error sending test email: {str(e)}")
+
+@app.get("/monitoring/test-email-public")
+async def test_monitoring_email_public():
+    """Public test email endpoint for configuration testing (no auth required)"""
+    try:
+        # Get current health data
+        health_data = await monitoring_service.perform_comprehensive_health_check()
+        
+        # Add test notification to the health data
+        health_data["test_mode"] = True
+        health_data["test_timestamp"] = datetime.now().isoformat()
+        
+        # Send test email
+        success = await email_service.send_status_report(health_data)
+        
+        if success:
+            return {
+                "message": "✅ Test email sent successfully!",
+                "timestamp": datetime.now().isoformat(),
+                "recipients": email_service.email_recipients,
+                "recipients_count": len(email_service.email_recipients),
+                "email_service_status": email_service.health_check()
+            }
+        else:
+            return {
+                "message": "❌ Failed to send test email",
+                "timestamp": datetime.now().isoformat(),
+                "email_service_status": email_service.health_check(),
+                "error": "Email service returned failure"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error in public test email: {str(e)}")
+        return {
+            "message": "❌ Error sending test email",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "email_service_status": email_service.health_check()
+        }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000) 
