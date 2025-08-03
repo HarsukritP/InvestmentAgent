@@ -132,25 +132,26 @@
 
 /* Portfolio Summary */
 .portfolio-summary {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  width: 100%;
+  margin-bottom: 24px;
 }
 
 /* Clean Summary Cards */
-.summary-cards {
+.portfolio-page .summary-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: 1fr;
-  gap: 16px;
+  gap: 24px;
   width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .portfolio-page .summary-card {
   background: #ffffff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 24px 28px;
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -158,6 +159,8 @@
   height: 140px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s ease;
+  width: 100%;
+  min-width: 0;
 }
 
 .portfolio-page .summary-card:hover {
@@ -486,6 +489,10 @@
     font-size: 20px;
   }
   
+  .portfolio-page .summary-cards {
+    gap: 16px;
+  }
+  
   .market-status-bar {
     flex-direction: column;
     align-items: flex-start;
@@ -527,6 +534,10 @@
   
   .portfolio-page .card-value {
     font-size: 18px;
+  }
+  
+  .portfolio-page .summary-cards {
+    gap: 12px;
   }
   
   .portfolio-page .card-label {
