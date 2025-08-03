@@ -1484,6 +1484,20 @@ async def test_monitoring_email(user: Dict[str, Any] = Depends(require_auth)):
 async def test_monitoring_email_public():
     """Public test email endpoint for configuration testing (no auth required)"""
     try:
+        logger.info("=== Starting public email test ===")
+        
+        # Check email service configuration first
+        email_health = email_service.health_check()
+        logger.info(f"Email service health: {email_health}")
+        
+        if not email_service.monitoring_enabled:
+            return {
+                "message": "❌ Email monitoring is disabled",
+                "timestamp": datetime.now().isoformat(),
+                "email_service_status": email_health,
+                "error": "Monitoring disabled - check environment variables"
+            }
+        
         # Get current health data
         health_data = await monitoring_service.perform_comprehensive_health_check()
         
@@ -1491,29 +1505,54 @@ async def test_monitoring_email_public():
         health_data["test_mode"] = True
         health_data["test_timestamp"] = datetime.now().isoformat()
         
-        # Send test email
-        success = await email_service.send_status_report(health_data)
+        logger.info("Sending test email via email service...")
         
-        if success:
+        # Send test email with direct call for better error handling
+        try:
+            success = await email_service.send_status_report(health_data)
+            
+            if success:
+                return {
+                    "message": "✅ Test email sent successfully!",
+                    "timestamp": datetime.now().isoformat(),
+                    "recipients": email_service.email_recipients,
+                    "recipients_count": len(email_service.email_recipients),
+                    "email_service_status": email_health,
+                    "smtp_config": {
+                        "host": email_service.smtp_host,
+                        "port": email_service.smtp_port,
+                        "user": email_service.smtp_user,
+                        "from": email_service.email_from
+                    }
+                }
+            else:
+                return {
+                    "message": "❌ Failed to send test email - check Railway logs for detailed SMTP error",
+                    "timestamp": datetime.now().isoformat(),
+                    "email_service_status": email_health,
+                    "error": "Email service returned failure - see backend logs for SMTP details",
+                    "troubleshooting": {
+                        "check_railway_logs": "Look for SMTP authentication or connection errors",
+                        "verify_credentials": "Ensure SMTP_USER and SMTP_PASSWORD are correct",
+                        "gmail_app_password": "Make sure using Gmail App Password, not regular password"
+                    }
+                }
+        except Exception as email_error:
+            logger.error(f"Direct email send error: {str(email_error)}")
             return {
-                "message": "✅ Test email sent successfully!",
+                "message": "❌ Email sending failed with exception",
                 "timestamp": datetime.now().isoformat(),
-                "recipients": email_service.email_recipients,
-                "recipients_count": len(email_service.email_recipients),
-                "email_service_status": email_service.health_check()
-            }
-        else:
-            return {
-                "message": "❌ Failed to send test email",
-                "timestamp": datetime.now().isoformat(),
-                "email_service_status": email_service.health_check(),
-                "error": "Email service returned failure"
+                "email_service_status": email_health,
+                "error": str(email_error),
+                "error_type": type(email_error).__name__
             }
             
     except Exception as e:
         logger.error(f"Error in public test email: {str(e)}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         return {
-            "message": "❌ Error sending test email",
+            "message": "❌ Error in test email endpoint",
             "timestamp": datetime.now().isoformat(),
             "error": str(e),
             "email_service_status": email_service.health_check()

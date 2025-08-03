@@ -216,6 +216,9 @@ class EmailService:
     def _send_email_sync(self, subject: str, html_content: str, text_content: str = None) -> bool:
         """Synchronous email sending method"""
         try:
+            logger.info(f"Attempting to send email to {len(self.email_recipients)} recipients: {self.email_recipients}")
+            logger.info(f"SMTP Config: {self.smtp_host}:{self.smtp_port}, User: {self.smtp_user}")
+            
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
@@ -231,18 +234,44 @@ class EmailService:
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
             
+            logger.info("Email message created, attempting SMTP connection...")
+            
             # Send email
             with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                logger.info("SMTP connection established")
+                
                 server.starttls()
+                logger.info("STARTTLS enabled")
+                
                 server.login(self.smtp_user, self.smtp_password)
+                logger.info("SMTP authentication successful")
+                
                 # Send to all recipients
-                server.send_message(msg, to_addrs=self.email_recipients)
+                result = server.send_message(msg, to_addrs=self.email_recipients)
+                logger.info(f"Email send result: {result}")
                 
             logger.info(f"Email sent successfully to {len(self.email_recipients)} recipients: {subject}")
             return True
             
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP Authentication failed for user '{self.smtp_user}': {str(e)}")
+            logger.error("Check SMTP_USER and SMTP_PASSWORD environment variables")
+            return False
+        except smtplib.SMTPRecipientsRefused as e:
+            logger.error(f"SMTP Recipients refused: {str(e)}")
+            logger.error(f"Failed recipients: {self.email_recipients}")
+            return False
+        except smtplib.SMTPServerDisconnected as e:
+            logger.error(f"SMTP Server disconnected: {str(e)}")
+            return False
+        except smtplib.SMTPException as e:
+            logger.error(f"SMTP Error: {str(e)}")
+            return False
         except Exception as e:
             logger.error(f"Failed to send email '{subject}': {str(e)}")
+            logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return False
     
     async def send_email(self, subject: str, html_content: str, text_content: str = None) -> bool:
