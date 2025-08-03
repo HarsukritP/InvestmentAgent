@@ -1467,7 +1467,8 @@ async def test_monitoring_email(user: Dict[str, Any] = Depends(require_auth)):
             return {
                 "message": "Test email sent successfully",
                 "timestamp": datetime.now().isoformat(),
-                "email_to": email_service.email_to
+                "recipients": email_service.email_recipients,
+                "recipients_count": len(email_service.email_recipients)
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to send test email")

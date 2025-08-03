@@ -27,7 +27,27 @@ class EmailService:
         # Email Configuration
         self.monitoring_enabled = os.getenv("MONITORING_ENABLED", "true").lower() == "true"
         self.email_from = os.getenv("MONITORING_EMAIL_FROM", "agentdemos@procogia.ai")
-        self.email_to = os.getenv("MONITORING_EMAIL_TO", "agentdemos@procogia.ai")
+        
+        # Support multiple email recipients (comma-separated)
+        email_to_str = os.getenv("MONITORING_EMAIL_TO", "agentdemos@procogia.ai")
+        additional_emails = os.getenv("MONITORING_EMAIL_ADDITIONAL", "")
+        
+        # Parse email recipients
+        self.email_recipients = []
+        for email in email_to_str.split(","):
+            email = email.strip()
+            if email:
+                self.email_recipients.append(email)
+        
+        # Add additional emails if provided
+        if additional_emails:
+            for email in additional_emails.split(","):
+                email = email.strip()
+                if email and email not in self.email_recipients:
+                    self.email_recipients.append(email)
+        
+        # Keep backward compatibility with single email_to
+        self.email_to = self.email_recipients[0] if self.email_recipients else "agentdemos@procogia.ai"
         
         # Template Environment
         self.template_env = jinja2.Environment(
@@ -37,7 +57,7 @@ class EmailService:
         # Thread pool for async email sending
         self.executor = ThreadPoolExecutor(max_workers=2)
         
-        logger.info(f"Email service initialized - Enabled: {self.monitoring_enabled}")
+        logger.info(f"Email service initialized - Enabled: {self.monitoring_enabled}, Recipients: {len(self.email_recipients)} ({', '.join(self.email_recipients)})")
         
     def _get_templates(self) -> Dict[str, str]:
         """Get email templates as dictionary"""
@@ -180,7 +200,7 @@ class EmailService:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
             msg['From'] = self.email_from
-            msg['To'] = self.email_to
+            msg['To'] = ", ".join(self.email_recipients)
             
             # Add text version if provided
             if text_content:
@@ -195,9 +215,10 @@ class EmailService:
             with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
                 server.starttls()
                 server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+                # Send to all recipients
+                server.send_message(msg, to_addrs=self.email_recipients)
                 
-            logger.info(f"Email sent successfully: {subject}")
+            logger.info(f"Email sent successfully to {len(self.email_recipients)} recipients: {subject}")
             return True
             
         except Exception as e:
@@ -324,7 +345,9 @@ class EmailService:
                 "status": "healthy" if config_ok else "error",
                 "enabled": self.monitoring_enabled,
                 "smtp_configured": bool(self.smtp_user and self.smtp_password),
-                "recipients_configured": bool(self.email_to),
+                "recipients_configured": bool(self.email_recipients),
+                "recipients_count": len(self.email_recipients),
+                "recipients": self.email_recipients,
                 "error": None if config_ok else "SMTP configuration incomplete"
             }
         except Exception as e:

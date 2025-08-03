@@ -88,8 +88,12 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=agentdemos@procogia.ai
 SMTP_PASSWORD=@Pr0C0g14
-MONITORING_EMAIL_TO=agentdemos@procogia.ai
 MONITORING_EMAIL_FROM=agentdemos@procogia.ai
+MONITORING_EMAIL_TO=agentdemos@procogia.ai
+
+# Multiple Recipients (Optional - for testing or additional notifications)
+# Comma-separated list of additional email addresses
+MONITORING_EMAIL_ADDITIONAL=your.email@example.com,another@example.com
 
 # Monitoring Settings
 MONITORING_ENABLED=true
@@ -97,6 +101,35 @@ MONITORING_INTERVAL_HOURS=1
 ALERT_THRESHOLD_CRITICAL=3  # Max failures before critical alert
 ALERT_THRESHOLD_WARNING=1   # Max failures before warning
 ```
+
+### Multiple Email Recipients
+
+The system supports sending emails to multiple recipients for testing or team notifications:
+
+- **`MONITORING_EMAIL_TO`** - Primary recipient (required)
+- **`MONITORING_EMAIL_ADDITIONAL`** - Additional recipients (optional, comma-separated)
+
+**Examples:**
+```bash
+# Single recipient (default)
+MONITORING_EMAIL_TO=agentdemos@procogia.ai
+
+# Multiple recipients via MONITORING_EMAIL_TO
+MONITORING_EMAIL_TO=agentdemos@procogia.ai,team@company.com
+
+# Primary + additional recipients
+MONITORING_EMAIL_TO=agentdemos@procogia.ai
+MONITORING_EMAIL_ADDITIONAL=developer@company.com,manager@company.com
+
+# For testing purposes
+MONITORING_EMAIL_ADDITIONAL=your.personal.email@gmail.com
+```
+
+The system automatically:
+- Combines all recipients into a single email list
+- Removes duplicates
+- Logs the number of recipients on startup
+- Shows recipient count in monitoring status
 
 ## Implementation Steps
 
