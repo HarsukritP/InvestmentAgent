@@ -21,15 +21,15 @@ class EmailService:
         # SMTP Configuration from environment variables
         self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.getenv("SMTP_USER", "agentdemos@procogia.ai")
-        self.smtp_password = os.getenv("SMTP_PASSWORD", "@Pr0C0g14")
+        self.smtp_user = os.getenv("SMTP_USER")
+        self.smtp_password = os.getenv("SMTP_PASSWORD")
         
         # Email Configuration
         self.monitoring_enabled = os.getenv("MONITORING_ENABLED", "true").lower() == "true"
-        self.email_from = os.getenv("MONITORING_EMAIL_FROM", "agentdemos@procogia.ai")
+        self.email_from = os.getenv("MONITORING_EMAIL_FROM")
         
         # Support multiple email recipients (comma-separated)
-        email_to_str = os.getenv("MONITORING_EMAIL_TO", "agentdemos@procogia.ai")
+        email_to_str = os.getenv("MONITORING_EMAIL_TO", "")
         additional_emails = os.getenv("MONITORING_EMAIL_ADDITIONAL", "")
         
         # Parse email recipients
@@ -47,7 +47,24 @@ class EmailService:
                     self.email_recipients.append(email)
         
         # Keep backward compatibility with single email_to
-        self.email_to = self.email_recipients[0] if self.email_recipients else "agentdemos@procogia.ai"
+        self.email_to = self.email_recipients[0] if self.email_recipients else ""
+        
+        # Validate required configuration when monitoring is enabled
+        if self.monitoring_enabled:
+            missing_config = []
+            if not self.smtp_user:
+                missing_config.append("SMTP_USER")
+            if not self.smtp_password:
+                missing_config.append("SMTP_PASSWORD")
+            if not self.email_from:
+                missing_config.append("MONITORING_EMAIL_FROM")
+            if not self.email_recipients:
+                missing_config.append("MONITORING_EMAIL_TO")
+            
+            if missing_config:
+                logger.warning(f"⚠️  Email monitoring enabled but missing required configuration: {', '.join(missing_config)}")
+                logger.warning("Email monitoring will be disabled until configuration is complete")
+                self.monitoring_enabled = False
         
         # Template Environment
         self.template_env = jinja2.Environment(
@@ -57,7 +74,10 @@ class EmailService:
         # Thread pool for async email sending
         self.executor = ThreadPoolExecutor(max_workers=2)
         
-        logger.info(f"Email service initialized - Enabled: {self.monitoring_enabled}, Recipients: {len(self.email_recipients)} ({', '.join(self.email_recipients)})")
+        if self.monitoring_enabled:
+            logger.info(f"✅ Email service initialized - Enabled: {self.monitoring_enabled}, Recipients: {len(self.email_recipients)} ({', '.join(self.email_recipients)})")
+        else:
+            logger.info(f"📧 Email service initialized - Monitoring disabled (check configuration)")
         
     def _get_templates(self) -> Dict[str, str]:
         """Get email templates as dictionary"""

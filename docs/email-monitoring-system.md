@@ -83,17 +83,17 @@ jinja2==3.1.2
 
 Add to Railway/local environment:
 ```bash
-# Email Configuration
+# Email Configuration (REQUIRED - No defaults for security)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=agentdemos@procogia.ai
-SMTP_PASSWORD=@Pr0C0g14
-MONITORING_EMAIL_FROM=agentdemos@procogia.ai
-MONITORING_EMAIL_TO=agentdemos@procogia.ai
+SMTP_USER=your.smtp.username@gmail.com
+SMTP_PASSWORD=your_app_password_here
+MONITORING_EMAIL_FROM=your.monitoring.email@gmail.com
+MONITORING_EMAIL_TO=recipient1@company.com
 
 # Multiple Recipients (Optional - for testing or additional notifications)
 # Comma-separated list of additional email addresses
-MONITORING_EMAIL_ADDITIONAL=your.email@example.com,another@example.com
+MONITORING_EMAIL_ADDITIONAL=your.personal@gmail.com,team@company.com
 
 # Monitoring Settings
 MONITORING_ENABLED=true
@@ -101,6 +101,8 @@ MONITORING_INTERVAL_HOURS=1
 ALERT_THRESHOLD_CRITICAL=3  # Max failures before critical alert
 ALERT_THRESHOLD_WARNING=1   # Max failures before warning
 ```
+
+**⚠️ SECURITY NOTE**: All email configuration values are **REQUIRED** when `MONITORING_ENABLED=true`. No default values are provided for security reasons. The system will automatically disable email monitoring if any required configuration is missing.
 
 ### Multiple Email Recipients
 
@@ -275,10 +277,23 @@ async def start_monitoring_loop():
 
 ## Security Considerations
 
-- **SMTP Credentials** - Store in environment variables only
+### Credential Management
+- **SMTP Credentials** - Store in environment variables only, never in source code
+- **No Default Values** - All sensitive configuration requires explicit environment variables
+- **Password Rotation** - Use Gmail App Passwords and rotate regularly
+- **Repository Security** - Never commit credentials to version control
+
+### Email Security
 - **Email Content** - Avoid sensitive data in email bodies
 - **Access Control** - Restrict email recipient configuration
 - **Logging** - Avoid logging email credentials
+- **TLS Encryption** - All SMTP communication uses STARTTLS
+
+### Recent Security Fix
+The system previously had hardcoded SMTP credentials as fallback defaults. These have been removed for security:
+- All email configuration now requires explicit environment variables
+- System gracefully disables monitoring if credentials are missing
+- Prevents accidental credential exposure in repositories
 
 ## Testing Strategy
 
