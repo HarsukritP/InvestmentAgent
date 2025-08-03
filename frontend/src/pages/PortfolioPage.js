@@ -41,25 +41,51 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
   });
   const hoverTimeoutRef = useRef(null);
 
-  const refreshIntervalRef = useRef(null);
+  // Synchronized timer system - syncs with backend auto-refresh
+  // This ensures all users see the same countdown and API calls are efficient
+  const syncIntervalRef = useRef(null);
   const countdownIntervalRef = useRef(null);
-  const nextUpdateTimeRef = useRef(null);
+  const nextSyncTimeRef = useRef(null);
 
-  // Get market update interval based on market status
-  const getUpdateInterval = useCallback((isMarketOpen) => {
-    // 3 minutes when market is open, 20 minutes when closed
-    return isMarketOpen ? 3 * 60 * 1000 : 20 * 60 * 1000;
+  // Fetch synchronized refresh status from backend
+  const fetchRefreshStatus = useCallback(async () => {
+    try {
+      const response = await axios.get('/market/refresh-status');
+      const refreshData = response.data;
+      
+      // Update market status with synchronized backend data
+      setMarketStatus(prev => ({
+        ...prev,
+        isOpen: refreshData.market_status === 'open',
+        nextUpdateMinutes: refreshData.next_refresh_minutes,
+        nextUpdateSeconds: refreshData.next_refresh_seconds,
+        refreshInterval: refreshData.refresh_interval_minutes,
+        isRefreshing: refreshData.is_refreshing,
+        lastRefresh: refreshData.last_refresh,
+        nextRefresh: refreshData.next_refresh
+      }));
+      
+      // Store next sync time for countdown
+      nextSyncTimeRef.current = Date.now() + (refreshData.next_refresh_in_seconds * 1000);
+      
+      return refreshData;
+    } catch (error) {
+      console.error('Error fetching refresh status:', error);
+      return null;
+    }
   }, []);
 
-  // Update countdown timer
-  const updateCountdown = useCallback(() => {
-    if (!nextUpdateTimeRef.current) return;
+  // Update countdown timer based on backend sync
+  const updateSyncedCountdown = useCallback(() => {
+    if (!nextSyncTimeRef.current) return;
     
     const now = Date.now();
-    const timeUntilUpdate = nextUpdateTimeRef.current - now;
+    const timeUntilUpdate = nextSyncTimeRef.current - now;
     
     if (timeUntilUpdate <= 0) {
       setMarketStatus(prev => ({ ...prev, nextUpdateMinutes: 0, nextUpdateSeconds: 0 }));
+      // Fetch new refresh status when countdown reaches zero
+      fetchRefreshStatus();
       return;
     }
     
@@ -72,7 +98,7 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
       nextUpdateMinutes: minutes,
       nextUpdateSeconds: seconds
     }));
-  }, []);
+  }, [fetchRefreshStatus]);
 
   // Fetch health status
   const fetchHealthStatus = useCallback(async () => {
@@ -157,50 +183,47 @@ const PortfolioPage = ({ onTransactionSuccess }) => {
     }
   }, [fetchHealthStatus]);
 
-  // Schedule next update
-  const scheduleNextUpdate = useCallback((currentMarketOpen) => {
-    const interval = getUpdateInterval(currentMarketOpen);
-    nextUpdateTimeRef.current = Date.now() + interval;
-    
+  // Start synchronized timer system
+  const startSyncedTimer = useCallback(async () => {
     // Clear existing intervals
-    if (refreshIntervalRef.current) {
-      clearTimeout(refreshIntervalRef.current);
+    if (syncIntervalRef.current) {
+      clearInterval(syncIntervalRef.current);
     }
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
     
-    // Set up new refresh interval
-    refreshIntervalRef.current = setTimeout(async () => {
-      const marketOpen = await fetchPortfolio();
-      scheduleNextUpdate(marketOpen);
-    }, interval);
+    // Initial sync with backend
+    await fetchRefreshStatus();
     
     // Set up countdown timer (updates every second)
-    countdownIntervalRef.current = setInterval(updateCountdown, 1000);
+    countdownIntervalRef.current = setInterval(updateSyncedCountdown, 1000);
+    
+    // Sync with backend every 30 seconds to stay accurate
+    syncIntervalRef.current = setInterval(fetchRefreshStatus, 30000);
     
     // Initial countdown update
-    updateCountdown();
-  }, [getUpdateInterval, updateCountdown, fetchPortfolio]);
+    updateSyncedCountdown();
+  }, [fetchRefreshStatus, updateSyncedCountdown]);
 
   useEffect(() => {
     const initializePortfolio = async () => {
-      const marketOpen = await fetchPortfolio(); // Initial load
-      scheduleNextUpdate(marketOpen);
+      await fetchPortfolio(); // Initial portfolio load
+      await startSyncedTimer(); // Start synchronized timer system
     };
     
     initializePortfolio();
     
     // Cleanup intervals on unmount
     return () => {
-      if (refreshIntervalRef.current) {
-        clearTimeout(refreshIntervalRef.current);
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
       }
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
     };
-  }, [fetchPortfolio, scheduleNextUpdate]);
+  }, [fetchPortfolio, startSyncedTimer]);
 
   const handleBuyStock = () => {
     setSelectedHolding(null);

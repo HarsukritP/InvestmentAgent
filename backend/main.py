@@ -179,6 +179,9 @@ async def root():
                 "reset_failures": "/monitoring/reset-failures", 
                 "test_email": "/monitoring/test-email",
                 "test_email_public": "/monitoring/test-email-public"
+            },
+            "market": {
+                "refresh_status": "/market/refresh-status"
             }
         }
     }
@@ -1479,6 +1482,45 @@ async def test_monitoring_email(user: Dict[str, Any] = Depends(require_auth)):
     except Exception as e:
         logger.error(f"Error sending test email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error sending test email: {str(e)}")
+
+@app.get("/market/refresh-status")
+async def get_market_refresh_status():
+    """Get synchronized market data refresh status for all users"""
+    try:
+        # Get market service refresh status
+        current_time = datetime.now()
+        last_refresh = market_service._last_refresh
+        is_market_open = market_service.is_market_open()
+        refresh_interval_seconds = market_service.get_refresh_interval()
+        
+        # Calculate time since last refresh
+        time_since_refresh = (current_time - last_refresh).total_seconds()
+        
+        # Calculate next refresh time
+        time_until_next_refresh = max(0, refresh_interval_seconds - time_since_refresh)
+        next_refresh_time = current_time + timedelta(seconds=time_until_next_refresh)
+        
+        # Format for frontend
+        minutes_until_refresh = int(time_until_next_refresh // 60)
+        seconds_until_refresh = int(time_until_next_refresh % 60)
+        
+        return {
+            "market_status": "open" if is_market_open else "closed",
+            "last_refresh": last_refresh.isoformat(),
+            "next_refresh": next_refresh_time.isoformat(),
+            "next_refresh_in_seconds": int(time_until_next_refresh),
+            "next_refresh_minutes": minutes_until_refresh,
+            "next_refresh_seconds": seconds_until_refresh,
+            "refresh_interval_minutes": refresh_interval_seconds // 60,
+            "is_refreshing": market_service._is_refreshing,
+            "watchlist_size": len(market_service._watchlist_symbols),
+            "auto_refresh_active": market_service._auto_refresh_task is not None,
+            "server_time": current_time.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting market refresh status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting refresh status: {str(e)}")
 
 @app.get("/monitoring/test-email-public")
 async def test_monitoring_email_public():

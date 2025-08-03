@@ -84,12 +84,23 @@ jinja2==3.1.2
 Add to Railway/local environment:
 ```bash
 # Email Configuration (REQUIRED - No defaults for security)
-SMTP_HOST=smtp.gmail.com
+
+# For Microsoft Business Accounts (Outlook/Office 365)
+SMTP_HOST=smtp-mail.outlook.com
 SMTP_PORT=587
-SMTP_USER=your.smtp.username@gmail.com
-SMTP_PASSWORD=your_app_password_here
-MONITORING_EMAIL_FROM=your.monitoring.email@gmail.com
-MONITORING_EMAIL_TO=recipient1@company.com
+SMTP_USER=agentdemos@procogia.ai
+SMTP_PASSWORD=your_outlook_app_password_here
+MONITORING_EMAIL_FROM=agentdemos@procogia.ai
+MONITORING_EMAIL_TO=agentdemos@procogia.ai
+
+# Alternative for some Office 365 configurations:
+# SMTP_HOST=smtp.office365.com
+
+# For Gmail Accounts (Alternative)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=your.email@gmail.com
+# SMTP_PASSWORD=your_gmail_app_password
 
 # Multiple Recipients (Optional - for testing or additional notifications)
 # Comma-separated list of additional email addresses
