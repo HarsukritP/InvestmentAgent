@@ -194,48 +194,57 @@ async def favicon():
 # Authentication Endpoints
 @app.get("/auth/login")
 async def login(request: Request):
-    """Initiate OAuth login with Google"""
-    if not auth_service.google_client_id:
-        raise HTTPException(status_code=500, detail="OAuth not configured")
-    
-    # Use the correct authorized redirect URI from Google Cloud Console
+    """Initiate OAuth login (Auth0)."""
+    # Determine backend base URL
     base_url = "https://portfolioagent-procogia-ai-service.up.railway.app"
-    
-    # Use localhost for local development
     if "localhost" in request.headers.get("origin", ""):
         base_url = "http://localhost:8000"
-    
+
     redirect_uri = f"{base_url}/auth/callback"
-    oauth_url = auth_service.get_google_oauth_url(redirect_uri)
-    
+
+    # Prefer Auth0 if configured, else fall back to Google (for safety during cutover)
+    oauth_url = None
+    try:
+        if auth_service.auth0_domain and auth_service.auth0_client_id:
+            oauth_url = auth_service.get_auth0_oauth_url(redirect_uri)
+        elif auth_service.google_client_id:
+            oauth_url = auth_service.get_google_oauth_url(redirect_uri)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OAuth not configured: {e}")
+
+    if not oauth_url:
+        raise HTTPException(status_code=500, detail="OAuth not configured")
+
     return {"oauth_url": oauth_url}
 
 @app.get("/auth/callback")
 async def auth_callback(code: str, state: Optional[str] = None, request: Request = None):
-    """Handle OAuth callback from Google"""
+    """Handle OAuth callback (Auth0 preferred, Google fallback)."""
     if not code:
         raise HTTPException(status_code=400, detail="Authorization code required")
     
-    # Use the correct authorized redirect URI from Google Cloud Console
     base_url = "https://portfolioagent-procogia-ai-service.up.railway.app"
-    
-    # Use localhost for local development
     if request and "localhost" in request.headers.get("origin", ""):
         base_url = "http://localhost:8000"
-    
     redirect_uri = f"{base_url}/auth/callback"
-    
-    # Exchange code for tokens
-    token_data = auth_service.exchange_code_for_token(code, redirect_uri)
+
+    # Try Auth0 first
+    token_data = None
+    user_info = None
+    if auth_service.auth0_domain and auth_service.auth0_client_id:
+        token_data = auth_service.exchange_code_for_token_auth0(code, redirect_uri)
+        if token_data and token_data.get("id_token"):
+            user_info = auth_service.verify_auth0_id_token(token_data.get("id_token"))
+    # Fallback to Google during transition
+    if not user_info and auth_service.google_client_id:
+        token_data = auth_service.exchange_code_for_token(code, redirect_uri)
+        if token_data and token_data.get("id_token"):
+            user_info = auth_service.verify_google_token(token_data.get("id_token"))
+
     if not token_data:
         raise HTTPException(status_code=400, detail="Failed to exchange code for token")
-    
-    # Verify the ID token and get user info
-    id_token = token_data.get("id_token")
-    if not id_token:
-        raise HTTPException(status_code=400, detail="No ID token received")
-    
-    user_info = auth_service.verify_google_token(id_token)
+    if not user_info:
+        raise HTTPException(status_code=400, detail="Invalid token")
     if not user_info:
         raise HTTPException(status_code=400, detail="Invalid token")
     
