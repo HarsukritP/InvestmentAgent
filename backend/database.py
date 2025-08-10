@@ -23,40 +23,58 @@ class DatabaseService:
 
     # User Management
     async def create_or_get_user(self, google_id: str, email: str, name: str, picture_url: str = None) -> Dict[str, Any]:
-        """Create a new user or get existing user by Google ID"""
+        """Create a new user or get existing user by ID/email.
+
+        During auth provider migrations, the provider subject (google_id) may change while
+        email stays the same. This method first tries to find by provider id, then falls back
+        to email and updates the provider id to avoid duplicate-key errors on email.
+        """
         try:
-            # Check if user exists
+            # 1) Lookup by provider id (google_id column used to store Auth0 sub as well)
             result = self.supabase.table('users').select('*').eq('google_id', google_id).execute()
-            
-            if result.data:
-                # User exists, update their info
+
+            if result.data and len(result.data) > 0:
+                # User exists by provider id → update basic info
                 user_data = {
                     'email': email,
                     'name': name,
                     'picture_url': picture_url,
                     'updated_at': datetime.utcnow().isoformat()
                 }
-                
-                updated_user = self.supabase.table('users').update(user_data).eq('google_id', google_id).execute()
-                logger.info(f"Updated existing user: {email}")
-                return updated_user.data[0]
-            else:
-                # Create new user
+                updated = self.supabase.table('users').update(user_data).eq('google_id', google_id).execute()
+                logger.info(f"Updated existing user by provider id: {email}")
+                return updated.data[0]
+
+            # 2) Fallback: lookup by email to handle provider id changes
+            email_lookup = self.supabase.table('users').select('*').eq('email', email).execute()
+            if email_lookup.data and len(email_lookup.data) > 0:
+                existing = email_lookup.data[0]
+                # Update record to attach new provider id
                 user_data = {
                     'google_id': google_id,
-                    'email': email,
                     'name': name,
-                    'picture_url': picture_url
+                    'picture_url': picture_url,
+                    'updated_at': datetime.utcnow().isoformat()
                 }
-                
-                new_user = self.supabase.table('users').insert(user_data).execute()
-                logger.info(f"Created new user: {email}")
-                
-                # Create default portfolio for new user
-                await self.create_portfolio(new_user.data[0]['id'], "My Portfolio")
-                
-                return new_user.data[0]
-                
+                updated = self.supabase.table('users').update(user_data).eq('id', existing['id']).execute()
+                logger.info(f"Updated existing user by email with new provider id: {email}")
+                return updated.data[0]
+
+            # 3) Create new user
+            user_data = {
+                'google_id': google_id,
+                'email': email,
+                'name': name,
+                'picture_url': picture_url
+            }
+            new_user = self.supabase.table('users').insert(user_data).execute()
+            logger.info(f"Created new user: {email}")
+
+            # Create default portfolio for new user
+            await self.create_portfolio(new_user.data[0]['id'], "My Portfolio")
+
+            return new_user.data[0]
+
         except Exception as e:
             logger.error(f"Error creating/getting user: {str(e)}")
             raise
