@@ -39,6 +39,8 @@ class AuthenticationService:
             "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": "openid profile email",
+            # Force showing the login/account selection screen instead of silent SSO
+            "prompt": "login",
         }
         if self.auth0_audience:
             params["audience"] = self.auth0_audience
