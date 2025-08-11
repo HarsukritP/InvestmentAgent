@@ -361,6 +361,9 @@ class DatabaseService:
     async def create_action(self, action_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new background action (rule)."""
         try:
+            # Ensure enums/strings are upper/lower as expected
+            if action_data.get('symbol'):
+                action_data['symbol'] = action_data['symbol'].upper()
             result = self.supabase.table('actions').insert(action_data).execute()
             return result.data[0]
         except Exception as e:

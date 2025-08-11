@@ -537,6 +537,15 @@ async def list_actions(
 ):
     try:
         user_id = user.get('db_user_id')
+        if not user_id:
+            # Fallback: ensure DB user exists (mirrors other endpoints)
+            db_user = await db_service.create_or_get_user(
+                google_id=user.get('sub'),
+                email=user.get('email'),
+                name=user.get('name'),
+                picture_url=user.get('picture')
+            )
+            user_id = db_user['id']
         filters = {k: v for k, v in {
             'status': status,
             'symbol': symbol.upper() if symbol else None,
@@ -555,6 +564,15 @@ async def create_action(
 ):
     try:
         user_id = user.get('db_user_id')
+        if not user_id:
+            # Fallback: ensure DB user exists
+            db_user = await db_service.create_or_get_user(
+                google_id=user.get('sub'),
+                email=user.get('email'),
+                name=user.get('name'),
+                picture_url=user.get('picture')
+            )
+            user_id = db_user['id']
         # Basic validation
         action_type_upper = payload.action_type.upper()
         trigger_type = payload.trigger_type
@@ -607,6 +625,7 @@ async def create_action(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Create action error: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating action: {str(e)}")
 
 @app.get("/actions/{action_id}")
