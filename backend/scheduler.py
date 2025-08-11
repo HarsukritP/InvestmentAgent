@@ -412,6 +412,8 @@ class ActionScheduler:
             try:
                 from datetime import datetime as dt
                 if dt.fromisoformat(valid_until.replace('Z', '+00:00')) < now:
+                    # Mark expired actions as completed for better UX
+                    await self.db_service.update_action(action['id'], action['user_id'], {"status": "completed"})
                     return
             except Exception:
                 pass

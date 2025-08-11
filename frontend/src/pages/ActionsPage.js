@@ -9,6 +9,7 @@ const defaultNewAction = {
   amount_usd: '',
   trigger_type: 'price_above',
   trigger_params: { threshold: '' },
+  use_valid_window: false,
   valid_until: '',
   cooldown_seconds: '',
   max_executions: 1,
@@ -28,6 +29,9 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
     if (filterStatus === 'all') return actions;
     return actions.filter(a => a.status === filterStatus);
   }, [actions, filterStatus]);
+
+  const activeActions = useMemo(() => actions.filter(a => a.status === 'active' || a.status === 'paused'), [actions]);
+  const pastActions = useMemo(() => actions.filter(a => ['completed','cancelled','failed'].includes(a.status)), [actions]);
 
   const fetchActions = async () => {
     setLoading(true);
@@ -143,47 +147,96 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
       {loading ? (
         <div className="loading">Loading actions...</div>
       ) : (
-        <div className="actions-table-wrapper">
-          <table className="actions-table">
-            <thead>
-              <tr>
-                <th>Status</th>
-                <th>Type</th>
-                <th>Symbol</th>
-                <th>Trigger</th>
-                <th>Executions</th>
-                <th>Last Triggered</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredActions.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="empty-cell">
-                    No actions yet. Click "Add Action" to create your first rule.
-                  </td>
-                </tr>
-              ) : filteredActions.map(a => (
-                <tr key={a.id}>
-                  <td><span className={`status-chip ${a.status}`}>{a.status}</span></td>
-                  <td>{a.action_type}</td>
-                  <td>{a.symbol || '-'}</td>
-                  <td>{renderTrigger(a)}</td>
-                  <td>{a.executions_count || 0}/{a.max_executions || 1}</td>
-                  <td>{a.last_triggered_at ? new Date(a.last_triggered_at).toLocaleString() : '-'}</td>
-                  <td className="row-actions">
-                    {a.status === 'active' ? (
-                      <button className="secondary-btn" onClick={() => handlePauseResume(a, 'paused')}>Pause</button>
-                    ) : a.status === 'paused' ? (
-                      <button className="secondary-btn" onClick={() => handlePauseResume(a, 'active')}>Resume</button>
-                    ) : null}
-                    <button className="danger-btn" onClick={() => handleDelete(a)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="section">
+            <div className="section-header">Active</div>
+            <div className="actions-table-wrapper">
+              <table className="actions-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Type</th>
+                    <th>Symbol</th>
+                    <th>Trigger</th>
+                    <th>Executions</th>
+                    <th>Last Triggered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeActions.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="empty-cell">
+                        No active actions. Click "Add Action" to create your first rule.
+                      </td>
+                    </tr>
+                  ) : activeActions.map(a => (
+                    <tr key={a.id}>
+                      <td><span className={`status-chip ${a.status}`}>{a.status}</span></td>
+                      <td>{a.action_type}</td>
+                      <td>{a.symbol || '-'}</td>
+                      <td>{renderTrigger(a)}</td>
+                      <td>{a.executions_count || 0}/{a.max_executions || 1}</td>
+                      <td>{a.last_triggered_at ? new Date(a.last_triggered_at).toLocaleString() : '-'}</td>
+                      <td className="row-actions">
+                        {a.status === 'active' ? (
+                          <button className="secondary-btn" onClick={() => handlePauseResume(a, 'paused')}>Pause</button>
+                        ) : a.status === 'paused' ? (
+                          <button className="secondary-btn" onClick={() => handlePauseResume(a, 'active')}>Resume</button>
+                        ) : null}
+                        <button className="danger-btn" onClick={() => handleDelete(a)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="section-header">Past</div>
+            <div className="actions-table-wrapper">
+              <table className="actions-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Type</th>
+                    <th>Symbol</th>
+                    <th>Trigger</th>
+                    <th>Executions</th>
+                    <th>Last Triggered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastActions.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="empty-cell">No past actions.</td>
+                    </tr>
+                  ) : pastActions.map(a => (
+                    <tr key={a.id}>
+                      <td><span className={`status-chip ${a.status}`}>{a.status}</span></td>
+                      <td>{a.action_type}</td>
+                      <td>{a.symbol || '-'}</td>
+                      <td>{renderTrigger(a)}</td>
+                      <td>{a.executions_count || 0}/{a.max_executions || 1}</td>
+                      <td>{a.last_triggered_at ? new Date(a.last_triggered_at).toLocaleString() : '-'}</td>
+                      <td className="row-actions">
+                        <button className="secondary-btn" onClick={() => setNewAction({
+                          ...defaultNewAction,
+                          action_type: a.action_type,
+                          symbol: a.symbol || '',
+                          trigger_type: a.trigger_type,
+                          trigger_params: a.trigger_params || {},
+                        }) & setShowModal(true)}>Re-add</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {showModal && (
@@ -194,7 +247,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
             </div>
             <div className="modal-body">
               <div className="form-row">
-                <label>Action Type</label>
+                <label>Action Type <span className="req">required</span></label>
                 <select value={newAction.action_type} onChange={e => setNewAction({ ...newAction, action_type: e.target.value })}>
                   <option value="BUY">Buy</option>
                   <option value="SELL">Sell</option>
@@ -202,21 +255,21 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
                 </select>
               </div>
               <div className="form-row">
-                <label>Symbol</label>
+                <label>Symbol <span className="opt">optional for Notify</span></label>
                 <input placeholder="AAPL" value={newAction.symbol} onChange={e => setNewAction({ ...newAction, symbol: e.target.value.toUpperCase() })} />
               </div>
               <div className="form-grid">
                 <div className="form-row">
-                  <label>Quantity</label>
+                  <label>Quantity <span className="opt">optional (use Amount instead)</span></label>
                   <input type="number" step="0.0001" value={newAction.quantity} onChange={e => setNewAction({ ...newAction, quantity: e.target.value })} />
                 </div>
                 <div className="form-row">
-                  <label>Amount (USD)</label>
+                  <label>Amount (USD) <span className="opt">optional (use Quantity instead)</span></label>
                   <input type="number" step="0.01" value={newAction.amount_usd} onChange={e => setNewAction({ ...newAction, amount_usd: e.target.value })} />
                 </div>
               </div>
               <div className="form-row">
-                <label>Trigger Type</label>
+                <label>Trigger Type <span className="req">required</span></label>
                 <select value={newAction.trigger_type} onChange={e => setNewAction({ ...newAction, trigger_type: e.target.value, trigger_params: {} })}>
                   <option value="price_above">Price above</option>
                   <option value="price_below">Price below</option>
@@ -227,7 +280,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
 
               {newAction.trigger_type === 'price_above' || newAction.trigger_type === 'price_below' ? (
                 <div className="form-row">
-                  <label>Threshold Price</label>
+                  <label>Threshold Price <span className="req">required</span></label>
                   <input type="number" step="0.01" value={newAction.trigger_params.threshold || ''} onChange={e => setNewAction({ ...newAction, trigger_params: { ...newAction.trigger_params, threshold: e.target.value } })} />
                 </div>
               ) : null}
@@ -242,7 +295,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
                     </select>
                   </div>
                   <div className="form-row">
-                    <label>Percent</label>
+                    <label>Percent <span className="req">required</span></label>
                     <input type="number" step="0.01" value={newAction.trigger_params.change || ''} onChange={e => setNewAction({ ...newAction, trigger_params: { ...newAction.trigger_params, change: e.target.value } })} />
                   </div>
                 </div>
@@ -273,12 +326,21 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
               </div>
 
               <div className="form-row">
-                <label>Valid Until</label>
-                <input type="datetime-local" value={newAction.valid_until} onChange={e => setNewAction({ ...newAction, valid_until: e.target.value })} />
+                <label>Validity Window <span className="opt">optional</span></label>
+                <div style={{display:'flex', alignItems:'center', gap: '12px'}}>
+                  <label style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                    <input type="checkbox" checked={newAction.use_valid_window} onChange={e => setNewAction({ ...newAction, use_valid_window: e.target.checked })} />
+                    Enable valid until
+                  </label>
+                  {newAction.use_valid_window && (
+                    <input type="datetime-local" value={newAction.valid_until} onChange={e => setNewAction({ ...newAction, valid_until: e.target.value })} />
+                  )}
+                </div>
+                <div className="help-text">If enabled, the action will be marked completed once the time is reached.</div>
               </div>
 
               <div className="form-row">
-                <label>Notes</label>
+                <label>Notes <span className="opt">optional</span></label>
                 <textarea rows={3} value={newAction.notes} onChange={e => setNewAction({ ...newAction, notes: e.target.value })} />
               </div>
             </div>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MdDashboard, MdSmartToy, MdLogout, MdHistory, MdMenu, MdClose, MdHome, MdSchedule } from 'react-icons/md';
+import { MdDashboard, MdSmartToy, MdLogout, MdHistory, MdMenu, MdClose, MdHome } from 'react-icons/md';
+import { RiRobot2Line } from 'react-icons/ri';
+import { TbAutomation } from 'react-icons/tb';
 import { IoChevronBack } from 'react-icons/io5';
 import './Navigation.css';
 // Direct link to logo
@@ -50,7 +52,7 @@ const Navigation = ({
       label: 'Actions',
       description: 'Automation rules and alerts',
       shortLabel: 'Actions',
-      icon: MdSchedule
+      icon: TbAutomation
     }
   ];
 
