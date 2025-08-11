@@ -414,6 +414,9 @@ class DatabaseService:
                 'max_executions', 'cooldown_seconds', 'notes'
             }
             safe_patch = {k: v for k, v in patch.items() if k in allowed_fields}
+            # Normalize symbol casing
+            if 'symbol' in safe_patch and safe_patch['symbol']:
+                safe_patch['symbol'] = str(safe_patch['symbol']).upper()
             if not safe_patch:
                 # Nothing to update
                 return await self.get_action_by_id(action_id, user_id)

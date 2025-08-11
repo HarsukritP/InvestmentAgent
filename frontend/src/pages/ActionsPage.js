@@ -23,6 +23,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
   const [showModal, setShowModal] = useState(false);
   const [newAction, setNewAction] = useState(defaultNewAction);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredActions = useMemo(() => {
@@ -94,7 +95,9 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
       if (payload.trigger_type.startsWith('price') && payload.trigger_params?.threshold) {
         payload.trigger_params.threshold = parseFloat(payload.trigger_params.threshold);
       }
-      const res = await axios.post('/actions', payload);
+      const res = editing
+        ? await axios.patch(`/actions/${editing.id}`, payload)
+        : await axios.post('/actions', payload);
       if (res.data) {
         await fetchActions();
         resetModal();
@@ -122,6 +125,24 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to delete action');
     }
+  };
+
+  const openEdit = (action) => {
+    setEditing(action);
+    setNewAction({
+      action_type: action.action_type,
+      symbol: action.symbol || '',
+      quantity: action.quantity || '',
+      amount_usd: action.amount_usd || '',
+      trigger_type: action.trigger_type,
+      trigger_params: action.trigger_params || {},
+      use_valid_window: !!action.valid_until,
+      valid_until: action.valid_until || '',
+      cooldown_seconds: action.cooldown_seconds || '',
+      max_executions: action.max_executions || 1,
+      notes: action.notes || ''
+    });
+    setShowModal(true);
   };
 
   const renderTrigger = (a) => {
@@ -200,6 +221,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
                         ) : a.status === 'paused' ? (
                           <button className="secondary-btn" onClick={() => handlePauseResume(a, 'active')}>Resume</button>
                         ) : null}
+                        <button className="secondary-btn" onClick={() => openEdit(a)}>Edit</button>
                         <button className="danger-btn" onClick={() => handleDelete(a)}>Delete</button>
                       </td>
                     </tr>
@@ -259,7 +281,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
         <div className="modal-backdrop" onClick={resetModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add Action</h2>
+                <h2>{editing ? 'Edit Action' : 'Add Action'}</h2>
             </div>
             <div className="modal-body">
               <div className="form-row">
@@ -363,7 +385,7 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
             <div className="modal-footer">
               <button className="secondary-btn" onClick={resetModal} disabled={saving}>Cancel</button>
               <button className="primary-btn" onClick={handleCreate} disabled={saving}>
-                {saving ? 'Creating...' : 'Create Action'}
+                {saving ? (editing ? 'Saving...' : 'Creating...') : (editing ? 'Save Changes' : 'Create Action')}
               </button>
             </div>
           </div>
