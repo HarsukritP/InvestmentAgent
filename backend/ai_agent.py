@@ -321,16 +321,56 @@ class AIPortfolioAgent:
 
     # Function implementations
     async def _get_portfolio_summary(self, user_id: str) -> Dict[str, Any]:
-        """Get portfolio summary for user"""
+        """Get real portfolio summary for user from DB + market service"""
         try:
-            # This would typically get data from the database
-            # For now, return a placeholder
+            if not self.db_service:
+                return {"error": "Database not available"}
+            portfolios = await self.db_service.get_user_portfolios(user_id)
+            if not portfolios:
+                return {"error": "No portfolio found for this user"}
+            portfolio = portfolios[0]
+            holdings = await self.db_service.get_portfolio_holdings(portfolio['id'])
+            symbols = [h['symbol'] for h in holdings] if holdings else []
+            market_quotes = await self.market_service.get_portfolio_quotes(symbols) if symbols else {}
+
+            total_value = 0.0
+            total_cost = 0.0
+            holdings_out = []
+            for h in holdings:
+                symbol = h['symbol'].upper()
+                shares = float(h['shares'])
+                avg_cost = float(h['average_cost'])
+                current_price = float(market_quotes.get(symbol, {}).get('price', avg_cost))
+                market_value = shares * current_price
+                cost_basis = shares * avg_cost
+                total_value += market_value
+                total_cost += cost_basis
+                pnl = market_value - cost_basis
+                pnl_percent = (pnl / cost_basis * 100) if cost_basis > 0 else 0
+                holdings_out.append({
+                    "symbol": symbol,
+                    "shares": shares,
+                    "average_cost": avg_cost,
+                    "current_price": current_price,
+                    "market_value": market_value,
+                    "pnl": pnl,
+                    "pnl_percent": pnl_percent
+                })
+
+            total_pnl = total_value - total_cost
+            total_pnl_percent = (total_pnl / total_cost * 100) if total_cost > 0 else 0
+            total_account_value = total_value + float(portfolio['cash_balance'])
+
             return {
-                "user_id": user_id,
-                "total_value": 10000.0,
-                "cash_balance": 5000.0,
-                "holdings_count": 0,
-                "message": "Portfolio data would be retrieved from database"
+                "portfolio_summary": {
+                    "total_portfolio_value": total_value,
+                    "total_pnl": total_pnl,
+                    "total_pnl_percent": total_pnl_percent,
+                    "cash_balance": float(portfolio['cash_balance']),
+                    "total_account_value": total_account_value,
+                    "holdings_count": len(holdings_out)
+                },
+                "holdings": holdings_out
             }
         except Exception as e:
             return {"error": str(e)}
@@ -338,7 +378,7 @@ class AIPortfolioAgent:
     async def _get_stock_price(self, symbol: str) -> Dict[str, Any]:
         """Get current stock price"""
         try:
-            price_data = await self.market_service.get_stock_price(symbol)
+            price_data = await self.market_service.get_stock_quote(symbol.upper())
             return price_data
         except Exception as e:
             return {"error": str(e)}
@@ -354,24 +394,20 @@ class AIPortfolioAgent:
     async def _get_market_news(self, category: str = "general") -> Dict[str, Any]:
         """Get market news"""
         try:
-            # This would get news from the market context service
-            return {
-                "category": category,
-                "news": [],
-                "message": "News data would be retrieved from market context service"
-            }
+            if not self.market_context_service:
+                return {"error": "Market context service unavailable"}
+            news = await self.market_context_service.get_market_news()
+            return news
         except Exception as e:
             return {"error": str(e)}
 
     async def _get_portfolio_performance(self, user_id: str, period: str = "30d") -> Dict[str, Any]:
-        """Get portfolio performance metrics"""
+        """Simplified performance using current vs cost basis"""
         try:
-            return {
-                "user_id": user_id,
-                "period": period,
-                "performance": "Performance data would be calculated",
-                "message": "Portfolio performance would be retrieved from database"
-            }
+            summary = await self._get_portfolio_summary(user_id)
+            if "error" in summary:
+                return summary
+            return {"performance": summary.get("portfolio_summary"), "holdings": summary.get("holdings")}
         except Exception as e:
             return {"error": str(e)}
 
@@ -424,36 +460,54 @@ class AIPortfolioAgent:
             return {"error": str(e), "success": False}
 
     async def _get_cash_balance(self, user_id: str) -> Dict[str, Any]:
-        """Get user's cash balance"""
+        """Get user's cash balance from DB"""
         try:
-            return {
-                "user_id": user_id,
-                "cash_balance": 5000.0,
-                "message": "Cash balance would be retrieved from database"
-            }
+            if not self.db_service:
+                return {"error": "Database not available"}
+            portfolios = await self.db_service.get_user_portfolios(user_id)
+            if not portfolios:
+                return {"error": "No portfolio found"}
+            return {"cash_balance": float(portfolios[0]['cash_balance'])}
         except Exception as e:
             return {"error": str(e)}
         
     async def _get_holdings(self, user_id: str) -> Dict[str, Any]:
-        """Get user's holdings"""
+        """Get user's holdings from DB with current prices"""
         try:
-            return {
-                "user_id": user_id,
-                "holdings": [],
-                "message": "Holdings would be retrieved from database"
-            }
+            if not self.db_service:
+                return {"error": "Database not available"}
+            portfolios = await self.db_service.get_user_portfolios(user_id)
+            if not portfolios:
+                return {"error": "No portfolio found"}
+            portfolio_id = portfolios[0]['id']
+            holdings = await self.db_service.get_portfolio_holdings(portfolio_id)
+            symbols = [h['symbol'] for h in holdings] if holdings else []
+            quotes = await self.market_service.get_portfolio_quotes(symbols) if symbols else {}
+            enriched = []
+            for h in holdings:
+                sym = h['symbol'].upper()
+                price = float(quotes.get(sym, {}).get('price', h['average_cost']))
+                enriched.append({
+                    "symbol": sym,
+                    "shares": float(h['shares']),
+                    "average_cost": float(h['average_cost']),
+                    "current_price": price
+                })
+            return {"holdings": enriched}
         except Exception as e:
             return {"error": str(e)}
         
     async def _get_transaction_history(self, user_id: str, limit: int = 10) -> Dict[str, Any]:
-        """Get transaction history"""
+        """Get transaction history from DB"""
         try:
-            return {
-                "user_id": user_id,
-                "limit": limit,
-                "transactions": [],
-                "message": "Transaction history would be retrieved from database"
-            }
+            if not self.db_service:
+                return {"error": "Database not available"}
+            portfolios = await self.db_service.get_user_portfolios(user_id)
+            if not portfolios:
+                return {"error": "No portfolio found"}
+            portfolio_id = portfolios[0]['id']
+            txs = await self.db_service.get_portfolio_transactions(portfolio_id, limit=limit)
+            return {"transactions": txs}
         except Exception as e:
             return {"error": str(e)}
 
