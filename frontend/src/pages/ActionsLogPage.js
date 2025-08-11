@@ -210,7 +210,7 @@ const ActionsLogPage = () => {
   if (error && !transactions && !hasLoadedBefore) {
     return (
       <div className="actions-log-page">
-        <h1 className="page-title">Actions Log</h1>
+        <h1 className="page-title">Log</h1>
         <div className="error">
           <p>{error}</p>
           <button onClick={refreshData}>Try Again</button>
@@ -223,7 +223,7 @@ const ActionsLogPage = () => {
 
   return (
     <div className="actions-log-page">
-      <h1 className="page-title">Actions Log</h1>
+      <h1 className="page-title">Log</h1>
       
       {/* Market Status Bar */}
       <div className="market-status-bar">
