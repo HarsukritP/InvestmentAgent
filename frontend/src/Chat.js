@@ -86,6 +86,20 @@ const Chat = () => {
           all_function_calls: response.data.all_function_calls || []
         };
         
+        // Ensure we render function calls (show thought process)
+        if (assistantMessage.all_function_calls?.length) {
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: '(functions executed)',
+              timestamp: new Date().toLocaleTimeString(),
+              function_called: assistantMessage.function_called,
+              all_function_calls: assistantMessage.all_function_calls
+            }
+          ]);
+        }
+
         // Check if any function call is requesting confirmation
         const confirmationRequest = assistantMessage.all_function_calls?.find(
           call => call.name === 'request_confirmation' && call.response?.confirmation_requested
