@@ -13,6 +13,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pendingConfirmation, setPendingConfirmation] = useState(null);
+  const [expandedFunctions, setExpandedFunctions] = useState({});
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -86,20 +87,6 @@ const Chat = () => {
           all_function_calls: response.data.all_function_calls || []
         };
         
-        // Ensure we render function calls (show thought process)
-        if (assistantMessage.all_function_calls?.length) {
-          setMessages(prev => [
-            ...prev,
-            {
-              role: 'assistant',
-              content: '(functions executed)',
-              timestamp: new Date().toLocaleTimeString(),
-              function_called: assistantMessage.function_called,
-              all_function_calls: assistantMessage.all_function_calls
-            }
-          ]);
-        }
-
         // Check if any function call is requesting confirmation
         const confirmationRequest = assistantMessage.all_function_calls?.find(
           call => call.name === 'request_confirmation' && call.response?.confirmation_requested
@@ -180,6 +167,10 @@ const Chat = () => {
     ));
   };
 
+  const toggleFn = (key) => {
+    setExpandedFunctions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <div className="card">
       <div className="card-header">
@@ -221,6 +212,47 @@ const Chat = () => {
               >
                 <div className="message-content">
                   {formatMessage(message.content)}
+                  {message.all_function_calls && message.all_function_calls.length > 0 && (
+                    <div style={{ marginTop: '8px', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                      <button
+                        onClick={() => toggleFn(`fn-${index}`)}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          background: '#f8fafc',
+                          border: 'none',
+                          padding: '8px 10px',
+                          cursor: 'pointer',
+                          borderBottom: expandedFunctions[`fn-${index}`] ? '1px solid #e5e7eb' : 'none',
+                          borderRadius: expandedFunctions[`fn-${index}`] ? '8px 8px 0 0' : 8,
+                          fontSize: 12,
+                          color: '#374151'
+                        }}
+                      >
+                        Functions called ({message.all_function_calls.length}) {expandedFunctions[`fn-${index}`] ? '▲' : '▼'}
+                      </button>
+                      {expandedFunctions[`fn-${index}`] && (
+                        <div style={{ padding: '8px 10px', background: 'white', borderRadius: '0 0 8px 8px' }}>
+                          {message.all_function_calls.map((fn, i) => (
+                            <div key={i} style={{ marginBottom: 10 }}>
+                              <div style={{ fontWeight: 600, fontSize: 12, color: '#111827', marginBottom: 4 }}>
+                                {fn.name}
+                              </div>
+                              <pre style={{
+                                margin: 0,
+                                background: '#f9fafb',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: 6,
+                                padding: 8,
+                                fontSize: 11,
+                                overflowX: 'auto'
+                              }}>{JSON.stringify(fn.response || fn.result, null, 2)}</pre>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="message-timestamp">
                   {message.timestamp}
