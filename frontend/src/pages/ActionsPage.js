@@ -64,12 +64,28 @@ const ActionsPage = ({ isMobile, toggleMobileNav }) => {
     setSaving(true);
     setError('');
     try {
+      // Client-side validation
+      if ((newAction.action_type === 'BUY' || newAction.action_type === 'SELL')) {
+        if (!newAction.symbol) throw new Error('Symbol is required for Buy/Sell');
+        if (!newAction.quantity && !newAction.amount_usd) {
+          throw new Error('Provide Quantity or Amount (USD) for Buy/Sell');
+        }
+      }
+      if ((newAction.trigger_type === 'price_above' || newAction.trigger_type === 'price_below') && !newAction.trigger_params?.threshold) {
+        throw new Error('Threshold price is required for the selected trigger');
+      }
+      if (newAction.trigger_type === 'change_pct' && !newAction.trigger_params?.change) {
+        throw new Error('Percent change is required for the selected trigger');
+      }
+
       const payload = { ...newAction };
       if (!payload.symbol) delete payload.symbol;
       if (!payload.quantity) delete payload.quantity;
       if (!payload.amount_usd) delete payload.amount_usd;
       if (!payload.cooldown_seconds) delete payload.cooldown_seconds;
-      if (!payload.valid_until) delete payload.valid_until;
+      if (!payload.use_valid_window || !payload.valid_until) delete payload.valid_until;
+      // remove client-only fields
+      delete payload.use_valid_window;
       if (!payload.notes) delete payload.notes;
       // Cast numbers
       if (payload.quantity) payload.quantity = parseFloat(payload.quantity);

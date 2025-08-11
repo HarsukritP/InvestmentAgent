@@ -556,15 +556,38 @@ async def create_action(
     try:
         user_id = user.get('db_user_id')
         # Basic validation
-        if payload.action_type.upper() in ["BUY", "SELL"] and not (payload.quantity or payload.amount_usd):
-            raise HTTPException(status_code=400, detail="BUY/SELL requires quantity or amount_usd")
+        action_type_upper = payload.action_type.upper()
+        trigger_type = payload.trigger_type
+
+        if action_type_upper in ["BUY", "SELL"] and not (payload.quantity or payload.amount_usd):
+            raise HTTPException(status_code=400, detail="BUY/SELL requires quantity or amount (USD)")
+        if action_type_upper in ["BUY", "SELL"] and not (payload.symbol and payload.symbol.strip()):
+            raise HTTPException(status_code=400, detail="Symbol is required for BUY/SELL actions")
         if payload.trigger_type not in ["price_above", "price_below", "change_pct", "time_of_day"]:
             raise HTTPException(status_code=400, detail="Unsupported trigger_type")
+
+        # Trigger param validation
+        if trigger_type in ["price_above", "price_below"]:
+            threshold = (payload.trigger_params or {}).get('threshold')
+            try:
+                threshold = float(threshold)
+            except Exception:
+                threshold = None
+            if threshold is None:
+                raise HTTPException(status_code=400, detail="threshold is required for price triggers")
+        if trigger_type == "change_pct":
+            change = (payload.trigger_params or {}).get('change')
+            try:
+                change = float(change)
+            except Exception:
+                change = None
+            if change is None:
+                raise HTTPException(status_code=400, detail="change is required for change_pct trigger")
 
         action_data = {
             'user_id': user_id,
             'status': 'active',
-            'action_type': payload.action_type.upper(),
+            'action_type': action_type_upper,
             'symbol': payload.symbol.upper() if payload.symbol else None,
             'quantity': payload.quantity,
             'amount_usd': payload.amount_usd,
