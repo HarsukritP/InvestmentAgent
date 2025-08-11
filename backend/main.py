@@ -31,7 +31,7 @@ import database
 # Import monitoring services
 from email_service import email_service
 from monitoring_service import MonitoringService
-from scheduler import MonitoringScheduler
+from scheduler import MonitoringScheduler, ActionScheduler
 
 # Create FastAPI app
 app = FastAPI(
@@ -66,7 +66,7 @@ portfolio_manager = PortfolioManager()
 auth_service = AuthenticationService()
 db_service = database.db_service
 market_context_service = MarketContextService(db_service)
-ai_agent = AIPortfolioAgent(portfolio_manager, market_service, market_context_service)
+ai_agent = AIPortfolioAgent(portfolio_manager, market_service, market_context_service, db_service)
 
 # Initialize monitoring services
 monitoring_service = MonitoringService(
@@ -77,6 +77,7 @@ monitoring_service = MonitoringService(
     market_context_service=market_context_service
 )
 monitoring_scheduler = MonitoringScheduler(monitoring_service, email_service)
+action_scheduler = ActionScheduler(db_service, market_service, portfolio_manager)
 
 # Security
 security = HTTPBearer(auto_error=False)
@@ -89,6 +90,8 @@ async def startup_event():
     
     # Start the monitoring scheduler
     monitoring_scheduler.start_monitoring()
+    # Start actions evaluator
+    action_scheduler.start()
     
     # Log startup information
     scheduler_status = monitoring_scheduler.get_scheduler_status()
@@ -101,6 +104,8 @@ async def shutdown_event():
     
     # Stop the monitoring scheduler
     monitoring_scheduler.stop_monitoring()
+    # Stop actions scheduler
+    action_scheduler.stop()
     
     logger.info("Monitoring system shutdown complete")
 
@@ -126,6 +131,33 @@ class TradeResponse(BaseModel):
     message: str
     transaction: Optional[Dict[str, Any]] = None
     new_cash_balance: Optional[float] = None
+
+class ActionCreateRequest(BaseModel):
+    action_type: str
+    symbol: Optional[str] = None
+    quantity: Optional[float] = None
+    amount_usd: Optional[float] = None
+    trigger_type: str
+    trigger_params: Dict[str, Any]
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    max_executions: Optional[int] = 1
+    cooldown_seconds: Optional[int] = None
+    notes: Optional[str] = None
+
+class ActionUpdateRequest(BaseModel):
+    status: Optional[str] = None
+    action_type: Optional[str] = None
+    symbol: Optional[str] = None
+    quantity: Optional[float] = None
+    amount_usd: Optional[float] = None
+    trigger_type: Optional[str] = None
+    trigger_params: Optional[Dict[str, Any]] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    max_executions: Optional[int] = None
+    cooldown_seconds: Optional[int] = None
+    notes: Optional[str] = None
 
 class BuyStockRequest(BaseModel):
     symbol: str
@@ -493,6 +525,90 @@ async def get_transactions(user: Dict[str, Any] = Depends(get_current_user)):
             "status": "error",
             "message": str(e)
         }
+
+# Actions Automation Endpoints
+@app.get("/actions")
+async def list_actions(
+    status: Optional[str] = None,
+    symbol: Optional[str] = None,
+    action_type: Optional[str] = None,
+    trigger_type: Optional[str] = None,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    try:
+        user_id = user.get('db_user_id')
+        filters = {k: v for k, v in {
+            'status': status,
+            'symbol': symbol.upper() if symbol else None,
+            'action_type': action_type,
+            'trigger_type': trigger_type
+        }.items() if v is not None}
+        actions = await db_service.get_actions(user_id, filters)
+        return {"actions": actions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing actions: {str(e)}")
+
+@app.post("/actions")
+async def create_action(
+    payload: ActionCreateRequest,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    try:
+        user_id = user.get('db_user_id')
+        # Basic validation
+        if payload.action_type.upper() in ["BUY", "SELL"] and not (payload.quantity or payload.amount_usd):
+            raise HTTPException(status_code=400, detail="BUY/SELL requires quantity or amount_usd")
+        if payload.trigger_type not in ["price_above", "price_below", "change_pct", "time_of_day"]:
+            raise HTTPException(status_code=400, detail="Unsupported trigger_type")
+
+        action_data = {
+            'user_id': user_id,
+            'status': 'active',
+            'action_type': payload.action_type.upper(),
+            'symbol': payload.symbol.upper() if payload.symbol else None,
+            'quantity': payload.quantity,
+            'amount_usd': payload.amount_usd,
+            'trigger_type': payload.trigger_type,
+            'trigger_params': payload.trigger_params,
+            'valid_from': payload.valid_from,
+            'valid_until': payload.valid_until,
+            'max_executions': payload.max_executions or 1,
+            'cooldown_seconds': payload.cooldown_seconds,
+            'notes': payload.notes
+        }
+        created = await db_service.create_action(action_data)
+        # Add to watchlist if symbol
+        if created.get('symbol'):
+            market_service.add_to_watchlist([created['symbol']])
+        return created
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating action: {str(e)}")
+
+@app.get("/actions/{action_id}")
+async def get_action(action_id: str, user: Dict[str, Any] = Depends(require_auth)):
+    action = await db_service.get_action_by_id(action_id, user.get('db_user_id'))
+    if not action:
+        raise HTTPException(status_code=404, detail="Action not found")
+    return action
+
+@app.patch("/actions/{action_id}")
+async def update_action(action_id: str, payload: ActionUpdateRequest, user: Dict[str, Any] = Depends(require_auth)):
+    updated = await db_service.update_action(action_id, user.get('db_user_id'), payload.dict(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Action not found or nothing to update")
+    return updated
+
+@app.delete("/actions/{action_id}")
+async def cancel_action(action_id: str, hard_delete: bool = False, user: Dict[str, Any] = Depends(require_auth)):
+    if hard_delete:
+        ok = await db_service.delete_action(action_id, user.get('db_user_id'))
+    else:
+        ok = await db_service.cancel_action(action_id, user.get('db_user_id'))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Action not found")
+    return {"success": True}
 
 @app.get("/search-stocks")
 async def search_stocks(query: str, user: Dict[str, Any] = Depends(get_current_user)):

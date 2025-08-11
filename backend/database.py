@@ -355,6 +355,127 @@ class DatabaseService:
                 "largest_transaction": None
             }
 
+    # ============================
+    # Actions Automation (Rules)
+    # ============================
+    async def create_action(self, action_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new background action (rule)."""
+        try:
+            result = self.supabase.table('actions').insert(action_data).execute()
+            return result.data[0]
+        except Exception as e:
+            logger.error(f"Error creating action: {str(e)}")
+            raise
+
+    async def get_actions(self, user_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """List actions for a user with optional filters."""
+        try:
+            query = self.supabase.table('actions').select('*').eq('user_id', user_id)
+            if filters:
+                if 'status' in filters:
+                    query = query.eq('status', filters['status'])
+                if 'symbol' in filters and filters['symbol']:
+                    query = query.eq('symbol', filters['symbol'].upper())
+                if 'action_type' in filters:
+                    query = query.eq('action_type', filters['action_type'])
+                if 'trigger_type' in filters:
+                    query = query.eq('trigger_type', filters['trigger_type'])
+            result = query.order('created_at', desc=True).execute()
+            return result.data or []
+        except Exception as e:
+            logger.error(f"Error getting actions: {str(e)}")
+            return []
+
+    async def get_action_by_id(self, action_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a single action by ID for a user."""
+        try:
+            result = self.supabase.table('actions').select('*').eq('id', action_id).eq('user_id', user_id).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"Error getting action by id: {str(e)}")
+            return None
+
+    async def update_action(self, action_id: str, user_id: str, patch: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update an action for a user."""
+        try:
+            # Only allow safe fields to be updated
+            allowed_fields = {
+                'status', 'action_type', 'symbol', 'quantity', 'amount_usd',
+                'trigger_type', 'trigger_params', 'valid_from', 'valid_until',
+                'max_executions', 'cooldown_seconds', 'notes'
+            }
+            safe_patch = {k: v for k, v in patch.items() if k in allowed_fields}
+            if not safe_patch:
+                # Nothing to update
+                return await self.get_action_by_id(action_id, user_id)
+
+            result = self.supabase.table('actions').update(safe_patch).eq('id', action_id).eq('user_id', user_id).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"Error updating action: {str(e)}")
+            return None
+
+    async def cancel_action(self, action_id: str, user_id: str) -> bool:
+        """Soft-cancel an action by setting status to 'cancelled'."""
+        try:
+            self.supabase.table('actions').update({'status': 'cancelled'}).eq('id', action_id).eq('user_id', user_id).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error cancelling action: {str(e)}")
+            return False
+
+    async def delete_action(self, action_id: str, user_id: str) -> bool:
+        """Hard delete an action (use cancel in most cases)."""
+        try:
+            self.supabase.table('actions').delete().eq('id', action_id).eq('user_id', user_id).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting action: {str(e)}")
+            return False
+
+    async def attempt_lease_action(self, action_id: str, lease_seconds: int = 30) -> bool:
+        """Attempt to acquire a short processing lease for an action.
+        Returns True if lease acquired, False otherwise.
+        """
+        try:
+            # Only lease if current lease is null or expired
+            lease_until = (datetime.utcnow() + timedelta(seconds=lease_seconds)).isoformat()
+            # Supabase python client lacks WHERE with inequality on same update ergonomically;
+            # we do a two-step optimistic approach: check -> update, acceptable for MVP.
+            action = self.supabase.table('actions').select('id, processing_lease_until').eq('id', action_id).execute()
+            if not action.data:
+                return False
+            current_lease = action.data[0].get('processing_lease_until')
+            if current_lease:
+                try:
+                    from datetime import datetime as dt
+                    current_dt = dt.fromisoformat(current_lease.replace('Z', '+00:00'))
+                    if current_dt > datetime.utcnow():
+                        return False
+                except Exception:
+                    # If parsing fails, proceed to try update
+                    pass
+            self.supabase.table('actions').update({'processing_lease_until': lease_until}).eq('id', action_id).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error leasing action {action_id}: {str(e)}")
+            return False
+
+    async def record_action_execution(self, action_id: str, execution_status: str, details: Dict[str, Any], transaction_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Record an action execution result."""
+        try:
+            payload = {
+                'action_id': action_id,
+                'execution_status': execution_status,
+                'details': details,
+                'transaction_id': transaction_id
+            }
+            result = self.supabase.table('action_executions').insert(payload).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"Error recording action execution: {str(e)}")
+            return None
+
     # Trading Operations
     async def execute_buy_order(self, portfolio_id: str, user_id: str, symbol: str, shares: float, price_per_share: float) -> Dict[str, Any]:
         """Execute a buy order"""

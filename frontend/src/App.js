@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import PortfolioPage from './pages/PortfolioPage';
 import ChatPage from './pages/ChatPage';
 import ActionsLogPage from './pages/ActionsLogPage';
+import ActionsPage from './pages/ActionsPage';
 import StockDetailPage from './pages/StockDetailPage';
 import Navigation from './components/Navigation';
 import BuyStock from './BuyStock';
@@ -315,6 +316,21 @@ function App() {
               isAuthenticated ? (
                 <ProtectedLayout>
                   <ActionsLogPage 
+                    isMobile={isMobile} 
+                    toggleMobileNav={toggleMobileNav} 
+                  />
+                </ProtectedLayout>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/actions"
+            element={
+              isAuthenticated ? (
+                <ProtectedLayout>
+                  <ActionsPage 
                     isMobile={isMobile} 
                     toggleMobileNav={toggleMobileNav} 
                   />

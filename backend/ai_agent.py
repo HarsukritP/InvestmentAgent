@@ -25,10 +25,11 @@ class FunctionCall:
     timestamp: str
     
 class AIPortfolioAgent:
-    def __init__(self, portfolio_manager, market_service, market_context_service):
+    def __init__(self, portfolio_manager, market_service, market_context_service, db_service=None):
         self.portfolio_manager = portfolio_manager
         self.market_service = market_service
         self.market_context_service = market_context_service
+        self.db_service = db_service
         
         # Initialize OpenAI client
         api_key = os.getenv("OPENAI_API_KEY")
@@ -53,6 +54,10 @@ class AIPortfolioAgent:
             'get_cash_balance': self._get_cash_balance,
             'get_holdings': self._get_holdings,
             'get_transaction_history': self._get_transaction_history,
+            'create_action': self._create_action,
+            'list_actions': self._list_actions,
+            'update_action': self._update_action,
+            'cancel_action': self._cancel_action,
         }
         
         # Function definitions for OpenAI
@@ -250,6 +255,67 @@ class AIPortfolioAgent:
                     },
                     "required": ["user_id"]
                 }
+            },
+            {
+                "name": "create_action",
+                "description": "Create a background action (rule) to monitor market events and execute trades/notifications",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string"},
+                        "action_type": {"type": "string", "description": "BUY | SELL | NOTIFY"},
+                        "symbol": {"type": "string"},
+                        "quantity": {"type": "number"},
+                        "amount_usd": {"type": "number"},
+                        "trigger_type": {"type": "string", "description": "price_above | price_below | change_pct | time_of_day"},
+                        "trigger_params": {"type": "object"},
+                        "valid_until": {"type": "string"},
+                        "cooldown_seconds": {"type": "number"},
+                        "max_executions": {"type": "number"},
+                        "notes": {"type": "string"}
+                    },
+                    "required": ["user_id", "action_type", "trigger_type", "trigger_params"]
+                }
+            },
+            {
+                "name": "list_actions",
+                "description": "List existing actions for the user with optional filters",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string"},
+                        "status": {"type": "string"},
+                        "symbol": {"type": "string"},
+                        "action_type": {"type": "string"},
+                        "trigger_type": {"type": "string"}
+                    },
+                    "required": ["user_id"]
+                }
+            },
+            {
+                "name": "update_action",
+                "description": "Update an existing action (pause/resume/edit)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string"},
+                        "action_id": {"type": "string"},
+                        "patch": {"type": "object"}
+                    },
+                    "required": ["user_id", "action_id", "patch"]
+                }
+            },
+            {
+                "name": "cancel_action",
+                "description": "Cancel an action (soft delete)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string"},
+                        "action_id": {"type": "string"}
+                    },
+                    "required": ["user_id", "action_id"]
+                }
             }
         ]
 
@@ -390,6 +456,72 @@ class AIPortfolioAgent:
             }
         except Exception as e:
             return {"error": str(e)}
+
+    # Actions automation handlers
+    async def _create_action(self, user_id: str, action_type: str, trigger_type: str, trigger_params: Dict[str, Any], symbol: Optional[str] = None, quantity: Optional[float] = None, amount_usd: Optional[float] = None, valid_until: Optional[str] = None, cooldown_seconds: Optional[int] = None, max_executions: Optional[int] = 1, notes: Optional[str] = None) -> Dict[str, Any]:
+        try:
+            if not self.db_service:
+                return {"error": "Database not available"}
+            if action_type.upper() in ["BUY", "SELL"] and not (quantity or amount_usd):
+                return {"error": "BUY/SELL requires quantity or amount_usd"}
+            action = {
+                'user_id': user_id,
+                'status': 'active',
+                'action_type': action_type.upper(),
+                'symbol': symbol.upper() if symbol else None,
+                'quantity': quantity,
+                'amount_usd': amount_usd,
+                'trigger_type': trigger_type,
+                'trigger_params': trigger_params,
+                'valid_until': valid_until,
+                'max_executions': max_executions or 1,
+                'cooldown_seconds': cooldown_seconds,
+                'notes': notes
+            }
+            created = await self.db_service.create_action(action)
+            # Add to watchlist
+            if created.get('symbol'):
+                self.market_service.add_to_watchlist([created['symbol']])
+            return {"success": True, "action": created}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _list_actions(self, user_id: str, status: Optional[str] = None, symbol: Optional[str] = None, action_type: Optional[str] = None, trigger_type: Optional[str] = None) -> Dict[str, Any]:
+        try:
+            if not self.db_service:
+                return {"error": "Database not available"}
+            filters = {k: v for k, v in {
+                'status': status,
+                'symbol': symbol.upper() if symbol else None,
+                'action_type': action_type,
+                'trigger_type': trigger_type
+            }.items() if v is not None}
+            actions = await self.db_service.get_actions(user_id, filters)
+            return {"actions": actions}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _update_action(self, user_id: str, action_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            if not self.db_service:
+                return {"error": "Database not available"}
+            updated = await self.db_service.update_action(action_id, user_id, patch)
+            if not updated:
+                return {"error": "Action not found or nothing to update"}
+            return {"success": True, "action": updated}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _cancel_action(self, user_id: str, action_id: str) -> Dict[str, Any]:
+        try:
+            if not self.db_service:
+                return {"error": "Database not available"}
+            ok = await self.db_service.cancel_action(action_id, user_id)
+            if not ok:
+                return {"error": "Action not found"}
+            return {"success": True}
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _build_market_context(self) -> str:
         """Build market context for AI"""
@@ -473,7 +605,7 @@ Be helpful, accurate, and provide actionable insights."""
                 function_args = json.loads(function_call.arguments)
                 
                 # Add user_id to function arguments if not present but required
-                if function_name in ['get_portfolio_summary', 'get_portfolio_performance', 'buy_stock', 'sell_stock', 'get_cash_balance', 'get_holdings', 'get_transaction_history']:
+                if function_name in ['get_portfolio_summary', 'get_portfolio_performance', 'buy_stock', 'sell_stock', 'get_cash_balance', 'get_holdings', 'get_transaction_history', 'create_action', 'list_actions', 'update_action', 'cancel_action']:
                     if 'user_id' not in function_args:
                         function_args['user_id'] = user_id
                 

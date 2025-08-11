@@ -295,3 +295,250 @@ class MonitoringScheduler:
             }
 
 # This will be initialized in main.py with service dependencies
+
+
+class ActionScheduler:
+    """
+    Background evaluator for user-defined Actions (automation rules).
+    Periodically evaluates active actions and executes when triggers match.
+    """
+    def __init__(self, db_service, market_service, portfolio_manager):
+        self.db_service = db_service
+        self.market_service = market_service
+        self.portfolio_manager = portfolio_manager
+
+        self.enabled = os.getenv("ACTIONS_SCHEDULER_ENABLED", "true").lower() == "true"
+        self._task = None
+        self._running = False
+        self._last_eval = None
+        self._stats = {
+            "cycles": 0,
+            "evaluated": 0,
+            "triggered": 0,
+            "executed": 0,
+            "errors": 0,
+        }
+
+    def start(self) -> None:
+        if not self.enabled:
+            logger.info("Actions scheduler disabled via env")
+            return
+        if self._task and not self._task.done():
+            logger.warning("Actions scheduler already running")
+            return
+        self._task = asyncio.create_task(self._loop())
+        self._running = True
+        logger.info("Started Actions scheduler")
+
+    def stop(self) -> None:
+        self._running = False
+        if self._task and not self._task.done():
+            self._task.cancel()
+            logger.info("Stopped Actions scheduler")
+
+    def status(self) -> Dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "running": self._running,
+            "last_evaluated": self._last_eval.isoformat() if self._last_eval else None,
+            "stats": self._stats.copy(),
+        }
+
+    async def _loop(self) -> None:
+        await asyncio.sleep(5)
+        while self._running:
+            try:
+                await self._cycle()
+                # Dynamic interval based on market hours
+                interval = 10 if self.market_service.is_market_open() else 30
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in Actions scheduler loop: {e}")
+                self._stats["errors"] += 1
+                await asyncio.sleep(30)
+
+    async def _cycle(self) -> None:
+        self._stats["cycles"] += 1
+        self._last_eval = datetime.now()
+
+        # Fetch active actions for evaluation
+        try:
+            # For MVP, fetch all active actions for all users
+            actions = self.db_service.supabase.table('actions').select('*').eq('status', 'active').execute().data
+        except Exception as e:
+            logger.error(f"Failed to load actions: {e}")
+            self._stats["errors"] += 1
+            return
+
+        if not actions:
+            return
+
+        # Collect symbols to batch fetch prices
+        symbols = sorted({a.get('symbol', '').upper() for a in actions if a.get('symbol')})
+        quotes = {}
+        if symbols:
+            try:
+                # Ensure watchlist contains these symbols for background freshness
+                self.market_service.add_to_watchlist(symbols)
+                quotes = await self.market_service.get_portfolio_quotes(symbols)
+            except Exception as e:
+                logger.error(f"Failed fetching quotes for actions: {e}")
+                self._stats["errors"] += 1
+
+        for action in actions:
+            try:
+                await self._evaluate_action(action, quotes)
+            except Exception as e:
+                logger.error(f"Action evaluation error ({action.get('id')}): {e}")
+                self._stats["errors"] += 1
+
+    async def _evaluate_action(self, action: Dict[str, Any], quotes: Dict[str, Any]) -> None:
+        self._stats["evaluated"] += 1
+
+        # Respect validity window
+        now = datetime.utcnow()
+        valid_from = action.get('valid_from')
+        valid_until = action.get('valid_until')
+        if valid_from:
+            try:
+                from datetime import datetime as dt
+                if dt.fromisoformat(valid_from.replace('Z', '+00:00')) > now:
+                    return
+            except Exception:
+                pass
+        if valid_until:
+            try:
+                from datetime import datetime as dt
+                if dt.fromisoformat(valid_until.replace('Z', '+00:00')) < now:
+                    return
+            except Exception:
+                pass
+
+        # Cooldown check
+        cooldown = action.get('cooldown_seconds')
+        last_trig = action.get('last_triggered_at')
+        if cooldown and last_trig:
+            try:
+                from datetime import datetime as dt
+                last_dt = dt.fromisoformat(last_trig.replace('Z', '+00:00'))
+                if (now - last_dt).total_seconds() < int(cooldown):
+                    return
+            except Exception:
+                pass
+
+        # Max executions
+        max_exec = action.get('max_executions') or 1
+        exec_count = action.get('executions_count') or 0
+        if exec_count >= max_exec:
+            # Mark completed
+            await self.db_service.update_action(action['id'], action['user_id'], {"status": "completed"})
+            return
+
+        trig_type = (action.get('trigger_type') or '').lower()
+        params = action.get('trigger_params') or {}
+        symbol = (action.get('symbol') or '').upper()
+
+        # Evaluate trigger
+        triggered = False
+        current_price = None
+        if symbol and symbol in quotes:
+            current_price = quotes[symbol].get('price')
+
+        if trig_type in ("price_above", "price_below"):
+            threshold = float(params.get('threshold')) if params.get('threshold') is not None else None
+            if threshold is None or current_price is None:
+                return
+            if trig_type == "price_above" and current_price >= threshold:
+                triggered = True
+            if trig_type == "price_below" and current_price <= threshold:
+                triggered = True
+        elif trig_type == "change_pct":
+            # Simple daily change based on cached change_percent
+            change_pct = quotes.get(symbol, {}).get('change_percent') if symbol else None
+            target = float(params.get('change')) if params.get('change') is not None else None
+            direction = (params.get('direction') or 'up').lower()
+            if change_pct is None or target is None:
+                return
+            if direction == 'up' and change_pct >= target:
+                triggered = True
+            if direction == 'down' and change_pct <= -abs(target):
+                triggered = True
+        elif trig_type == "time_of_day":
+            # Basic window check (HH:MM in UTC for MVP)
+            start = params.get('start')  # "HH:MM"
+            end = params.get('end')
+            if start and end:
+                try:
+                    sh, sm = [int(x) for x in start.split(':')]
+                    eh, em = [int(x) for x in end.split(':')]
+                    now_h, now_m = now.hour, now.minute
+                    if (now_h, now_m) >= (sh, sm) and (now_h, now_m) <= (eh, em):
+                        triggered = True
+                except Exception:
+                    return
+        else:
+            # Unsupported trigger yet
+            return
+
+        if not triggered:
+            return
+
+        self._stats["triggered"] += 1
+
+        # Execute action
+        exec_result = await self._execute_action(action, current_price)
+        details = {
+            "symbol": symbol,
+            "price": current_price,
+            "quotes_used": bool(quotes),
+        }
+        if exec_result.get('success'):
+            self._stats["executed"] += 1
+            await self.db_service.record_action_execution(action['id'], 'success', details, exec_result.get('transaction', {}).get('id'))
+            # Increment executions_count and set last_triggered_at
+            await self.db_service.update_action(action['id'], action['user_id'], {
+                'executions_count': exec_count + 1,
+                'last_triggered_at': datetime.utcnow().isoformat()
+            })
+        else:
+            details['error'] = exec_result.get('message') or exec_result.get('error')
+            await self.db_service.record_action_execution(action['id'], 'failed', details)
+
+    async def _execute_action(self, action: Dict[str, Any], current_price: Optional[float]) -> Dict[str, Any]:
+        action_type = (action.get('action_type') or '').upper()
+        symbol = (action.get('symbol') or '').upper()
+        quantity = action.get('quantity')
+        amount_usd = action.get('amount_usd')
+
+        # Resolve portfolio for user
+        user_id = action.get('user_id')
+        portfolios = await self.db_service.get_user_portfolios(user_id)
+        if not portfolios:
+            return {"success": False, "message": "No portfolio found"}
+        portfolio_id = portfolios[0]['id']
+
+        # For BUY with amount_usd, convert to shares using current price
+        shares = None
+        if action_type == 'BUY':
+            if quantity:
+                shares = float(quantity)
+            elif amount_usd and current_price:
+                shares = float(amount_usd) / float(current_price)
+        elif action_type == 'SELL':
+            if quantity:
+                shares = float(quantity)
+
+        # Execute via database service
+        try:
+            if action_type == 'BUY' and shares and shares > 0:
+                return await self.db_service.execute_buy_order(portfolio_id, user_id, symbol, shares, float(current_price))
+            if action_type == 'SELL' and shares and shares > 0:
+                return await self.db_service.execute_sell_order(portfolio_id, user_id, symbol, shares, float(current_price))
+            if action_type == 'NOTIFY':
+                # For MVP, we only record a success without side effects
+                return {"success": True, "message": "Notify action recorded"}
+            return {"success": False, "message": "Unsupported or invalid action"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}

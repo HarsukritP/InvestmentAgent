@@ -42,6 +42,13 @@ const Navigation = ({
       path: '/actions-log',
       label: 'Actions Log',
       description: 'View transaction history',
+      shortLabel: 'Actions Log',
+      icon: MdHistory
+    },
+    {
+      path: '/actions',
+      label: 'Actions',
+      description: 'Automation rules and alerts',
       shortLabel: 'Actions',
       icon: MdHistory
     }
