@@ -609,6 +609,9 @@ User ID: {user_id}
  - Whenever the user asks for portfolio values, holdings, transactions, stock prices, or market news/context, CALL THE RELEVANT FUNCTION(s) provided instead of guessing.
  - Use functions even if you believe you already know the answer. Prioritize fresh data via tools.
  - After function results are available, give a concise summary of the outcome.
+ CONTENT SCOPE:
+ - For portfolio summaries, include totals and at most 3 notable holdings (e.g., largest position or top movers). Do not list every holding unless asked.
+ - Prefer one-sentence headlines followed by 2-4 bullet points.
  """
             }
         ]
@@ -664,7 +667,7 @@ User ID: {user_id}
             function_calls = []
             
             # Handle function calls
-            if message_content.function_call:
+            if getattr(message_content, 'function_call', None):
                 function_call = message_content.function_call
                 function_name = function_call.name
                 function_args = json.loads(function_call.arguments)
@@ -690,16 +693,16 @@ User ID: {user_id}
                         )
                         function_calls.append(function_call_info)
                         
-                        # Continue conversation with function result
+                        # Continue conversation with function result. Force function result to be echoed explicitly
+                        # so the UI can render a visible trace.
                         messages.append({
                             "role": "assistant",
                             "content": None,
                             "function_call": {
-                            "name": function_name,
+                                "name": function_name,
                                 "arguments": function_call.arguments
                             }
                         })
-                        
                         messages.append({
                             "role": "function",
                             "name": function_name,
