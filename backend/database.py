@@ -13,13 +13,19 @@ class DatabaseService:
     def __init__(self):
         """Initialize Supabase client"""
         self.supabase_url = os.getenv('SUPABASE_URL')
-        self.supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        # Prefer service role key on the server to bypass RLS safely
+        self.supabase_key = (
+            os.getenv('SUPABASE_SERVICE_KEY') or
+            os.getenv('SUPABASE_SERVICE_ROLE_KEY') or
+            os.getenv('SUPABASE_ANON_KEY')
+        )
         
         if not self.supabase_url or not self.supabase_key:
             raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in environment variables")
         
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        print("✅ Database service initialized successfully")
+        key_desc = 'service' if os.getenv('SUPABASE_SERVICE_KEY') or os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'anon'
+        print(f"✅ Database service initialized successfully (key: {key_desc})")
 
     # User Management
     async def create_or_get_user(self, google_id: str, email: str, name: str, picture_url: str = None) -> Dict[str, Any]:
