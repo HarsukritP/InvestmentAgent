@@ -597,8 +597,13 @@ class AIPortfolioAgent:
 User ID: {user_id}
 {context}
 
-You help users understand their investment portfolio performance using real-time market data and intelligent analysis.
-Be helpful, accurate, and provide actionable insights."""
+ You help users understand their investment portfolio performance using real-time market data and intelligent analysis.
+ Be helpful, accurate, and provide actionable insights.
+ CRITICAL STYLE RULES:
+ - Keep responses concise (aim for 2-6 short sentences, max ~120 words) unless the user explicitly asks for detail.
+ - Prefer bullet points for lists.
+ - When providing numbers, round reasonably and avoid excessive verbosity.
+ - If a function was called, summarize the key results succinctly."""
             }
         ]
         
@@ -642,11 +647,11 @@ Be helpful, accurate, and provide actionable insights."""
             # Make the API call with function calling
             response = await self.client.chat.completions.create(
                 model="gpt-4o",
-                    messages=messages,
+                messages=messages,
                 functions=self.function_definitions,
                 function_call="auto",
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=350
             )
             
             message_content = response.choices[0].message
@@ -698,9 +703,9 @@ Be helpful, accurate, and provide actionable insights."""
                         # Get the final response
                         final_response = await self.client.chat.completions.create(
                             model="gpt-4o",
-                        messages=messages,
+                            messages=messages,
                             temperature=0.7,
-                            max_tokens=1500
+                            max_tokens=250
                         )
                         
                         final_content = final_response.choices[0].message.content
@@ -740,6 +745,7 @@ Be helpful, accurate, and provide actionable insights."""
                         "name": fc.name,
                         "arguments": fc.arguments,
                         "result": fc.result,
+                        "response": fc.result,  # alias for frontend compatibility
                         "timestamp": fc.timestamp
                     } for fc in function_calls
                 ]
