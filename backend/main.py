@@ -625,8 +625,21 @@ async def create_action(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Create action error: {e}")
-        raise HTTPException(status_code=500, detail=f"Error creating action: {str(e)}")
+        # Log full traceback and structured error for Supabase APIError
+        import traceback
+        logger.error("Create action error: %s", e)
+        logger.error("Payload caused error: %s", action_data)
+        logger.error("Traceback: %s", traceback.format_exc())
+        # Try to expose more useful message
+        err_msg = getattr(e, 'message', None) or getattr(e, 'detail', None) or str(e) or type(e).__name__
+        hint = getattr(e, 'hint', None)
+        details = getattr(e, 'details', None)
+        composed = err_msg
+        if details:
+            composed += f" | details: {details}"
+        if hint:
+            composed += f" | hint: {hint}"
+        raise HTTPException(status_code=500, detail=f"Error creating action: {composed}")
 
 @app.get("/actions/{action_id}")
 async def get_action(action_id: str, user: Dict[str, Any] = Depends(require_auth)):
