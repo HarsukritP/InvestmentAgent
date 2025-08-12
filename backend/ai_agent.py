@@ -434,27 +434,66 @@ class AIPortfolioAgent:
             return {"error": str(e)}
         
     async def _buy_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
-        """Execute buy order"""
+        """Execute a real buy order via database and market services"""
         try:
+            if not self.db_service:
+                return {"error": "Database not available", "success": False}
+            # Resolve portfolio
+            portfolios = await self.db_service.get_user_portfolios(user_id)
+            if not portfolios:
+                return {"error": "No portfolio found for this user", "success": False}
+            portfolio_id = portfolios[0]["id"]
+
+            # Fetch current price
+            quote = await self.market_service.get_stock_quote(symbol.upper())
+            current_price = float(quote.get("price", 0))
+            if not current_price or current_price <= 0:
+                return {"error": f"Could not get price for {symbol}", "success": False}
+
+            # Execute buy
+            result = await self.db_service.execute_buy_order(portfolio_id, user_id, symbol.upper(), float(quantity), current_price)
+
             return {
-                "user_id": user_id,
-                "symbol": symbol,
-                "quantity": quantity,
-                "message": "Buy order would be executed",
-                "success": True
+                "success": True,
+                "action": "BUY",
+                "symbol": symbol.upper(),
+                "quantity": float(quantity),
+                "price": current_price,
+                "new_cash_balance": result.get("new_cash_balance"),
+                "transaction": result.get("transaction"),
+                "holding": result.get("holding"),
+                "message": f"Bought {quantity} shares of {symbol.upper()} at ${current_price:.2f}"
             }
         except Exception as e:
             return {"error": str(e), "success": False}
 
     async def _sell_stock(self, user_id: str, symbol: str, quantity: float) -> Dict[str, Any]:
-        """Execute sell order"""
+        """Execute a real sell order via database"""
         try:
+            if not self.db_service:
+                return {"error": "Database not available", "success": False}
+            portfolios = await self.db_service.get_user_portfolios(user_id)
+            if not portfolios:
+                return {"error": "No portfolio found for this user", "success": False}
+            portfolio_id = portfolios[0]["id"]
+
+            # Fetch current price
+            quote = await self.market_service.get_stock_quote(symbol.upper())
+            current_price = float(quote.get("price", 0))
+            if not current_price or current_price <= 0:
+                return {"error": f"Could not get price for {symbol}", "success": False}
+
+            result = await self.db_service.execute_sell_order(portfolio_id, user_id, symbol.upper(), float(quantity), current_price)
+
             return {
-                "user_id": user_id,
-                "symbol": symbol,
-                "quantity": quantity,
-                "message": "Sell order would be executed",
-                "success": True
+                "success": True,
+                "action": "SELL",
+                "symbol": symbol.upper(),
+                "quantity": float(quantity),
+                "price": current_price,
+                "new_cash_balance": result.get("new_cash_balance"),
+                "transaction": result.get("transaction"),
+                "message": f"Sold {quantity} shares of {symbol.upper()} at ${current_price:.2f}"
             }
         except Exception as e:
             return {"error": str(e), "success": False}

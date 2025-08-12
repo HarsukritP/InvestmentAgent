@@ -274,6 +274,15 @@ const ChatPage = ({ portfolio, user }) => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // If a trade occurred, trigger a portfolio refresh so UI reflects changes
+      try {
+        const tradeCall = allFunctionCalls.find(fc => fc.name === 'buy_stock' || fc.name === 'sell_stock');
+        if (tradeCall && (tradeCall.response?.success || tradeCall.response?.transaction)) {
+          // Fire-and-forget refresh for pages that rely on /portfolio
+          axios.get('/portfolio').catch(() => {});
+        }
+      } catch (_) {}
     } catch (error) {
       console.error('Chat error:', error);
       
