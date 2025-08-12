@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import axios from 'axios';
 import './ChatPage.css';
 import { API_URL } from '../config';
@@ -763,10 +765,8 @@ ${sectorInfo}
           {/* Show function call before message content */}
           {functionCallDisplay}
           
-          <div className="message-text">
-            {message.content}
-            
-            {/* Show transaction confirmation if needed */}
+          <div className="message-text message-content-modern">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ''}</ReactMarkdown>
             {showConfirmation && <TransactionConfirmation message={message} />}
           </div>
           

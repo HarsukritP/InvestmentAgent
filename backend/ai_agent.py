@@ -599,8 +599,8 @@ User ID: {user_id}
 
  You help users understand their investment portfolio performance using real-time market data and intelligent analysis.
  Be helpful, accurate, and provide actionable insights.
- CRITICAL STYLE RULES:
- - Keep responses concise (aim for 2-6 short sentences, max ~120 words). Do NOT truncate mid-thought; just be brief.
+  CRITICAL STYLE RULES:
+  - Keep responses concise (aim for 2-6 short sentences). Prefer brevity, but do not omit valuable details or cut off mid-thought. If additional content is essential (e.g., key numbers or steps), include it.
  - Prefer short bullet points over paragraphs when listing items.
  - When providing numbers, round reasonably and avoid excessive verbosity.
  - If a function was called, summarize the key results succinctly.
@@ -660,7 +660,7 @@ User ID: {user_id}
                 functions=self.function_definitions,
                 function_call="auto",
                 temperature=0.7,
-                max_tokens=350
+                max_tokens=700
             )
             
             message_content = response.choices[0].message
@@ -714,7 +714,7 @@ User ID: {user_id}
                             model="gpt-4o",
                             messages=messages,
                             temperature=0.7,
-                            max_tokens=250
+                            max_tokens=600
                         )
                         
                         final_content = final_response.choices[0].message.content

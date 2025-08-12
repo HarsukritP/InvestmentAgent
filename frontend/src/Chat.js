@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import axios from 'axios';
 
 const Chat = () => {
@@ -157,15 +159,9 @@ const Chat = () => {
     localStorage.removeItem('chatMessages');
   };
 
-  const formatMessage = (content) => {
-    // Simple formatting for better readability
-    return content.split('\n').map((line, index) => (
-      <React.Fragment key={index}>
-        {line}
-        {index < content.split('\n').length - 1 && <br />}
-      </React.Fragment>
-    ));
-  };
+  const formatMessage = (content) => (
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>{content || ''}</ReactMarkdown>
+  );
 
   const toggleFn = (key) => {
     setExpandedFunctions(prev => ({ ...prev, [key]: !prev[key] }));
@@ -211,7 +207,6 @@ const Chat = () => {
                 }}
               >
                 <div className="message-content">
-                  {formatMessage(message.content)}
                   {message.all_function_calls && message.all_function_calls.length > 0 && (
                     <div style={{ marginTop: '8px', border: '1px solid #e5e7eb', borderRadius: 8 }}>
                       <button
@@ -253,6 +248,7 @@ const Chat = () => {
                       )}
                     </div>
                   )}
+                  {formatMessage(message.content)}
                 </div>
                 <div className="message-timestamp">
                   {message.timestamp}

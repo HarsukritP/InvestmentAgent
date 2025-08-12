@@ -183,6 +183,28 @@
   white-space: pre-wrap;
 }
 
+/* Markdown rendering */
+.message-content-modern h1,
+.message-content-modern h2,
+.message-content-modern h3 {
+  margin: 0.6rem 0 0.3rem;
+}
+
+.message-content-modern pre {
+  background: #0b1020;
+  color: #e8e8e8;
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  border: 1px solid #1f2937;
+}
+
+.message-content-modern code {
+  background: #f3f4f6;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
 .message-meta {
   display: flex;
   justify-content: flex-end;
@@ -340,6 +362,11 @@
   font-size: 0.85rem;
   color: #374151;
   border-left: 3px solid var(--procogia-primary);
+}
+
+/* Ensure function call block appears above message content with spacing */
+.function-calls-container {
+  margin-bottom: 0.5rem;
 }
 
 .function-response-toggle {
