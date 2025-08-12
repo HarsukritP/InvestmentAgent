@@ -208,6 +208,22 @@ class MarketDataService:
             previous_close = float(data.get("previous_close", price))
             change = price - previous_close
             change_percent = (change / previous_close * 100) if previous_close != 0 else 0
+
+            # Fallback: Some symbols occasionally return stale/incorrect `close`.
+            # If the delta is implausible (>35%), hit the lightweight price endpoint.
+            try:
+                if previous_close and previous_close > 0 and abs(price - previous_close) / previous_close > 0.35:
+                    price_url = f"{self.twelvedata_base_url}/price"
+                    r = requests.get(price_url, params={"symbol": symbol, "apikey": self.twelvedata_api_key}, timeout=8)
+                    if r.status_code == 200:
+                        pr = r.json().get("price")
+                        if pr:
+                            price = float(pr)
+                            change = price - previous_close
+                            change_percent = (change / previous_close * 100) if previous_close != 0 else 0
+            except Exception:
+                # Ignore fallback errors; keep original values
+                pass
             
             result = {
                 "symbol": symbol.upper(),
