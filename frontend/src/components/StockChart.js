@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import './StockChart.css';
 
@@ -34,6 +34,7 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState(period);
+  const requestControllerRef = useRef(null);
 
   const periods = [
     { value: "1week", label: "1W" },
@@ -46,13 +47,27 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
   ];
 
   const fetchChartData = useCallback(async () => {
+    let timeoutIdLocal;
     try {
       setLoading(true);
       setError(null);
       
       console.log(`🔍 StockChart: Fetching chart data for ${symbol} with period ${selectedPeriod}`);
-      
-      const response = await axios.get(`/chart/${symbol}?period=${selectedPeriod}`);
+      // Abort any in-flight request
+      if (requestControllerRef.current) {
+        try { requestControllerRef.current.abort(); } catch (_) {}
+      }
+      const controller = new AbortController();
+      requestControllerRef.current = controller;
+      // Hard timeout so UI never hangs
+      timeoutIdLocal = setTimeout(() => {
+        try { controller.abort(); } catch (_) {}
+      }, 15000);
+
+      const response = await axios.get(`/chart/${symbol}?period=${selectedPeriod}` , {
+        signal: controller.signal,
+        timeout: 15000
+      });
       const data = response.data;
       
       console.log(`📊 StockChart: Received data for ${symbol}:`, data);
@@ -125,7 +140,11 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
 
     } catch (err) {
       console.error(`❌ StockChart: Error fetching data for ${symbol}:`, err);
-      if (err.response) {
+      // Distinguish cancel/timeout from other errors
+      const canceled = err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError';
+      if (canceled) {
+        setError('Chart request timed out. Try a shorter range or retry.');
+      } else if (err.response) {
         console.error('Response status:', err.response.status);
         console.error('Response data:', err.response.data);
         setError(`Chart unavailable (${err.response.status}): ${err.response.data?.detail || err.message}`);
@@ -133,6 +152,7 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
         setError(err.message || 'Chart data unavailable');
       }
     } finally {
+      try { if (typeof timeoutIdLocal !== 'undefined') clearTimeout(timeoutIdLocal); } catch (_) {}
       setLoading(false);
     }
   }, [symbol, selectedPeriod]);
@@ -141,6 +161,11 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
     if (symbol) {
       fetchChartData();
     }
+    return () => {
+      if (requestControllerRef.current) {
+        try { requestControllerRef.current.abort(); } catch (_) {}
+      }
+    };
   }, [symbol, selectedPeriod, fetchChartData]);
 
   const chartOptions = {
