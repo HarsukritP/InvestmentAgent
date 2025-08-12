@@ -21,9 +21,11 @@ class MonitoringService:
         self.auth_service = auth_service
         self.market_context_service = market_context_service
         
-        # Monitoring configuration
-        self.alert_threshold_critical = int(os.getenv("ALERT_THRESHOLD_CRITICAL", "2"))
-        self.alert_threshold_warning = int(os.getenv("ALERT_THRESHOLD_WARNING", "1"))
+        # Monitoring configuration (require repeated failures and debounce)
+        self.alert_threshold_critical = int(os.getenv("ALERT_THRESHOLD_CRITICAL", "3"))
+        self.alert_threshold_warning = int(os.getenv("ALERT_THRESHOLD_WARNING", "2"))
+        self.alert_debounce_minutes_critical = int(os.getenv("ALERT_DEBOUNCE_MINUTES_CRITICAL", "60"))
+        self.alert_debounce_minutes_warning = int(os.getenv("ALERT_DEBOUNCE_MINUTES_WARNING", "30"))
         
         # Service failure tracking
         self.failure_counts = {}
@@ -321,9 +323,10 @@ class MonitoringService:
             
             # Send alert if failure count reaches threshold
             if failure_count >= self.alert_threshold_critical:
-                # Check if we haven't sent an alert recently (within 1 hour)
+                # Debounce using configurable window
                 last_alert = self.last_alert_times.get(service_name)
-                if not last_alert or datetime.now() - last_alert > timedelta(hours=1):
+                debounce = timedelta(minutes=self.alert_debounce_minutes_critical)
+                if not last_alert or datetime.now() - last_alert > debounce:
                     critical_failures[service_name] = service_data
                     self.last_alert_times[service_name] = datetime.now()
         
@@ -336,9 +339,9 @@ class MonitoringService:
             failure_count = self.failure_counts.get(service_name, 0)
             
             if failure_count >= self.alert_threshold_warning:
-                # Check if we haven't sent a warning recently (within 30 minutes)
                 last_alert = self.last_alert_times.get(f"{service_name}_warning")
-                if not last_alert or datetime.now() - last_alert > timedelta(minutes=30):
+                debounce = timedelta(minutes=self.alert_debounce_minutes_warning)
+                if not last_alert or datetime.now() - last_alert > debounce:
                     warning_failures[service_name] = service_data
                     self.last_alert_times[f"{service_name}_warning"] = datetime.now()
         

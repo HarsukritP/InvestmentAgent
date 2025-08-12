@@ -152,9 +152,12 @@ class MonitoringScheduler:
                     logger.error("Failed to send warning status report email")
             
             else:
-                # Send regular hourly status report
-                logger.info("Sending regular status report")
-                email_sent = await self.email_service.send_status_report(health_data)
+                # Send regular daily status report only
+                if self.interval_hours >= 24:
+                    logger.info("Sending regular daily status report")
+                    email_sent = await self.email_service.send_status_report(health_data)
+                else:
+                    logger.info("Skipping non-daily status email (configured for alerts-only between dailies)")
                 
                 if email_sent:
                     logger.info("Regular status report email sent successfully")
