@@ -983,7 +983,7 @@ async def get_chart_data(
     try:
         symbol = symbol.upper()
         
-        # Validate period parameter
+        # Validate period parameter (support long horizons)
         valid_periods = ["1week", "1month", "3months", "6months", "1year", "2years", "5years"]
         if period not in valid_periods:
             raise HTTPException(status_code=400, detail=f"Invalid period. Must be one of: {', '.join(valid_periods)}")
@@ -991,7 +991,7 @@ async def get_chart_data(
         # Ensure we have sufficient historical data, backfill if needed
         data_check = await market_service.ensure_historical_data(symbol, period)
         
-        # Convert period to days for database query
+        # Convert period to days for database query (include long periods)
         period_days = {
             "1week": 7,
             "1month": 30,
@@ -999,7 +999,7 @@ async def get_chart_data(
             "6months": 180,
             "1year": 365,
             "2years": 730,
-            "5years": 1825
+            "5years": 1825,
         }
         days = period_days.get(period, 180)
         

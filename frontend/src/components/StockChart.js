@@ -69,14 +69,15 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
       let filteredData = allData;
       
       if (selectedPeriod === '1year' || selectedPeriod === '2years' || selectedPeriod === '5years') {
-        // For long periods, show every 7th point (roughly weekly)
         filteredData = allData.filter((_, index) => index % 7 === 0);
       } else if (selectedPeriod === '6months') {
-        // For 6 months, show every 3rd point
         filteredData = allData.filter((_, index) => index % 3 === 0);
       } else if (selectedPeriod === '3months') {
-        // For 3 months, show every 2nd point
         filteredData = allData.filter((_, index) => index % 2 === 0);
+      } else if (selectedPeriod === '1month') {
+        filteredData = allData; // daily points for a month
+      } else if (selectedPeriod === '1week') {
+        filteredData = allData; // market days only
       }
       
       // Always include the last point
@@ -85,14 +86,14 @@ const StockChart = ({ symbol, period = "6months", height = 400, showControls = t
       }
       
       const labels = filteredData.map(point => {
-        const date = new Date(point.date);
-        return date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          ...(selectedPeriod.includes('year') && { year: '2-digit' })
-        });
+        const d = point.datetime || point.date;
+        const date = new Date(d);
+        return date.toISOString();
       });
-      const prices = filteredData.map(point => point.close || point.price);
+      const prices = filteredData.map(point => {
+        const v = point.close ?? point.close_price ?? point.price;
+        return typeof v === 'number' ? v : parseFloat(v || '0');
+      });
 
       // Calculate price change colors
       const backgroundColors = prices.map((price, index) => {

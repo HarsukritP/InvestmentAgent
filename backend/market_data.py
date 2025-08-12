@@ -407,13 +407,22 @@ class MarketDataService:
         """Ensure we have enough historical data, backfill if needed"""
         try:
             # Check how much data we currently have
-            period_days = {"1week": 7, "1month": 30, "3months": 90, "6months": 180, "1year": 365}
+            # Include long horizons so we don't mistakenly treat partial data as "sufficient"
+            period_days = {
+                "1week": 7,
+                "1month": 30,
+                "3months": 90,
+                "6months": 180,
+                "1year": 365,
+                "2years": 730,
+                "5years": 1825,
+            }
             days = period_days.get(period, 180)
             
             existing_data = await self.get_historical_data(symbol, days)
             
             # If we have less than 80% of expected data points, backfill
-            expected_points = days if period != "1week" else 5  # Account for weekends
+            expected_points = days if period not in ("1week",) else 5  # Account for weekends
             if len(existing_data) < (expected_points * 0.8):
                 logger.info(f"📊 DATA GAP   | {symbol:6} | Only {len(existing_data)}/{expected_points} records, backfilling...")
                 backfill_result = await self.backfill_historical_data(symbol, period)
