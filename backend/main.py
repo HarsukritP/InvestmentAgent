@@ -376,7 +376,15 @@ async def get_portfolio(portfolio_id: Optional[str] = None, user: Dict[str, Any]
             market_service.add_to_watchlist(symbols)
             
             # Get current market quotes
-            market_quotes = await market_service.get_portfolio_quotes(symbols)
+            # Force-refresh fresh quotes for portfolio view
+            try:
+                market_quotes = await market_service.get_portfolio_quotes(symbols)
+            except Exception:
+                # Fallback to less strict method if available
+                try:
+                    market_quotes = await market_service.get_portfolio_quotes_optimized(symbols)  # type: ignore
+                except Exception:
+                    market_quotes = await market_service.get_portfolio_quotes(symbols)
             
             # Calculate total portfolio value
             total_value = 0

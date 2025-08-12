@@ -158,6 +158,11 @@ class MarketDataService:
                 return
             
             await self.db_service.store_market_data(symbol, price_data)
+            # Also upsert the current price immediately to avoid stale values
+            try:
+                await self.db_service._update_current_price(symbol.upper(), price_data)
+            except Exception:
+                pass
             print(f"💾 CACHE STORE| {symbol:6} | ${price_data['price']:8.2f} | Stored successfully")
         except Exception as e:
             if "row-level security policy" in str(e):
@@ -196,8 +201,10 @@ class MarketDataService:
                 print(f"❌ API ERROR  | {symbol:6} | Invalid response format")
                 raise Exception("Invalid API response format")
             
-            # Parse the response
-            price = float(data.get("close", 0))
+            # Parse the response. Prefer real-time price when available
+            # TwelveData's quote response includes `price` for the current price; `close` may be prior close
+            price_raw = data.get("price", data.get("close", 0))
+            price = float(price_raw or 0)
             previous_close = float(data.get("previous_close", price))
             change = price - previous_close
             change_percent = (change / previous_close * 100) if previous_close != 0 else 0
