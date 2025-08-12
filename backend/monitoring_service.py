@@ -216,23 +216,34 @@ class MonitoringService:
             }, response_time
     
     def _check_auth_health(self) -> Dict[str, Any]:
-        """Check authentication service health"""
+        """Check authentication service health (supports Auth0 or Google OAuth)"""
         try:
+            auth0_configured = bool(
+                self.auth_service.auth0_domain and
+                self.auth_service.auth0_client_id
+            )
             google_configured = bool(
-                self.auth_service.google_client_id and 
+                self.auth_service.google_client_id and
                 self.auth_service.google_client_secret
             )
-            
+
+            configured = auth0_configured or google_configured
+            provider = "auth0" if auth0_configured else ("google" if google_configured else "none")
+
             return {
-                "status": "healthy" if google_configured else "warning",
-                "error": None if google_configured else "OAuth not fully configured",
+                "status": "healthy" if configured else "warning",
+                "error": None if configured else "OAuth not fully configured",
+                "provider": provider,
+                "auth0_configured": auth0_configured,
                 "google_oauth_configured": google_configured,
-                "response_time": 0  # Auth check is synchronous
+                "response_time": 0
             }
         except Exception as e:
             return {
                 "status": "error",
                 "error": str(e),
+                "provider": "unknown",
+                "auth0_configured": False,
                 "google_oauth_configured": False,
                 "response_time": 0
             }
@@ -243,8 +254,8 @@ class MonitoringService:
             "twelvedata_key_configured": bool(os.getenv("TWELVEDATA_API_KEY")),
             "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")),
             "oauth_configured": bool(
-                self.auth_service.google_client_id and 
-                self.auth_service.google_client_secret
+                (self.auth_service.auth0_domain and self.auth_service.auth0_client_id) or
+                (self.auth_service.google_client_id and self.auth_service.google_client_secret)
             ),
             "supabase_configured": bool(
                 os.getenv("SUPABASE_URL") and 

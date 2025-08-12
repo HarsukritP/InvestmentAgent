@@ -1373,12 +1373,12 @@ async def health_check():
                 "error": market_context_error
             },
             "portfolio": {"status": "healthy"},
-            "auth": {"status": "healthy" if auth_service.google_client_id else "not_configured"}
+            "auth": {"status": "healthy" if (auth_service.auth0_domain or auth_service.google_client_id) else "not_configured"}
         },
         "configuration": {
             "twelvedata_key_configured": bool(os.getenv("TWELVEDATA_API_KEY")),
             "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")),
-            "oauth_configured": bool(auth_service.google_client_id and auth_service.google_client_secret),
+            "oauth_configured": bool((auth_service.auth0_domain and auth_service.auth0_client_id) or (auth_service.google_client_id and auth_service.google_client_secret)),
             "supabase_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY")),
             "fred_api_key_configured": bool(os.getenv("FRED_API_KEY")),
             "news_api_key_configured": bool(os.getenv("NEWS_API_KEY"))
