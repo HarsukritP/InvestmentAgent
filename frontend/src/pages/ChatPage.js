@@ -678,30 +678,58 @@ ${sectorInfo}
     if (!isUser) {
       // Handle multiple function calls if available
       if (message.all_function_calls && message.all_function_calls.length > 0) {
+        const validFunctions = message.all_function_calls.filter(funcCall => funcCall.name !== 'request_confirmation');
+        
         functionCallDisplay = (
           <div className="function-calls-container">
-            {message.all_function_calls.map((funcCall, funcIndex) => (
-              // Skip rendering request_confirmation function calls
-              funcCall.name !== 'request_confirmation' && (
-                <div className="function-call-display" key={funcIndex}>
-                  <div 
-                    className="function-call-header" 
-                    onClick={() => toggleFunctionResponse(`${index}-${funcIndex}`)}
-                  >
-                    <span className="function-icon">{getFunctionIcon(funcCall.name)}</span>
-                    <span className="function-name">
-                      Function called: <strong>{formatFunctionName(funcCall.name)}</strong>
-                    </span>
-                    <span className="function-toggle">
-                      {expandedFunctions[`${index}-${funcIndex}`] ? '▲' : '▼'}
-                    </span>
+            <div className="function-calls-summary">
+              <span className="function-summary-text">
+                Functions called ({validFunctions.length})
+              </span>
+              <span className="function-summary-toggle">
+                {expandedFunctions[`${index}-summary`] ? '▲' : '▼'}
+              </span>
+            </div>
+            
+            <div 
+              className="function-calls-summary-header" 
+              onClick={() => toggleFunctionResponse(`${index}-summary`)}
+            >
+              <div className="function-calls-list">
+                {validFunctions.map((funcCall, funcIndex) => (
+                  <span key={funcIndex} className="function-chip">
+                    <span className="function-chip-icon">{getFunctionIcon(funcCall.name)}</span>
+                    {formatFunctionName(funcCall.name)}
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            {expandedFunctions[`${index}-summary`] && (
+              <div className="function-calls-details">
+                {validFunctions.map((funcCall, funcIndex) => (
+                  <div className="function-call-display" key={funcIndex}>
+                    <div 
+                      className="function-call-header" 
+                      onClick={() => toggleFunctionResponse(`${index}-${funcIndex}`)}
+                    >
+                      <span className="function-icon">{getFunctionIcon(funcCall.name)}</span>
+                      <span className="function-name">
+                        <strong>{formatFunctionName(funcCall.name)}</strong>
+                      </span>
+                      <span className="function-toggle">
+                        {expandedFunctions[`${index}-${funcIndex}`] ? '▲' : '▼'}
+                      </span>
+                    </div>
+                    {expandedFunctions[`${index}-${funcIndex}`] && (
+                      <div className="function-response expanded">
+                        <pre>{JSON.stringify(funcCall.response, null, 2)}</pre>
+                      </div>
+                    )}
                   </div>
-                  <div className={`function-response ${expandedFunctions[`${index}-${funcIndex}`] ? 'expanded' : ''}`}>
-                    <pre>{JSON.stringify(funcCall.response, null, 2)}</pre>
-                  </div>
-                </div>
-              )
-            ))}
+                ))}
+              </div>
+            )}
           </div>
         );
       }

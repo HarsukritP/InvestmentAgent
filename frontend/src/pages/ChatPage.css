@@ -369,6 +369,77 @@
   margin-bottom: 0.5rem;
 }
 
+/* Function calls summary view */
+.function-calls-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.function-calls-summary:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  border-color: var(--procogia-primary);
+}
+
+.function-summary-text {
+  font-weight: 600;
+  color: var(--procogia-primary);
+  font-size: 0.9rem;
+}
+
+.function-summary-toggle {
+  color: var(--procogia-primary);
+  font-weight: bold;
+}
+
+.function-calls-summary-header {
+  cursor: pointer;
+}
+
+.function-calls-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.function-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--procogia-primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.function-chip-icon {
+  font-size: 0.8rem;
+}
+
+.function-calls-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.function-calls-details .function-call-display {
+  margin-bottom: 0.75rem;
+}
+
+.function-calls-details .function-call-display:last-child {
+  margin-bottom: 0;
+}
+
 .function-response-toggle {
   background: none;
   border: none;
