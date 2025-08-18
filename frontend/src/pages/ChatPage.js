@@ -52,6 +52,11 @@ const ChatPage = ({ portfolio, user }) => {
       suggestions.push("Are there any rebalancing opportunities?");
     }
     
+    // Financial analysis suggestions
+    suggestions.push("Analyze Apple's financial health");
+    suggestions.push("Compare Microsoft vs Google financials");
+    suggestions.push("Show me Tesla's income statement");
+    
     // General market suggestions
     suggestions.push("What are the latest market trends?");
     suggestions.push("Should I diversify my portfolio?");

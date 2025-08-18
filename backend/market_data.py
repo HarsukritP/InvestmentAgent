@@ -882,6 +882,105 @@ class MarketDataService:
             logger.error(f"Twelve Data search error: {e}")
             raise Exception(f"Search error: {str(e)}")
 
+    async def get_income_statement(self, symbol: str, period: str = "annual") -> Dict[str, Any]:
+        """Fetch income statement data from TwelveData"""
+        try:
+            if not self.twelvedata_api_key:
+                raise Exception("TwelveData API key not configured")
+            
+            url = f"{self.twelvedata_base_url}/income_statement"
+            params = {
+                "symbol": symbol.upper(),
+                "period": period,
+                "apikey": self.twelvedata_api_key
+            }
+            
+            print(f"🏢 FINANCIALS | {symbol:6} | Fetching income statement ({period})...")
+            
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Check for API errors
+            if "status" in data and data["status"] == "error":
+                error_msg = data.get("message", "Unknown error")
+                print(f"❌ FINANCIALS | {symbol:6} | {error_msg}")
+                raise Exception(f"API Error: {error_msg}")
+            
+            print(f"✅ FINANCIALS | {symbol:6} | Income statement retrieved")
+            return data
+            
+        except Exception as e:
+            print(f"❌ FINANCIALS | {symbol:6} | Error: {str(e)}")
+            return {"error": str(e)}
+    
+    async def get_balance_sheet(self, symbol: str, period: str = "annual") -> Dict[str, Any]:
+        """Fetch balance sheet data from TwelveData"""
+        try:
+            if not self.twelvedata_api_key:
+                raise Exception("TwelveData API key not configured")
+            
+            url = f"{self.twelvedata_base_url}/balance_sheet"
+            params = {
+                "symbol": symbol.upper(),
+                "period": period,
+                "apikey": self.twelvedata_api_key
+            }
+            
+            print(f"🏢 FINANCIALS | {symbol:6} | Fetching balance sheet ({period})...")
+            
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Check for API errors
+            if "status" in data and data["status"] == "error":
+                error_msg = data.get("message", "Unknown error")
+                print(f"❌ FINANCIALS | {symbol:6} | {error_msg}")
+                raise Exception(f"API Error: {error_msg}")
+            
+            print(f"✅ FINANCIALS | {symbol:6} | Balance sheet retrieved")
+            return data
+            
+        except Exception as e:
+            print(f"❌ FINANCIALS | {symbol:6} | Error: {str(e)}")
+            return {"error": str(e)}
+    
+    async def get_cash_flow(self, symbol: str, period: str = "annual") -> Dict[str, Any]:
+        """Fetch cash flow statement from TwelveData"""
+        try:
+            if not self.twelvedata_api_key:
+                raise Exception("TwelveData API key not configured")
+            
+            url = f"{self.twelvedata_base_url}/cash_flow"
+            params = {
+                "symbol": symbol.upper(),
+                "period": period,
+                "apikey": self.twelvedata_api_key
+            }
+            
+            print(f"🏢 FINANCIALS | {symbol:6} | Fetching cash flow ({period})...")
+            
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Check for API errors
+            if "status" in data and data["status"] == "error":
+                error_msg = data.get("message", "Unknown error")
+                print(f"❌ FINANCIALS | {symbol:6} | {error_msg}")
+                raise Exception(f"API Error: {error_msg}")
+            
+            print(f"✅ FINANCIALS | {symbol:6} | Cash flow retrieved")
+            return data
+            
+        except Exception as e:
+            print(f"❌ FINANCIALS | {symbol:6} | Error: {str(e)}")
+            return {"error": str(e)}
+
     async def search_stocks(self, query: str) -> List[Dict[str, Any]]:
         """Search for stocks using Twelve Data"""
         try:

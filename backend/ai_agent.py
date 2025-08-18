@@ -59,6 +59,9 @@ class AIPortfolioAgent:
             'update_action': self._update_action,
             'cancel_action': self._cancel_action,
             'comprehensive_analysis': self._comprehensive_analysis,
+            'get_financial_statements': self._get_financial_statements,
+            'analyze_company_fundamentals': self._analyze_company_fundamentals,
+            'compare_financial_metrics': self._compare_financial_metrics,
         }
         
         # Function definitions for OpenAI
@@ -329,6 +332,43 @@ class AIPortfolioAgent:
                         "include_suggestions": {"type": "boolean", "default": True, "description": "Include investment suggestions"}
                     },
                     "required": ["user_id"]
+                }
+            },
+            {
+                "name": "get_financial_statements",
+                "description": "Get comprehensive financial statements (income statement, balance sheet, cash flow) for a company",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {"type": "string", "description": "Stock symbol (e.g., AAPL, GOOGL)"},
+                        "statement_type": {"type": "string", "enum": ["income", "balance", "cash_flow", "all"], "default": "all", "description": "Type of financial statement"},
+                        "period": {"type": "string", "enum": ["annual", "quarterly"], "default": "annual", "description": "Reporting period"}
+                    },
+                    "required": ["symbol"]
+                }
+            },
+            {
+                "name": "analyze_company_fundamentals",
+                "description": "Get AI-powered analysis of a company's financial health and investment potential using latest financial data",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {"type": "string", "description": "Stock symbol to analyze"},
+                        "analysis_type": {"type": "string", "enum": ["comprehensive", "profitability", "liquidity", "solvency"], "default": "comprehensive", "description": "Type of analysis"}
+                    },
+                    "required": ["symbol"]
+                }
+            },
+            {
+                "name": "compare_financial_metrics",
+                "description": "Compare key financial metrics between multiple companies",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "symbols": {"type": "array", "items": {"type": "string"}, "description": "List of stock symbols to compare"},
+                        "metrics": {"type": "array", "items": {"type": "string"}, "description": "Specific metrics to compare (optional)"}
+                    },
+                    "required": ["symbols"]
                 }
             }
         ]
@@ -670,6 +710,180 @@ class AIPortfolioAgent:
             
         except Exception as e:
             return {"error": str(e)}
+
+    async def _get_financial_statements(self, symbol: str, statement_type: str = "all", period: str = "annual") -> Dict[str, Any]:
+        """Get financial statements for a company"""
+        try:
+            symbol = symbol.upper()
+            results = {
+                "symbol": symbol,
+                "period": period,
+                "timestamp": datetime.now().isoformat(),
+                "statements": {}
+            }
+            
+            if statement_type in ["income", "all"]:
+                income_data = await self.market_service.get_income_statement(symbol, period)
+                results["statements"]["income_statement"] = income_data
+            
+            if statement_type in ["balance", "all"]:
+                balance_data = await self.market_service.get_balance_sheet(symbol, period)
+                results["statements"]["balance_sheet"] = balance_data
+            
+            if statement_type in ["cash_flow", "all"]:
+                cash_flow_data = await self.market_service.get_cash_flow(symbol, period)
+                results["statements"]["cash_flow"] = cash_flow_data
+            
+            return results
+            
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _analyze_company_fundamentals(self, symbol: str, analysis_type: str = "comprehensive") -> Dict[str, Any]:
+        """AI-powered analysis of company financial health"""
+        try:
+            symbol = symbol.upper()
+            
+            # Get financial statements
+            financial_data = await self._get_financial_statements(symbol, "all", "annual")
+            
+            if "error" in financial_data:
+                return financial_data
+            
+            # Get current stock price for context
+            price_data = await self.market_service.get_stock_quote(symbol)
+            
+            # Extract key metrics for analysis
+            analysis_results = {
+                "symbol": symbol,
+                "analysis_type": analysis_type,
+                "timestamp": datetime.now().isoformat(),
+                "current_price": price_data.get("price") if price_data else None,
+                "financial_health": {},
+                "key_metrics": {},
+                "ai_insights": {},
+                "raw_data": financial_data
+            }
+            
+            # Extract and calculate key financial ratios
+            statements = financial_data.get("statements", {})
+            
+            # Income statement metrics
+            if "income_statement" in statements and statements["income_statement"] and not statements["income_statement"].get("error"):
+                income_data = statements["income_statement"]
+                if "income_statement" in income_data and income_data["income_statement"]:
+                    latest_income = income_data["income_statement"][0] if isinstance(income_data["income_statement"], list) else income_data["income_statement"]
+                    
+                    analysis_results["key_metrics"]["revenue"] = latest_income.get("revenue")
+                    analysis_results["key_metrics"]["net_income"] = latest_income.get("net_income")
+                    analysis_results["key_metrics"]["gross_profit"] = latest_income.get("gross_profit")
+                    analysis_results["key_metrics"]["operating_income"] = latest_income.get("operating_income")
+                    
+                    # Calculate profit margins
+                    revenue = float(latest_income.get("revenue", 0)) if latest_income.get("revenue") else 0
+                    if revenue > 0:
+                        net_income = float(latest_income.get("net_income", 0)) if latest_income.get("net_income") else 0
+                        gross_profit = float(latest_income.get("gross_profit", 0)) if latest_income.get("gross_profit") else 0
+                        
+                        analysis_results["key_metrics"]["net_profit_margin"] = round((net_income / revenue) * 100, 2)
+                        analysis_results["key_metrics"]["gross_profit_margin"] = round((gross_profit / revenue) * 100, 2)
+            
+            # Balance sheet metrics
+            if "balance_sheet" in statements and statements["balance_sheet"] and not statements["balance_sheet"].get("error"):
+                balance_data = statements["balance_sheet"]
+                if "balance_sheet" in balance_data and balance_data["balance_sheet"]:
+                    latest_balance = balance_data["balance_sheet"][0] if isinstance(balance_data["balance_sheet"], list) else balance_data["balance_sheet"]
+                    
+                    total_assets = latest_balance.get("assets", {}).get("total_assets")
+                    total_liabilities = latest_balance.get("liabilities", {}).get("total_liabilities")
+                    shareholders_equity = latest_balance.get("shareholders_equity", {}).get("total_shareholders_equity")
+                    
+                    analysis_results["key_metrics"]["total_assets"] = total_assets
+                    analysis_results["key_metrics"]["total_liabilities"] = total_liabilities
+                    analysis_results["key_metrics"]["shareholders_equity"] = shareholders_equity
+                    
+                    # Calculate key ratios
+                    if total_assets and total_liabilities and shareholders_equity:
+                        debt_to_equity = float(total_liabilities) / float(shareholders_equity) if float(shareholders_equity) != 0 else None
+                        if debt_to_equity:
+                            analysis_results["key_metrics"]["debt_to_equity_ratio"] = round(debt_to_equity, 2)
+            
+            # Generate AI insights based on analysis type
+            if analysis_type == "comprehensive":
+                analysis_results["ai_insights"]["summary"] = f"Comprehensive financial analysis for {symbol}"
+                analysis_results["ai_insights"]["strengths"] = []
+                analysis_results["ai_insights"]["concerns"] = []
+                analysis_results["ai_insights"]["recommendation"] = "NEUTRAL"  # Will be enhanced with LLM analysis
+                
+                # Basic ratio analysis
+                net_margin = analysis_results["key_metrics"].get("net_profit_margin")
+                debt_ratio = analysis_results["key_metrics"].get("debt_to_equity_ratio")
+                
+                if net_margin and net_margin > 10:
+                    analysis_results["ai_insights"]["strengths"].append("Strong profit margins")
+                elif net_margin and net_margin < 5:
+                    analysis_results["ai_insights"]["concerns"].append("Low profit margins")
+                
+                if debt_ratio and debt_ratio < 0.5:
+                    analysis_results["ai_insights"]["strengths"].append("Conservative debt levels")
+                elif debt_ratio and debt_ratio > 2.0:
+                    analysis_results["ai_insights"]["concerns"].append("High debt levels")
+            
+            return analysis_results
+            
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def _compare_financial_metrics(self, symbols: List[str], metrics: List[str] = None) -> Dict[str, Any]:
+        """Compare financial metrics across multiple companies"""
+        try:
+            if not symbols or len(symbols) < 2:
+                return {"error": "At least 2 symbols required for comparison"}
+            
+            comparison_results = {
+                "symbols": [s.upper() for s in symbols],
+                "timestamp": datetime.now().isoformat(),
+                "comparison_data": {},
+                "rankings": {},
+                "summary": {}
+            }
+            
+            # Get financial data for each symbol
+            for symbol in symbols:
+                symbol = symbol.upper()
+                try:
+                    financial_data = await self._analyze_company_fundamentals(symbol, "comprehensive")
+                    comparison_results["comparison_data"][symbol] = financial_data
+                except Exception as e:
+                    comparison_results["comparison_data"][symbol] = {"error": str(e)}
+            
+            # Extract key metrics for comparison
+            metrics_to_compare = metrics or ["revenue", "net_income", "net_profit_margin", "debt_to_equity_ratio", "total_assets"]
+            
+            for metric in metrics_to_compare:
+                metric_values = {}
+                for symbol in symbols:
+                    symbol = symbol.upper()
+                    company_data = comparison_results["comparison_data"].get(symbol, {})
+                    if "key_metrics" in company_data:
+                        metric_value = company_data["key_metrics"].get(metric)
+                        if metric_value is not None:
+                            metric_values[symbol] = metric_value
+                
+                if metric_values:
+                    # Rank companies by this metric
+                    sorted_companies = sorted(metric_values.items(), key=lambda x: x[1], reverse=True)
+                    comparison_results["rankings"][metric] = sorted_companies
+            
+            # Generate comparison summary
+            comparison_results["summary"]["total_companies"] = len(symbols)
+            comparison_results["summary"]["successful_analyses"] = len([c for c in comparison_results["comparison_data"].values() if "error" not in c])
+            comparison_results["summary"]["metrics_compared"] = len(comparison_results["rankings"])
+            
+            return comparison_results
+            
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _build_market_context(self) -> str:
         """Build market context for AI"""
@@ -700,10 +914,12 @@ User ID: {user_id}
  - If a function was called, summarize the key results succinctly.
 
  TOOL USE POLICY (IMPORTANT):
- - Whenever the user asks for portfolio values, holdings, transactions, stock prices, or market news/context, CALL THE RELEVANT FUNCTION(s) provided instead of guessing.
+ - Whenever the user asks for portfolio values, holdings, transactions, stock prices, market news/context, or FINANCIAL ANALYSIS, CALL THE RELEVANT FUNCTION(s) provided instead of guessing.
  - Use functions even if you believe you already know the answer. Prioritize fresh data via tools.
  - You can call MULTIPLE FUNCTIONS in a single response to complete complex tasks efficiently.
  - For multi-step requests (e.g., "find health stocks and buy with $500"), use multiple functions: search_stocks, get_cash_balance, buy_stock, get_portfolio_summary.
+ - For financial analysis requests, use: get_financial_statements, analyze_company_fundamentals, compare_financial_metrics.
+ - FINANCIAL CAPABILITIES: You can analyze income statements, balance sheets, cash flows, calculate ratios, and provide investment insights.
  - After function results are available, give a concise summary of the outcome.
  CONTENT SCOPE:
  - For portfolio summaries, include totals and at most 3 notable holdings (e.g., largest position or top movers). Do not list every holding unless asked.

@@ -7,7 +7,7 @@ const Chat = () => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hello! I\'m your AI Portfolio Assistant. I can help you analyze your portfolio performance, understand individual stock performance, and provide investment insights based on real-time market data.\n\nTry asking me:\n• "What\'s my portfolio performance?"\n• "How is Apple doing?"\n• "Should I be concerned about any holdings?"\n• "Give me a portfolio summary"',
+      content: 'Hello! I\'m your AI Portfolio Assistant. I can help you analyze your portfolio performance, understand individual stock performance, and provide deep financial analysis using real-time market data and company fundamentals.\n\n🚀 **New Financial Analysis Features:**\n• "Analyze Apple\'s financial health"\n• "Compare Microsoft vs Google financials"\n• "Show Tesla\'s income statement and balance sheet"\n• "Find health stocks, buy $500 worth, and show my portfolio"\n\n📊 **Portfolio Management:**\n• "What\'s my portfolio performance?"\n• "Should I be concerned about any holdings?"\n• "Give me a comprehensive portfolio analysis"',
       timestamp: new Date().toLocaleTimeString()
     }
   ]);
