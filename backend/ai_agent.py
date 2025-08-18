@@ -936,7 +936,7 @@ User ID: {user_id}
         
         return messages
 
-    async def chat(self, message: str, conversation_history: Optional[List[Dict]] = None) -> Dict[str, Any]:
+    async def chat(self, message: str, conversation_history: Optional[List[Dict]] = None, attachments: Optional[List[Dict]] = None) -> Dict[str, Any]:
         """
         Enhanced chat function with intelligent routing and context awareness
         """
@@ -959,10 +959,32 @@ User ID: {user_id}
             # Prepare conversation history
             messages = await self._prepare_conversation_history(conversation_history, context, user_id)
             
+            # Prepare user message content
+            user_content = message
+            
+            # Handle file attachments for GPT-4V
+            if attachments and len(attachments) > 0:
+                content_parts = [{"type": "text", "text": message}]
+                
+                for attachment in attachments:
+                    if attachment['content_type'].startswith('image/'):
+                        # Handle image files for vision analysis
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{attachment['content_type']};base64,{attachment['content']}"
+                            }
+                        })
+                    else:
+                        # Handle document files (PDFs, DOCX, etc.)
+                        content_parts[0]["text"] += f"\n\n[Attached file: {attachment['filename']} ({attachment['content_type']})]"
+                
+                user_content = content_parts
+            
             # Add the current user message
             messages.append({
                 "role": "user",
-                "content": message
+                "content": user_content
             })
             
             # Make the API call with function calling using modern tools API
@@ -1073,6 +1095,8 @@ User ID: {user_id}
                 "timestamp": datetime.now().isoformat(),
                 "function_called": function_calls[0].name if function_calls else None,
                 "function_response": function_calls[0].result if function_calls else None,
+                "attachments_processed": len(attachments) if attachments else 0,
+                "attachment_info": [{"filename": att["filename"], "type": att["content_type"]} for att in attachments] if attachments else [],
                 "all_function_calls": [
                     {
                         "name": fc.name,

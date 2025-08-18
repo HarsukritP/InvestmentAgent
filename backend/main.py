@@ -6,13 +6,15 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, HTTPException, Depends, Cookie, Response, Request
+from fastapi import FastAPI, HTTPException, Depends, Cookie, Response, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
+import base64
+import mimetypes
 
 # Load environment variables
 load_dotenv()
@@ -110,9 +112,16 @@ async def shutdown_event():
     logger.info("Monitoring system shutdown complete")
 
 # Pydantic models
+class FileAttachment(BaseModel):
+    filename: str
+    content_type: str
+    content: str  # Base64 encoded content
+    size: int
+
 class ChatMessage(BaseModel):
     message: str
     conversation_history: Optional[List[Dict[str, Any]]] = None
+    attachments: Optional[List[FileAttachment]] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -1234,6 +1243,60 @@ async def get_stock_details(
         logger.error(f"Error getting stock details for {symbol}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching stock details: {str(e)}")
 
+# File upload endpoints
+@app.post("/upload-files")
+async def upload_files(
+    files: List[UploadFile] = File(...),
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Upload multiple files and convert them to base64 for AI processing"""
+    try:
+        # Supported file types for GPT-4V
+        supported_types = {
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # docx
+            'application/msword',  # doc
+            'text/plain', 'text/csv',
+            'application/vnd.ms-excel',  # xls
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # xlsx
+        }
+        
+        uploaded_files = []
+        
+        for file in files:
+            # Check file size (limit to 20MB)
+            content = await file.read()
+            if len(content) > 20 * 1024 * 1024:
+                raise HTTPException(status_code=400, detail=f"File {file.filename} is too large (max 20MB)")
+            
+            # Check file type
+            content_type = file.content_type or mimetypes.guess_type(file.filename)[0]
+            if content_type not in supported_types:
+                raise HTTPException(status_code=400, detail=f"File type {content_type} is not supported")
+            
+            # Convert to base64
+            base64_content = base64.b64encode(content).decode('utf-8')
+            
+            uploaded_files.append({
+                "filename": file.filename,
+                "content_type": content_type,
+                "content": base64_content,
+                "size": len(content)
+            })
+        
+        return {
+            "success": True,
+            "files": uploaded_files,
+            "count": len(uploaded_files)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"File upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error uploading files: {str(e)}")
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_ai(
     chat_request: ChatMessage,
@@ -1298,8 +1361,11 @@ async def chat_with_ai(
         # Get conversation history from request if provided
         conversation_history = chat_request.conversation_history if hasattr(chat_request, 'conversation_history') else None
         
-        # Get AI response with conversation history
-        response = await ai_agent.chat(chat_request.message, conversation_history)
+        # Get file attachments if provided
+        attachments = chat_request.attachments if hasattr(chat_request, 'attachments') else None
+        
+        # Get AI response with conversation history and attachments
+        response = await ai_agent.chat(chat_request.message, conversation_history, attachments)
         
         # Add debug info to response
         if "error" in response:

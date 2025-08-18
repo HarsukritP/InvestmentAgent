@@ -19,10 +19,14 @@ const ChatPage = ({ portfolio, user }) => {
   const [expandedFunctions, setExpandedFunctions] = useState({});
   const [activeFunctions, setActiveFunctions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const fileInputRef = useRef(null);
   
   // Generate context-aware suggestions
   const generateSuggestions = useCallback(() => {
@@ -79,6 +83,24 @@ const ChatPage = ({ portfolio, user }) => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Add drag and drop event listeners
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    if (!chatContainer) return;
+
+    chatContainer.addEventListener('dragenter', handleDragEnter);
+    chatContainer.addEventListener('dragleave', handleDragLeave);
+    chatContainer.addEventListener('dragover', handleDragOver);
+    chatContainer.addEventListener('drop', handleDrop);
+
+    return () => {
+      chatContainer.removeEventListener('dragenter', handleDragEnter);
+      chatContainer.removeEventListener('dragleave', handleDragLeave);
+      chatContainer.removeEventListener('dragover', handleDragOver);
+      chatContainer.removeEventListener('drop', handleDrop);
+    };
+  }, []);
   
   // Scroll when messages change
   useEffect(() => {
@@ -197,6 +219,99 @@ const ChatPage = ({ portfolio, user }) => {
   };
   
   // Custom function to send a message programmatically
+  // File upload handlers
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files);
+    handleFilesUpload(files);
+  };
+
+  const handleFilesUpload = async (files) => {
+    if (files.length === 0) return;
+
+    // Check file types and sizes
+    const supportedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
+      'application/msword', // doc
+      'text/plain', 'text/csv',
+      'application/vnd.ms-excel', // xls
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // xlsx
+    ];
+
+    const maxSize = 20 * 1024 * 1024; // 20MB
+
+    for (const file of files) {
+      if (!supportedTypes.includes(file.type)) {
+        alert(`File type ${file.type} is not supported. Please upload images, PDFs, or Office documents.`);
+        return;
+      }
+      if (file.size > maxSize) {
+        alert(`File ${file.name} is too large. Maximum size is 20MB.`);
+        return;
+      }
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      files.forEach(file => formData.append('files', file));
+
+      const response = await axios.post(`${API_URL}/upload-files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        const newFiles = response.data.files.map(file => ({
+          ...file,
+          id: Date.now() + Math.random(), // Add unique ID for removal
+        }));
+        setAttachedFiles(prev => [...prev, ...newFiles]);
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert(`Error uploading files: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeAttachedFile = (fileId) => {
+    setAttachedFiles(prev => prev.filter(file => file.id !== fileId));
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.relatedTarget === null || !chatContainerRef.current?.contains(e.relatedTarget)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    handleFilesUpload(files);
+  };
+
   const handleSendMessage = async (overrideMessage = null) => {
     const messageToSend = overrideMessage || inputMessage;
     
@@ -205,7 +320,8 @@ const ChatPage = ({ portfolio, user }) => {
     const userMessage = {
       role: 'user',
       content: messageToSend.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      attachments: attachedFiles.length > 0 ? attachedFiles.map(f => ({ filename: f.filename, content_type: f.content_type, size: f.size })) : null
     };
 
     // Add user message immediately
@@ -214,6 +330,9 @@ const ChatPage = ({ portfolio, user }) => {
     setIsLoading(true);
     // Clear active functions when sending a new message
     setActiveFunctions([]);
+    
+    // Clear attachments after sending
+    setAttachedFiles([]);
 
     try {
       // Prepare portfolio context
@@ -232,7 +351,8 @@ const ChatPage = ({ portfolio, user }) => {
       const response = await axios.post(`${API_URL}/chat`, {
         message: messageToSend.trim(),
         portfolio_context: portfolioContext,
-        conversation_history: conversationHistory
+        conversation_history: conversationHistory,
+        attachments: attachedFiles.length > 0 ? attachedFiles : null
       });
 
       // Process all function calls if available
@@ -667,6 +787,23 @@ ${sectorInfo}
     return functionName
       .replace(/_/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  // Get file type icon
+  const getFileIcon = (contentType) => {
+    if (contentType.startsWith('image/')) return '🖼️';
+    if (contentType === 'application/pdf') return '📄';
+    if (contentType.includes('word') || contentType.includes('document')) return '📝';
+    if (contentType.includes('sheet') || contentType.includes('excel')) return '📊';
+    if (contentType.includes('text')) return '📄';
+    return '📎';
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const renderMessage = (message, index) => {
