@@ -58,6 +58,7 @@ class AIPortfolioAgent:
             'list_actions': self._list_actions,
             'update_action': self._update_action,
             'cancel_action': self._cancel_action,
+            'comprehensive_analysis': self._comprehensive_analysis,
         }
         
         # Function definitions for OpenAI
@@ -315,6 +316,19 @@ class AIPortfolioAgent:
                         "action_id": {"type": "string"}
                     },
                     "required": ["user_id", "action_id"]
+                }
+            },
+            {
+                "name": "comprehensive_analysis",
+                "description": "Get a comprehensive portfolio and market analysis by calling multiple functions automatically",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string", "description": "User ID for portfolio analysis"},
+                        "include_market_news": {"type": "boolean", "default": True, "description": "Include market news in analysis"},
+                        "include_suggestions": {"type": "boolean", "default": True, "description": "Include investment suggestions"}
+                    },
+                    "required": ["user_id"]
                 }
             }
         ]
@@ -615,6 +629,47 @@ class AIPortfolioAgent:
             return {"success": True}
         except Exception as e:
             return {"error": str(e)}
+
+    async def _comprehensive_analysis(self, user_id: str, include_market_news: bool = True, include_suggestions: bool = True) -> Dict[str, Any]:
+        """Comprehensive analysis that demonstrates multiple function calls"""
+        try:
+            analysis_results = {}
+            
+            # Get portfolio summary
+            portfolio_summary = await self._get_portfolio_summary(user_id)
+            analysis_results["portfolio_summary"] = portfolio_summary
+            
+            # Get recent transactions
+            transaction_history = await self._get_transaction_history(user_id, limit=5)
+            analysis_results["recent_transactions"] = transaction_history
+            
+            # Get market news if requested
+            if include_market_news:
+                market_news = await self._get_market_news()
+                analysis_results["market_news"] = market_news
+            
+            # Get market indicators
+            market_indicators = await self._get_market_indicators()
+            analysis_results["market_indicators"] = market_indicators
+            
+            # Compile analysis summary
+            analysis_summary = {
+                "analysis_type": "comprehensive_portfolio_analysis",
+                "timestamp": datetime.now().isoformat(),
+                "user_id": user_id,
+                "functions_called": ["get_portfolio_summary", "get_transaction_history"],
+                "data": analysis_results
+            }
+            
+            if include_market_news:
+                analysis_summary["functions_called"].append("get_market_news")
+            
+            analysis_summary["functions_called"].append("get_market_indicators")
+            
+            return analysis_summary
+            
+        except Exception as e:
+            return {"error": str(e)}
         
     async def _build_market_context(self) -> str:
         """Build market context for AI"""
@@ -647,6 +702,8 @@ User ID: {user_id}
  TOOL USE POLICY (IMPORTANT):
  - Whenever the user asks for portfolio values, holdings, transactions, stock prices, or market news/context, CALL THE RELEVANT FUNCTION(s) provided instead of guessing.
  - Use functions even if you believe you already know the answer. Prioritize fresh data via tools.
+ - You can call MULTIPLE FUNCTIONS in a single response to complete complex tasks efficiently.
+ - For multi-step requests (e.g., "find health stocks and buy with $500"), use multiple functions: search_stocks, get_cash_balance, buy_stock, get_portfolio_summary.
  - After function results are available, give a concise summary of the outcome.
  CONTENT SCOPE:
  - For portfolio summaries, include totals and at most 3 notable holdings (e.g., largest position or top movers). Do not list every holding unless asked.
@@ -692,12 +749,13 @@ User ID: {user_id}
                 "content": message
             })
             
-            # Make the API call with function calling
+            # Make the API call with function calling using modern tools API
+            tools = [{"type": "function", "function": func_def} for func_def in self.function_definitions]
             response = await self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                functions=self.function_definitions,
-                function_call="auto",
+                tools=tools,
+                tool_choice="auto",
                 temperature=0.7,
                 max_tokens=700
             )
@@ -705,80 +763,91 @@ User ID: {user_id}
             message_content = response.choices[0].message
             function_calls = []
             
-            # Handle function calls
-            if getattr(message_content, 'function_call', None):
-                function_call = message_content.function_call
-                function_name = function_call.name
-                function_args = json.loads(function_call.arguments)
-                
-                # Add user_id to function arguments if not present but required
-                if function_name in ['get_portfolio_summary', 'get_portfolio_performance', 'buy_stock', 'sell_stock', 'get_cash_balance', 'get_holdings', 'get_transaction_history', 'create_action', 'list_actions', 'update_action', 'cancel_action']:
-                    if 'user_id' not in function_args:
-                        function_args['user_id'] = user_id
-                
-                # Execute the function
-                if function_name in self.available_functions:
-                    try:
-                        if inspect.iscoroutinefunction(self.available_functions[function_name]):
-                            function_result = await self.available_functions[function_name](**function_args)
+            # Handle multiple tool calls (modern OpenAI API)
+            if getattr(message_content, 'tool_calls', None):
+                # Process each tool call
+                for tool_call in message_content.tool_calls:
+                    if tool_call.type == "function":
+                        function_name = tool_call.function.name
+                        function_args = json.loads(tool_call.function.arguments)
+                        
+                        # Add user_id to function arguments if not present but required
+                        if function_name in ['get_portfolio_summary', 'get_portfolio_performance', 'buy_stock', 'sell_stock', 'get_cash_balance', 'get_holdings', 'get_transaction_history', 'create_action', 'list_actions', 'update_action', 'cancel_action']:
+                            if 'user_id' not in function_args:
+                                function_args['user_id'] = user_id
+                        
+                        # Execute the function
+                        if function_name in self.available_functions:
+                            try:
+                                if inspect.iscoroutinefunction(self.available_functions[function_name]):
+                                    function_result = await self.available_functions[function_name](**function_args)
+                                else:
+                                    function_result = self.available_functions[function_name](**function_args)
+                                
+                                function_call_info = FunctionCall(
+                                    name=function_name,
+                                    arguments=function_args,
+                                    result=function_result,
+                                    timestamp=datetime.now().isoformat()
+                                )
+                                function_calls.append(function_call_info)
+                                
+                            except Exception as e:
+                                logger.error(f"Function execution error for {function_name}: {e}")
+                                function_result = {"error": str(e)}
+                                
+                                function_call_info = FunctionCall(
+                                    name=function_name,
+                                    arguments=function_args,
+                                    result=function_result,
+                                    timestamp=datetime.now().isoformat()
+                                )
+                                function_calls.append(function_call_info)
                         else:
-                            function_result = self.available_functions[function_name](**function_args)
-                        
-                        function_call_info = FunctionCall(
-                            name=function_name,
-                            arguments=function_args,
-                            result=function_result,
-                            timestamp=datetime.now().isoformat()
-                        )
-                        function_calls.append(function_call_info)
-                        
-                        # Continue conversation with function result. Force function result to be echoed explicitly
-                        # so the UI can render a visible trace.
-                        messages.append({
-                            "role": "assistant",
-                            "content": None,
-                            "function_call": {
-                                "name": function_name,
-                                "arguments": function_call.arguments
+                            function_result = {"error": "Function not available"}
+                            function_call_info = FunctionCall(
+                                name=function_name,
+                                arguments=function_args,
+                                result=function_result,
+                                timestamp=datetime.now().isoformat()
+                            )
+                            function_calls.append(function_call_info)
+                
+                # If we have function calls, continue conversation with results
+                if function_calls:
+                    # Add assistant message with tool calls
+                    messages.append({
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [{
+                            "id": tool_call.id,
+                            "type": "function",
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments
                             }
-                        })
+                        } for tool_call in message_content.tool_calls]
+                    })
+                    
+                    # Add function results as tool messages
+                    for i, function_call in enumerate(function_calls):
                         messages.append({
-                            "role": "function",
-                            "name": function_name,
-                            "content": json.dumps(function_result, default=str)
+                            "role": "tool",
+                            "tool_call_id": message_content.tool_calls[i].id,
+                            "content": json.dumps(function_call.result, default=str)
                         })
-                        
-                        # Get the final response
-                        final_response = await self.client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=messages,
-                            temperature=0.7,
-                            max_tokens=600
-                        )
-                        
-                        final_content = final_response.choices[0].message.content
-                    except Exception as e:
-                        logger.error(f"Function execution error: {e}")
-                        final_content = f"I encountered an error while executing {function_name}. Please try again or rephrase your request."
-                        function_result = {"error": str(e)}
-                        
-                        function_call_info = FunctionCall(
-                            name=function_name,
-                            arguments=function_args,
-                            result=function_result,
-                            timestamp=datetime.now().isoformat()
-                        )
-                        function_calls.append(function_call_info)
-                else:
-                    final_content = f"I don't have access to the function '{function_name}'. Please try a different request."
-                    function_result = {"error": "Function not available"}
-                    function_call_info = FunctionCall(
-                        name=function_name,
-                        arguments=function_args,
-                        result=function_result,
-                        timestamp=datetime.now().isoformat()
+                    
+                    # Get the final response with function results
+                    final_response = await self.client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=600
                     )
-                    function_calls.append(function_call_info)
+                    
+                    final_content = final_response.choices[0].message.content
+                else:
+                    final_content = "I encountered an issue processing your request. Please try again."
             else:
                 final_content = message_content.content
             
