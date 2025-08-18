@@ -944,6 +944,19 @@ ${sectorInfo}
           {/* Show function call before message content */}
           {functionCallDisplay}
           
+          {/* Show file attachments for user messages */}
+          {isUser && message.attachments && message.attachments.length > 0 && (
+            <div className="message-attachments">
+              {message.attachments.map((attachment, attIndex) => (
+                <div key={attIndex} className="message-attachment-item">
+                  <span className="attachment-icon">{getFileIcon(attachment.content_type)}</span>
+                  <span className="attachment-name">{attachment.filename}</span>
+                  <span className="attachment-size">({formatFileSize(attachment.size)})</span>
+                </div>
+              ))}
+            </div>
+          )}
+          
           <div className="message-text message-content-modern">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ''}</ReactMarkdown>
             {showConfirmation && <TransactionConfirmation message={message} />}
@@ -1023,7 +1036,18 @@ ${sectorInfo}
   };
 
   return (
-    <div className="modern-chat-page">
+    <div className="modern-chat-page" ref={chatContainerRef}>
+      {/* Drag & Drop Overlay */}
+      {isDragging && (
+        <div className="drag-drop-overlay">
+          <div className="drag-drop-content">
+            <div className="drag-drop-icon">📁</div>
+            <div className="drag-drop-text">Drop files here to upload</div>
+            <div className="drag-drop-subtext">Supports: PDF, Images, Word docs, Excel sheets</div>
+          </div>
+        </div>
+      )}
+      
       {/* Page Title */}
       <h1 className="page-title">AI Assistant</h1>
 
@@ -1174,8 +1198,38 @@ ${sectorInfo}
           </div>
         )}
         
+        {/* File Attachments Preview */}
+        {attachedFiles.length > 0 && (
+          <div className="attached-files-preview">
+            {attachedFiles.map((file) => (
+              <div key={file.id} className="attached-file-item">
+                <span className="file-icon">{getFileIcon(file.content_type)}</span>
+                <span className="file-name">{file.filename}</span>
+                <span className="file-size">({formatFileSize(file.size)})</span>
+                <button 
+                  className="remove-file-btn"
+                  onClick={() => removeAttachedFile(file.id)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="input-container-modern">
           <div className="input-wrapper">
+            <button 
+              className="file-upload-button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || isUploading}
+              type="button"
+              title="Upload files (PDF, images, documents)"
+            >
+              {isUploading ? '⏳' : '📎'}
+            </button>
+            
             <textarea
               ref={inputRef}
               className="input-field-modern"
@@ -1187,10 +1241,11 @@ ${sectorInfo}
               rows={1}
               style={{ height: 'auto', overflow: 'hidden' }}
             />
+            
             <button
               className="send-button-modern"
               onClick={() => handleSendMessage()}
-              disabled={!inputMessage.trim() || isLoading}
+              disabled={(!inputMessage.trim() && attachedFiles.length === 0) || isLoading}
             >
               <div className="send-icon-modern">
                 {isLoading ? (
@@ -1202,6 +1257,16 @@ ${sectorInfo}
             </button>
           </div>
         </div>
+        
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.docx,.doc,.txt,.csv,.xls,.xlsx"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
       </div>
     </div>
   );
