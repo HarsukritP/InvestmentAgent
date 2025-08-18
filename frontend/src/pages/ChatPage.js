@@ -682,22 +682,22 @@ ${sectorInfo}
         
         functionCallDisplay = (
           <div className="function-calls-container">
-            <div className="function-calls-summary">
-              <span className="function-summary-text">
-                Functions called ({validFunctions.length})
-              </span>
-              <span className="function-summary-toggle">
-                {expandedFunctions[`${index}-summary`] ? '▲' : '▼'}
-              </span>
-            </div>
-            
             <div 
-              className="function-calls-summary-header" 
+              className="function-calls-summary"
               onClick={() => toggleFunctionResponse(`${index}-summary`)}
             >
-              <div className="function-calls-list">
+              <div className="function-summary-content">
+                <span className="function-summary-triangle">
+                  {expandedFunctions[`${index}-summary`] ? '▼' : '▶'}
+                </span>
+                <span className="function-summary-text">
+                  Functions called ({validFunctions.length})
+                </span>
+              </div>
+              
+              <div className="function-calls-preview">
                 {validFunctions.map((funcCall, funcIndex) => (
-                  <span key={funcIndex} className="function-chip">
+                  <span key={funcIndex} className="function-chip-mini">
                     <span className="function-chip-icon">{getFunctionIcon(funcCall.name)}</span>
                     {formatFunctionName(funcCall.name)}
                   </span>
