@@ -766,14 +766,12 @@
   background: var(--procogia-primary);
   color: white;
   border-color: var(--procogia-primary);
-  transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 .file-upload-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
   box-shadow: none;
 }
 
