@@ -748,14 +748,15 @@
   padding: 0;
   color: #64748b;
   transition: all 0.2s ease;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
-  margin-right: 0.75rem;
+  margin-right: 0.5rem;
+  align-self: center;
 }
 
 .file-upload-button:hover:not(:disabled) {
@@ -774,15 +775,15 @@
 }
 
 .upload-plus-icon {
-  font-size: 1.25rem;
-  font-weight: 300;
+  font-size: 1rem;
+  font-weight: 400;
   line-height: 1;
   user-select: none;
 }
 
 .upload-spinner {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid #e2e8f0;
   border-top: 2px solid var(--procogia-primary);
   border-radius: 50%;
