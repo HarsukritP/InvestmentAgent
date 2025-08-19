@@ -551,6 +551,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   min-height: 48px;
+  position: relative;
 }
 
 .input-wrapper:focus-within {
@@ -560,7 +561,7 @@
 
 .input-field-modern {
   flex: 1;
-  padding: 12px 20px;
+  padding: 12px 20px 12px 3rem;
   border: none;
   outline: none;
   background: transparent;
@@ -742,21 +743,23 @@
 /* ========== FILE UPLOAD COMPONENTS ========== */
 
 .file-upload-button {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   cursor: pointer;
   padding: 0;
   color: #64748b;
   transition: all 0.2s ease;
-  border-radius: 6px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  margin-right: 0.5rem;
-  align-self: center;
+  width: 30px;
+  height: 30px;
+  z-index: 2;
 }
 
 .file-upload-button:hover:not(:disabled) {
