@@ -28,6 +28,7 @@ from market_data import MarketDataService
 from ai_agent import AIPortfolioAgent
 from auth import AuthenticationService
 from market_context import MarketContextService
+from greenhouse_service import GreenhouseService
 import database
 
 # Import monitoring services
@@ -68,6 +69,7 @@ portfolio_manager = PortfolioManager()
 auth_service = AuthenticationService()
 db_service = database.db_service
 market_context_service = MarketContextService(db_service)
+greenhouse_service = GreenhouseService(db_service)
 ai_agent = AIPortfolioAgent(portfolio_manager, market_service, market_context_service, db_service)
 
 # Initialize monitoring services
@@ -1383,6 +1385,89 @@ async def chat_with_ai(
     except Exception as e:
         print(f"Error in chat: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ========== GREENHOUSE/HR ENDPOINTS ==========
+
+@app.get("/greenhouse/candidates")
+async def get_candidates(
+    limit: int = 50,
+    stage: str = None,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get candidates from Greenhouse via Merge API"""
+    try:
+        result = await greenhouse_service.get_candidates(limit=limit, stage=stage)
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching candidates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching candidates: {str(e)}")
+
+@app.get("/greenhouse/jobs")
+async def get_jobs(
+    status: str = "open",
+    limit: int = 50,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get job postings from Greenhouse via Merge API"""
+    try:
+        result = await greenhouse_service.get_jobs(status=status, limit=limit)
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching jobs: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching jobs: {str(e)}")
+
+@app.get("/greenhouse/candidates/{candidate_id}")
+async def get_candidate_details(
+    candidate_id: str,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get detailed information about a specific candidate"""
+    try:
+        result = await greenhouse_service.get_candidate_details(candidate_id)
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching candidate details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching candidate details: {str(e)}")
+
+@app.get("/greenhouse/applications")
+async def get_applications(
+    candidate_id: str = None,
+    job_id: str = None,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get applications from Greenhouse"""
+    try:
+        result = await greenhouse_service.get_applications(candidate_id=candidate_id, job_id=job_id)
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching applications: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching applications: {str(e)}")
+
+@app.get("/greenhouse/metrics")
+async def get_recruiting_metrics(
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Get recruiting metrics and analytics"""
+    try:
+        result = await greenhouse_service.get_recruiting_metrics()
+        return result
+    except Exception as e:
+        logger.error(f"Error generating recruiting metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating recruiting metrics: {str(e)}")
+
+@app.get("/greenhouse/search")
+async def search_candidates(
+    q: str,
+    limit: int = 20,
+    user: Dict[str, Any] = Depends(require_auth)
+):
+    """Search candidates by name, email, or skills"""
+    try:
+        result = await greenhouse_service.search_candidates(query=q, limit=limit)
+        return result
+    except Exception as e:
+        logger.error(f"Error searching candidates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error searching candidates: {str(e)}")
 
 @app.get("/health")
 async def health_check():

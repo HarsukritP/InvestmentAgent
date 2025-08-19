@@ -18,6 +18,10 @@ FRED_API_KEY=<your_fred_api_key>
 NEWS_API_KEY=<your_news_api_key>
 OPENAI_API_KEY=<your_openai_api_key>
 
+# HR/Recruiting APIs
+MERGE_API_KEY=<your_merge_api_key>
+GREENHOUSE_API_KEY=<your_greenhouse_api_key>
+
 # Authentication
 GOOGLE_CLIENT_ID=<your_google_client_id>
 GOOGLE_CLIENT_SECRET=<your_google_client_secret>
