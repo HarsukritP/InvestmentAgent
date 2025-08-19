@@ -742,29 +742,56 @@
 /* ========== FILE UPLOAD COMPONENTS ========== */
 
 .file-upload-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   cursor: pointer;
-  padding: 0.5rem;
-  color: var(--procogia-primary);
+  padding: 0;
+  color: #64748b;
   transition: all 0.2s ease;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.5rem;
-  height: 2.5rem;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-right: 0.75rem;
 }
 
 .file-upload-button:hover:not(:disabled) {
-  background: rgba(139, 195, 74, 0.1);
-  transform: scale(1.1);
+  background: var(--procogia-primary);
+  color: white;
+  border-color: var(--procogia-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
 }
 
 .file-upload-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.upload-plus-icon {
+  font-size: 1.25rem;
+  font-weight: 300;
+  line-height: 1;
+  user-select: none;
+}
+
+.upload-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid var(--procogia-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .attached-files-preview {

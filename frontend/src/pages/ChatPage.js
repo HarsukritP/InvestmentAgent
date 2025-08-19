@@ -1227,7 +1227,11 @@ ${sectorInfo}
               type="button"
               title="Upload files (PDF, images, documents)"
             >
-              {isUploading ? '⏳' : '📎'}
+              {isUploading ? (
+                <div className="upload-spinner"></div>
+              ) : (
+                <span className="upload-plus-icon">+</span>
+              )}
             </button>
             
             <textarea
